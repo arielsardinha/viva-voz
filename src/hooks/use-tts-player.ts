@@ -167,7 +167,7 @@ export function useTtsPlayer({
     };
   }, [isSystem, isPlaying, currentIndex, sentences, voice, speed, advance, onError]);
 
-  // Narração com IA (Google/Lovable)
+  // Narração com IA (Google)
   useEffect(() => {
     if (isSystem) return;
     if (!isPlaying) {

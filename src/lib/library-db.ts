@@ -26,7 +26,7 @@ export interface Reading {
 export type ReadingSummary = Omit<Reading, "sentences" | "file">;
 
 export interface Preferences {
-  engine: "system" | "google" | "lovable";
+  engine: "system" | "google";
   voice: Record<string, string>;
   speed: string;
   lastReadingId: string | null;
@@ -80,7 +80,11 @@ export async function getPreferences(): Promise<Preferences> {
       (store) => store.get(PREFS_KEY),
       PREFS_STORE,
     );
-    return { ...DEFAULT_PREFERENCES, ...(stored ?? {}) };
+    const prefs = { ...DEFAULT_PREFERENCES, ...(stored ?? {}) };
+    if (prefs.engine !== "system" && prefs.engine !== "google") {
+      prefs.engine = "system";
+    }
+    return prefs;
   } catch {
     return DEFAULT_PREFERENCES;
   }

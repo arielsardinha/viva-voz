@@ -1,5 +1,5 @@
 /** Motores de narração disponíveis no leitor. */
-export type TtsEngine = "system" | "google" | "lovable";
+export type TtsEngine = "system" | "google";
 
 export interface VoiceOption {
   id: string;
@@ -9,7 +9,6 @@ export interface VoiceOption {
 export const TTS_ENGINES: { id: TtsEngine; label: string; hint: string }[] = [
   { id: "system", label: "Sistema (grátis)", hint: "Vozes do navegador/sistema operacional" },
   { id: "google", label: "Google (IA)", hint: "Gemini TTS — melhor qualidade" },
-  { id: "lovable", label: "Lovable (IA)", hint: "Vozes OpenAI via Lovable AI" },
 ];
 
 export const GOOGLE_VOICES: VoiceOption[] = [
@@ -20,17 +19,9 @@ export const GOOGLE_VOICES: VoiceOption[] = [
   { id: "Zephyr", label: "Zephyr (clara)" },
 ];
 
-export const LOVABLE_VOICES: VoiceOption[] = [
-  { id: "alloy", label: "Alloy (neutra)" },
-  { id: "verse", label: "Verse (expressiva)" },
-  { id: "sage", label: "Sage (calma)" },
-  { id: "coral", label: "Coral (suave)" },
-];
-
 export const DEFAULT_VOICE: Record<TtsEngine, string> = {
   system: "",
   google: "Kore",
-  lovable: "alloy",
 };
 
 /** Vozes instaladas no navegador/sistema, priorizando português. */

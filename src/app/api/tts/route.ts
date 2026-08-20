@@ -3,7 +3,7 @@ import { z } from "zod";
 const BodySchema = z.object({
   text: z.string().min(1).max(2000),
   voice: z.string().min(1).max(40).default("Kore"),
-  engine: z.enum(["google", "lovable"]).default("google"),
+  engine: z.enum(["google"]).default("google"),
   userApiKey: z.string().trim().min(10).max(200).optional(),
 });
 
@@ -51,12 +51,12 @@ function geminiBody(model: string, text: string, voice: string) {
   };
 }
 
-function errorMessage(status: number, engine: string) {
+function errorMessage(status: number) {
   if (status === 429) return "Muitas requisições de narração. Aguarde alguns segundos.";
-  if (status === 402 || status === 403)
-    return engine === "google"
-      ? "Créditos/permissão indisponíveis para a narração Google."
-      : "Os créditos de IA acabaram. Adicione créditos para continuar narrando.";
+  if (status === 401 || status === 403)
+    return "Chave do Google AI Studio inválida ou sem permissão para narração.";
+  if (status === 402)
+    return "Cota ou créditos esgotados na sua conta do Google AI Studio.";
   return `Não foi possível gerar o áudio (${status}).`;
 }
 
@@ -68,76 +68,55 @@ export async function POST(request: Request) {
     return Response.json({ error: "Requisição inválida." }, { status: 400 });
   }
 
-  // 1) Conta própria do usuário (Google AI Studio / plano pago)
-  if (parsed.engine === "google" && parsed.userApiKey) {
-    const model = "gemini-2.5-flash-preview-tts";
-    const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": parsed.userApiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(geminiBody(model, parsed.text, parsed.voice)),
-      },
-    );
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      console.error(`TTS Google (conta do usuário) falhou [${upstream.status}]: ${detail}`);
-      return Response.json(
-        { error: errorMessage(upstream.status, "google") },
-        { status: upstream.status },
-      );
-    }
-    const json = (await upstream.json()) as {
-      candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[];
-    };
-    const base64 = json.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64) {
-      return Response.json({ error: "A IA não retornou áudio para este trecho." }, { status: 502 });
-    }
-    const wav = pcmToWav(decodeBase64(base64));
-    return new Response(wav as unknown as BodyInit, {
-      headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
-    });
-  }
+  const apiKey =
+    parsed.userApiKey ||
+    process.env["GEMINI_API_KEY"] ||
+    process.env["GOOGLE_API_KEY"] ||
+    process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
 
-  // 2) Lovable AI Gateway (Google por padrão, OpenAI quando escolhido)
-  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) {
-    return Response.json({ error: "Serviço de narração indisponível." }, { status: 500 });
+    return Response.json(
+      {
+        error:
+          "Chave do Google AI Studio não configurada. Conecte sua conta Gemini para narrar com a voz da IA.",
+      },
+      { status: 401 },
+    );
   }
 
-  const payload =
-    parsed.engine === "google"
-      ? geminiBody("google/gemini-2.5-flash-tts", parsed.text, parsed.voice)
-      : {
-          model: "openai/gpt-4o-mini-tts",
-          input: parsed.text,
-          voice: parsed.voice,
-          response_format: "mp3",
-        };
-
-  const upstream = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const model = "gemini-2.5-flash-preview-tts";
+  const upstream = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(geminiBody(model, parsed.text, parsed.voice)),
+    },
+  );
 
   if (!upstream.ok) {
     const detail = await upstream.text().catch(() => "");
-    console.error(`TTS ${parsed.engine} falhou [${upstream.status}]: ${detail}`);
+    console.error(`TTS Google falhou [${upstream.status}]: ${detail}`);
     return Response.json(
-      { error: errorMessage(upstream.status, parsed.engine) },
+      { error: errorMessage(upstream.status) },
       { status: upstream.status },
     );
   }
 
-  return new Response(upstream.body, {
-    headers: {
-      "Content-Type": parsed.engine === "google" ? "audio/wav" : "audio/mpeg",
-      "Cache-Control": "no-store",
-    },
+  const json = (await upstream.json()) as {
+    candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[];
+  };
+  const base64 = json.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  if (!base64) {
+    return Response.json({ error: "A IA não retornou áudio para este trecho." }, { status: 502 });
+  }
+
+  const wav = pcmToWav(decodeBase64(base64));
+  return new Response(wav as unknown as BodyInit, {
+    headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
   });
 }
+

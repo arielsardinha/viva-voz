@@ -1,5 +1,5 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { createLovableAiGatewayProvider, createUserGeminiProvider } from "@/lib/ai-gateway.server";
+import { createUserGeminiProvider } from "@/lib/ai-gateway.server";
 
 const MAX_CONTEXT_CHARS = 60000;
 
@@ -10,7 +10,7 @@ type AskBody = {
   userApiKey?: unknown;
 };
 
-/** Converte erros do gateway/Gemini em mensagens claras para o usuário final. */
+/** Converte erros da API Gemini em mensagens claras para o usuário final. */
 export function describeAskError(error: unknown): string {
   const status = extractStatus(error);
   const raw = error instanceof Error ? error.message : String(error ?? "");
@@ -18,7 +18,7 @@ export function describeAskError(error: unknown): string {
     /api key|api_key|unauthorized|invalid.*key/i.test(raw) || status === 401 || status === 403;
 
   if (status === 402 || /not enough credits|payment required/i.test(raw)) {
-    return "Os créditos da IA inclusa no app acabaram. Conecte sua própria conta Gemini (chave do Google AI Studio) para continuar perguntando.";
+    return "Limite ou créditos da IA esgotados. Verifique sua chave no Google AI Studio.";
   }
   if (status === 429) {
     return "Muitas perguntas em pouco tempo. Aguarde alguns segundos e tente novamente.";
@@ -27,7 +27,7 @@ export function describeAskError(error: unknown): string {
     return "A chave do Gemini informada foi recusada. Verifique a chave no Google AI Studio e conecte novamente.";
   }
   if (status && status >= 500) {
-    return "O serviço de IA está temporariamente indisponível. Tente novamente em instantes.";
+    return "O serviço do Gemini está temporariamente indisponível. Tente novamente em instantes.";
   }
   return raw ? `Não foi possível consultar a IA: ${raw}` : "Não foi possível consultar a IA.";
 }
@@ -61,14 +61,20 @@ export async function handleAskRequest(request: Request): Promise<Response> {
       ? body.userApiKey.trim()
       : null;
 
-  let model;
-  if (userApiKey) {
-    model = createUserGeminiProvider(userApiKey)("gemini-2.5-pro");
-  } else {
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) return new Response("Serviço de IA indisponível", { status: 500 });
-    model = createLovableAiGatewayProvider(key)("google/gemini-3.6-flash");
+  const apiKey =
+    userApiKey ||
+    process.env["GEMINI_API_KEY"] ||
+    process.env["GOOGLE_API_KEY"] ||
+    process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
+
+  if (!apiKey) {
+    return new Response(
+      "Chave de API do Gemini não configurada. Conecte sua conta do Google AI Studio no chat para continuar.",
+      { status: 400 },
+    );
   }
+
+  const model = createUserGeminiProvider(apiKey)("gemini-2.5-flash");
 
   const system = [
     "Você é um assistente que responde perguntas sobre um documento PDF, em português do Brasil.",

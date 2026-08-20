@@ -131,7 +131,9 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
           </PromptInputFooter>
         </PromptInput>
         <p className="text-muted-foreground mt-2 text-[11px]">
-          {apiKey ? "Usando sua conta Gemini (chave própria)." : "Usando o Gemini incluso no app."}
+          {apiKey
+            ? "Usando sua conta Gemini (chave própria conectada)."
+            : "Conecte sua conta do Google AI Studio para conversar com o documento."}
         </p>
       </div>
     </>

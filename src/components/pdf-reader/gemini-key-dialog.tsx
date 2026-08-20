@@ -46,10 +46,9 @@ export function GeminiKeyDialog({ apiKey, onChange }: GeminiKeyDialogProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Usar meu plano Gemini pago</DialogTitle>
+          <DialogTitle>Conectar conta do Gemini (Google AI Studio)</DialogTitle>
           <DialogDescription>
-            Opcional. Por padrão o app já responde com o Gemini incluso. Siga os 3 passos abaixo
-            para usar sua própria conta Google — a chave fica salva apenas neste navegador.
+            Siga os 3 passos abaixo para conectar sua chave do Google AI Studio (gratuita ou paga) — a chave fica salva apenas neste navegador.
           </DialogDescription>
         </DialogHeader>
 

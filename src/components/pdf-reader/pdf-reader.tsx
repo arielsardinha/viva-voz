@@ -24,7 +24,6 @@ import {
   DEFAULT_VOICE,
   GOOGLE_VOICES,
   listSystemVoices,
-  LOVABLE_VOICES,
   type TtsEngine,
   type VoiceOption,
 } from "@/lib/tts-engines";
@@ -48,10 +47,9 @@ export function PdfReader() {
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
 
-  const engine = prefs.engine as TtsEngine;
+  const engine = prefs.engine;
   const speed = prefs.speed;
-  const voices: VoiceOption[] =
-    engine === "system" ? systemVoices : engine === "google" ? GOOGLE_VOICES : LOVABLE_VOICES;
+  const voices: VoiceOption[] = engine === "system" ? systemVoices : GOOGLE_VOICES;
   const voice = prefs.voice[engine] ?? DEFAULT_VOICE[engine] ?? "";
 
   const patchPrefs = useCallback((patch: Partial<Preferences>) => {
