@@ -39,18 +39,53 @@ describe("TextSelectionMenu", () => {
     });
   };
 
-  it("deve renderizar o menu quando houver seleção de texto", () => {
+  it("deve renderizar o menu com as opções Marcar Piloto, Bloco de Notas, Explicar e Copiar (sem Ouvir e Resumir)", () => {
     setupSelection("Texto selecionado para teste");
 
-    render(<TextSelectionMenu containerRef={mockContainer} />);
+    render(
+      <TextSelectionMenu
+        containerRef={mockContainer}
+        onAddNote={jest.fn()}
+      />
+    );
 
     act(() => {
       fireEvent(document, new Event("selectionchange"));
     });
 
     expect(screen.getByText("Marcar Piloto")).toBeInTheDocument();
-    expect(screen.getByText("Resumir")).toBeInTheDocument();
+    expect(screen.getByText("Bloco de Notas")).toBeInTheDocument();
     expect(screen.getByText("Explicar")).toBeInTheDocument();
+    expect(screen.getByTitle("Copiar texto")).toBeInTheDocument();
+
+    // Garante que Ouvir e Resumir foram removidos
+    expect(screen.queryByText("Ouvir")).toBeNull();
+    expect(screen.queryByText("Resumir")).toBeNull();
+  });
+
+  it("deve chamar onAskAI ao clicar em Explicar", () => {
+    const onAskAIMock = jest.fn();
+    setupSelection("Conceito complexo");
+
+    render(
+      <TextSelectionMenu
+        containerRef={mockContainer}
+        onAskAI={onAskAIMock}
+      />
+    );
+
+    act(() => {
+      fireEvent(document, new Event("selectionchange"));
+    });
+
+    const explainBtn = screen.getByText("Explicar");
+    act(() => {
+      fireEvent.click(explainBtn);
+    });
+
+    expect(onAskAIMock).toHaveBeenCalledWith(
+      expect.stringContaining("Explique os conceitos e o significado")
+    );
   });
 
   it("deve chamar copyToClipboard com segurança ao clicar em copiar", async () => {
@@ -154,4 +189,3 @@ describe("TextSelectionMenu", () => {
     expect(onAddNoteMock).toHaveBeenCalledWith("Trecho para anotar");
   });
 });
-

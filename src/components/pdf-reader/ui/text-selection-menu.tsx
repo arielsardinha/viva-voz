@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Copy, Sparkles, Volume2, HelpCircle, Highlighter, Eraser, ChevronDown, StickyNote } from "lucide-react";
+import { Copy, HelpCircle, Highlighter, Eraser, ChevronDown, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 interface TextSelectionMenuProps {
   containerRef: React.RefObject<HTMLElement | null>;
   onAskAI?: (prompt: string) => void;
-  onSpeakSelection?: (text: string) => void;
   onHighlight?: (color: HighlightColor, text: string) => void;
   onRemoveHighlight?: (text: string) => void;
   onAddNote?: (text: string) => void;
@@ -22,7 +21,6 @@ interface TextSelectionMenuProps {
 export function TextSelectionMenu({
   containerRef,
   onAskAI,
-  onSpeakSelection,
   onHighlight,
   onRemoveHighlight,
   onAddNote,
@@ -92,27 +90,9 @@ export function TextSelectionMenu({
     setShowColorPalette(false);
   };
 
-  const handleSummarize = () => {
-    if (onAskAI) {
-      onAskAI(`Por favor, resuma de forma clara e concisa o seguinte trecho:\n\n"${selectedText}"`);
-    }
-    window.getSelection()?.removeAllRanges();
-    setPosition(null);
-    setShowColorPalette(false);
-  };
-
   const handleExplain = () => {
     if (onAskAI) {
       onAskAI(`Explique os conceitos e o significado deste trecho:\n\n"${selectedText}"`);
-    }
-    window.getSelection()?.removeAllRanges();
-    setPosition(null);
-    setShowColorPalette(false);
-  };
-
-  const handleSpeak = () => {
-    if (onSpeakSelection) {
-      onSpeakSelection(selectedText);
     }
     window.getSelection()?.removeAllRanges();
     setPosition(null);
@@ -199,15 +179,7 @@ export function TextSelectionMenu({
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={handleSummarize}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent/15 hover:text-accent rounded-lg transition-colors cursor-pointer"
-        >
-          <Sparkles className="size-3.5 text-accent" />
-          <span>Resumir</span>
-        </button>
-
+        {/* Opção Explicar com IA */}
         <button
           type="button"
           onClick={handleExplain}
@@ -217,17 +189,7 @@ export function TextSelectionMenu({
           <span>Explicar</span>
         </button>
 
-        {onSpeakSelection && (
-          <button
-            type="button"
-            onClick={handleSpeak}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent/15 hover:text-accent rounded-lg transition-colors cursor-pointer"
-          >
-            <Volume2 className="size-3.5 text-accent" />
-            <span>Ouvir</span>
-          </button>
-        )}
-
+        {/* Opção Copiar Texto */}
         <button
           type="button"
           onClick={handleCopy}
