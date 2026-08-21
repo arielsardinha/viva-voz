@@ -47,11 +47,15 @@ describe("SupportDialog Component", () => {
     // QR Code está recolhido inicialmente
     expect(screen.queryByTestId("pix-qrcode-container")).not.toBeInTheDocument();
 
-    // Ao clicar no toggle, exibe o QR Code
+    // Ao clicar no toggle, exibe o QR Code e carrega o SVG
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /prefere escanear com a câmera/i }));
     });
     expect(screen.getByTestId("pix-qrcode-container")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/gerando\.\.\./i)).not.toBeInTheDocument();
+      expect(screen.getByText(/abra o app do seu banco e aponte para o qr code acima/i)).toBeInTheDocument();
+    });
   });
 
   it("deve copiar o código Pix (BR Code) e notificar ao clicar em 'Copiar Código Pix'", async () => {
