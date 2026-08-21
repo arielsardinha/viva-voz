@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "cy:open": "cypress open",
-    "test": "jest"
+    "cy:run": "cypress run",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.32",
@@ -84,8 +86,10 @@
     "cypress": "^15.21.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "fake-indexeddb": "^6.2.5",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
+    "msw": "^2.15.0",
     "postcss": "^8",
     "ts-node": "^10.9.2",
     "typescript": "^5"

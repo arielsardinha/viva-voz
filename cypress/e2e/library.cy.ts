@@ -1,0 +1,35 @@
+describe("Biblioteca de Leituras (/leituras)", () => {
+  beforeEach(() => {
+    cy.visit("/leituras");
+  });
+
+  it("deve carregar a página da biblioteca exibindo navegação e armazenamento", () => {
+    cy.contains("Biblioteca").should("be.visible");
+    cy.contains("Favoritos").should("be.visible");
+    cy.contains("Armazenamento Local").should("be.visible");
+    cy.get('input[placeholder="Pesquisar leituras…"]').should("be.visible");
+  });
+
+  it("deve exibir estado vazio quando não houver leituras salvas", () => {
+    cy.contains("Nenhuma leitura encontrada").should("be.visible");
+    cy.contains("Envie um arquivo PDF acima para começar a sua biblioteca com narração.").should(
+      "be.visible"
+    );
+  });
+
+  it("deve alternar entre as abas Biblioteca e Favoritos na sidebar", () => {
+    cy.contains("button", "Favoritos").click();
+    cy.contains("Nenhuma leitura encontrada").should("be.visible");
+
+    cy.contains("button", "Biblioteca").click();
+    cy.contains("Nenhuma leitura encontrada").should("be.visible");
+  });
+
+  it("deve permitir filtrar pelas tags pré-definidas", () => {
+    const tags = ["Todos", "Design", "Tech", "Estudos", "Artigos"];
+
+    tags.forEach((tag) => {
+      cy.contains("button", tag).should("be.visible").click();
+    });
+  });
+});
