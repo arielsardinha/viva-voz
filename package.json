@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cy:open": "cypress open"
+    "cy:open": "cypress open",
+    "test": "jest"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.32",
@@ -72,6 +73,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -79,7 +84,10 @@
     "cypress": "^15.21.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "postcss": "^8",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
