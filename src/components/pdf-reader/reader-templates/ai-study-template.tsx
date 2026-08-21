@@ -80,7 +80,6 @@ export function AIStudyTemplate({
   const { status: chromeAiStatus } = useChromeAi();
   const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
-  const activeRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -110,10 +109,6 @@ export function AIStudyTemplate({
     if (key) window.localStorage.setItem(STORAGE_KEY, key);
     else window.localStorage.removeItem(STORAGE_KEY);
   }, []);
-
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [currentIndex]);
 
   const context = useMemo(
     () => sentences.map((s) => `[p.${s.page}] ${s.text}`).join("\n"),
@@ -316,7 +311,6 @@ export function AIStudyTemplate({
                   )}
                   <button
                     type="button"
-                    ref={isActive ? activeRef : undefined}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
                       "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   BookOpen,
   ChevronLeft,
@@ -64,7 +64,6 @@ export function ModernStudioTemplate({
   onSpeedChange,
   onAskAI,
 }: ModernStudioTemplateProps) {
-  const activeRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showChapters, setShowChapters] = useState(false);
@@ -81,10 +80,6 @@ export function ModernStudioTemplate({
     sentences.forEach((s) => pages.add(s.page));
     return Array.from(pages).sort((a, b) => a - b);
   }, [sentences]);
-
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [currentIndex]);
 
   const jumpToPage = (pageNum: number) => {
     const firstSentenceOfPage = sentences.findIndex((s) => s.page === pageNum);
@@ -242,7 +237,6 @@ export function ModernStudioTemplate({
                   )}
                   <button
                     type="button"
-                    ref={isActive ? activeRef : undefined}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
                       "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
