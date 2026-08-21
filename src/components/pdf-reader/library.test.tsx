@@ -125,7 +125,7 @@ describe("Library Component", () => {
     expect(savedFavs).toContain("r1");
   });
 
-  it("deve excluir uma leitura ao clicar no botão de lixeira", async () => {
+  it("deve abrir o modal de confirmação e excluir uma leitura ao confirmar", async () => {
     await saveReading(mockReading1);
 
     render(
@@ -140,6 +140,11 @@ describe("Library Component", () => {
 
     const deleteButton = screen.getByRole("button", { name: /excluir leitura/i });
     fireEvent.click(deleteButton);
+
+    // Modal de confirmação deve abrir
+    expect(screen.getByText("Excluir Leitura")).toBeInTheDocument();
+    const confirmButton = screen.getByRole("button", { name: /sim, excluir leitura/i });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(screen.queryByText("Apostila de TypeScript")).not.toBeInTheDocument();

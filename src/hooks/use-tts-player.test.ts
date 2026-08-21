@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTtsPlayer } from "./use-tts-player";
 import type { Sentence } from "@/lib/pdf-text";
+import { clearAllAudioCache } from "@/lib/tts-audio-cache";
 
 const mockSentences: Sentence[] = [
   { index: 0, page: 1, text: "Primeira frase para testar." },
@@ -224,11 +225,167 @@ describe("useTtsPlayer Hook", () => {
     });
   });
 
-  describe("Motor de Narração por IA (Google)", () => {
+  describe("Motor de Narração por IA (Google Gemini TTS) - Cache & Prefetch", () => {
     const originalFetch = global.fetch;
+
+    beforeEach(async () => {
+      await clearAllAudioCache();
+      global.fetch = jest.fn().mockImplementation((url, options) => {
+        const body = options?.body ? JSON.parse(options.body as string) : {};
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          blob: () => Promise.resolve(new Blob([`audio-for-${body.text}-${body.voice}`], { type: "audio/wav" })),
+          json: () => Promise.resolve({}),
+        });
+      });
+    });
 
     afterEach(() => {
       global.fetch = originalFetch;
+    });
+
+    it("deve armazenar em cache os áudios gerados e reutilizá-los sem novas chamadas à API quando a voz for a mesma", async () => {
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "google",
+          voice: "Kore",
+          speed: 1,
+          userApiKey: "fake-key",
+        })
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+
+      const initialFetchCount = (global.fetch as jest.Mock).mock.calls.length;
+
+      // Avança para a frase 1
+      act(() => {
+        result.current.next();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentIndex).toBe(1);
+      });
+
+      const afterNextFetchCount = (global.fetch as jest.Mock).mock.calls.length;
+
+      // Volta para a frase 0 (que já foi carregada)
+      act(() => {
+        result.current.previous();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentIndex).toBe(0);
+      });
+
+      // Não deve ter feito novas requisições para a frase 0, pois ela já está no cache com a mesma voz
+      expect((global.fetch as jest.Mock).mock.calls.length).toBe(afterNextFetchCount);
+    });
+
+    it("deve pré-carregar automaticamente SOMENTE os 2 próximos textos na fila", async () => {
+      const fiveSentences: Sentence[] = [
+        { index: 0, page: 1, text: "Frase 0" },
+        { index: 1, page: 1, text: "Frase 1" },
+        { index: 2, page: 1, text: "Frase 2" },
+        { index: 3, page: 1, text: "Frase 3" },
+        { index: 4, page: 1, text: "Frase 4" },
+      ];
+
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: fiveSentences,
+          engine: "google",
+          voice: "Kore",
+          speed: 1,
+          userApiKey: "fake-key",
+        })
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+
+      // Deve ter feito requisições para: Frase 0 (atual), Frase 1 (próxima) e Frase 2 (segunda próxima)
+      const requestedTexts = (global.fetch as jest.Mock).mock.calls.map((call) => {
+        const body = JSON.parse(call[1].body);
+        return body.text;
+      });
+
+      expect(requestedTexts).toContain("Frase 0");
+      expect(requestedTexts).toContain("Frase 1");
+      expect(requestedTexts).toContain("Frase 2");
+      // Não deve ter carregado além dos 2 próximos (Frase 3 e 4 não devem ser carregadas agora)
+      expect(requestedTexts).not.toContain("Frase 3");
+      expect(requestedTexts).not.toContain("Frase 4");
+    });
+
+    it("deve priorizar o cache quando a voz for a mesma e buscar novo áudio quando a voz mudar", async () => {
+      const { result, rerender } = renderHook(
+        ({ voice }) =>
+          useTtsPlayer({
+            sentences: mockSentences,
+            engine: "google",
+            voice,
+            speed: 1,
+            userApiKey: "fake-key",
+          }),
+        { initialProps: { voice: "Kore" } }
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+
+      const koreCalls = (global.fetch as jest.Mock).mock.calls.filter((call) => {
+        const body = JSON.parse(call[1].body);
+        return body.voice === "Kore" && body.text === "Primeira frase para testar.";
+      }).length;
+      expect(koreCalls).toBe(1);
+
+      // Troca a voz para "Puck"
+      rerender({ voice: "Puck" });
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        const puckCalls = (global.fetch as jest.Mock).mock.calls.filter((call) => {
+          const body = JSON.parse(call[1].body);
+          return body.voice === "Puck" && body.text === "Primeira frase para testar.";
+        }).length;
+        expect(puckCalls).toBe(1);
+      });
+
+      // Retorna para a voz "Kore" - deve reaproveitar o cache já gerado anteriormente sem nova requisição
+      rerender({ voice: "Kore" });
+
+      act(() => {
+        result.current.play();
+      });
+
+      const finalKoreCalls = (global.fetch as jest.Mock).mock.calls.filter((call) => {
+        const body = JSON.parse(call[1].body);
+        return body.voice === "Kore" && body.text === "Primeira frase para testar.";
+      }).length;
+
+      expect(finalKoreCalls).toBe(1); // Manteve 1, sem nova requisição!
     });
 
     it("deve disparar onEngineUnavailable quando a API retornar 402 (créditos esgotados)", async () => {

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Gauge,
   Headphones,
+  Loader2,
   Mic,
   Pause,
   Play,
@@ -307,10 +308,23 @@ export function AIStudyTemplate({
             <button
               type="button"
               onClick={onToggle}
+              aria-label={
+                isBuffering
+                  ? "Carregando áudio..."
+                  : isPlaying
+                  ? "Pausar narração"
+                  : "Ouvir narração"
+              }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95 cursor-pointer"
             >
-              {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-              <span>{isPlaying ? "Pausar" : "Ouvir"}</span>
+              {isBuffering ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : isPlaying ? (
+                <Pause className="size-3.5" aria-hidden="true" />
+              ) : (
+                <Play className="size-3.5" aria-hidden="true" />
+              )}
+              <span>{isBuffering ? "Carregando..." : isPlaying ? "Pausar" : "Ouvir"}</span>
             </button>
 
             {/* Seletor de Voz & Motor no Leitor */}

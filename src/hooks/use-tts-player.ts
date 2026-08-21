@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Sentence } from "@/lib/pdf-text";
 import type { TtsEngine } from "@/lib/tts-engines";
+import {
+  getCachedAudioBlob,
+  saveCachedAudio,
+  buildAudioCacheKey,
+} from "@/lib/tts-audio-cache";
 
 interface UseTtsPlayerOptions {
   sentences: Sentence[];
@@ -8,6 +13,7 @@ interface UseTtsPlayerOptions {
   voice: string;
   speed: number;
   userApiKey?: string | null;
+  documentId?: string | null;
   onError?: (message: string) => void;
   /** Disparado quando o motor de IA fica indisponível (sem créditos/permissão). */
   onEngineUnavailable?: (engine: TtsEngine, message: string) => void;
@@ -22,12 +28,12 @@ class TtsHttpError extends Error {
   }
 }
 
-async function fetchAudioUrl(
+async function fetchAudioBlob(
   text: string,
   engine: TtsEngine,
   voice: string,
   userApiKey?: string | null,
-): Promise<string> {
+): Promise<Blob> {
   const response = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -40,8 +46,11 @@ async function fetchAudioUrl(
       response.status,
     );
   }
-  const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  return await response.blob();
+}
+
+function getCacheKey(engine: TtsEngine, voice: string, text: string): string {
+  return `${engine}::${voice}::${text.trim()}`;
 }
 
 export function useTtsPlayer({
@@ -50,6 +59,7 @@ export function useTtsPlayer({
   voice,
   speed,
   userApiKey,
+  documentId,
   onError,
   onEngineUnavailable,
 }: UseTtsPlayerOptions) {
@@ -58,15 +68,23 @@ export function useTtsPlayer({
   const [isBuffering, setIsBuffering] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cacheRef = useRef(new Map<number, string>());
+  const cacheRef = useRef<Map<string, string>>(new Map());
+  const inFlightRef = useRef<Map<string, Promise<string>>>(new Map());
   const requestIdRef = useRef(0);
-  const settingsRef = useRef({ engine, voice, userApiKey });
+  const settingsRef = useRef({ engine, voice, userApiKey, documentId });
 
   const isSystem = engine === "system";
 
   const clearCache = useCallback(() => {
-    for (const url of cacheRef.current.values()) URL.revokeObjectURL(url);
+    for (const url of cacheRef.current.values()) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // Ignora caso a URL já tenha sido revogada
+      }
+    }
     cacheRef.current.clear();
+    inFlightRef.current.clear();
   }, []);
 
   const stopAll = useCallback(() => {
@@ -77,35 +95,110 @@ export function useTtsPlayer({
   }, []);
 
   const getAudioUrl = useCallback(
-    async (index: number) => {
-      const cached = cacheRef.current.get(index);
-      if (cached) return cached;
+    async (index: number, targetEngine = engine, targetVoice = voice) => {
       const sentence = sentences[index];
       if (!sentence) throw new Error("Trecho inexistente.");
-      const url = await fetchAudioUrl(sentence.text, engine, voice, userApiKey);
-      cacheRef.current.set(index, url);
-      return url;
+
+      const cacheKey = getCacheKey(targetEngine, targetVoice, sentence.text);
+
+      // 1. Nível 1: Cache em Memória RAM (0ms de latência)
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached) return cached;
+
+      // 2. Deduplicação de requisições em andamento
+      const inFlight = inFlightRef.current.get(cacheKey);
+      if (inFlight) return inFlight;
+
+      const promise = (async () => {
+        try {
+          // 3. Nível 2: Cache Persistente no IndexedDB (se for IA)
+          if (targetEngine !== "system") {
+            const persistedBlob = await getCachedAudioBlob(
+              documentId,
+              targetEngine,
+              targetVoice,
+              sentence.text,
+            );
+            if (persistedBlob) {
+              const url = URL.createObjectURL(persistedBlob);
+              cacheRef.current.set(cacheKey, url);
+              return url;
+            }
+          }
+
+          // 4. Se não estiver em cache, faz a requisição na API
+          const blob = await fetchAudioBlob(sentence.text, targetEngine, targetVoice, userApiKey);
+          const url = URL.createObjectURL(blob);
+          cacheRef.current.set(cacheKey, url);
+
+          // 5. Salva no IndexedDB em background com fallback transparente
+          if (targetEngine !== "system") {
+            const trackKey = buildAudioCacheKey(documentId, targetEngine, targetVoice, sentence.text);
+            void saveCachedAudio({
+              id: trackKey,
+              documentId: documentId && documentId.trim().length > 0 ? documentId.trim() : "general",
+              engine: targetEngine,
+              voice: targetVoice,
+              sentenceIndex: index,
+              text: sentence.text,
+              audioBlob: blob,
+              sizeBytes: blob.size,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            }).catch(() => undefined);
+          }
+
+          return url;
+        } finally {
+          inFlightRef.current.delete(cacheKey);
+        }
+      })();
+
+      inFlightRef.current.set(cacheKey, promise);
+      return promise;
     },
-    [sentences, engine, voice, userApiKey],
+    [sentences, engine, voice, userApiKey, documentId],
   );
 
-  // Reinicia tudo quando o documento muda
+  /** Pré-carrega SOMENTE os dois próximos textos na fila para garantir reprodução fluida */
+  const prefetchNextSentences = useCallback(
+    (startIndex: number, targetEngine = engine, targetVoice = voice) => {
+      if (targetEngine === "system") return;
+
+      const targetIndices = [startIndex + 1, startIndex + 2].filter(
+        (idx) => idx >= 0 && idx < sentences.length,
+      );
+
+      for (const idx of targetIndices) {
+        const sentence = sentences[idx];
+        if (!sentence) continue;
+        const key = getCacheKey(targetEngine, targetVoice, sentence.text);
+        if (!cacheRef.current.has(key) && !inFlightRef.current.has(key)) {
+          void getAudioUrl(idx, targetEngine, targetVoice).catch(() => undefined);
+        }
+      }
+    },
+    [sentences, engine, voice, getAudioUrl],
+  );
+
+  // Reinicia tudo e esvazia cache de URLs quando o documento muda
   useEffect(() => {
     setIsPlaying(false);
+    setIsBuffering(false);
     clearCache();
     stopAll();
   }, [sentences, clearCache, stopAll]);
 
-  // Motor/voz/conta mudaram: o áudio em cache não vale mais
+  // Motor/voz/conta mudaram: pausa a narração atual mantendo cache disponível para reutilização futura
   useEffect(() => {
     const prev = settingsRef.current;
     if (prev.engine === engine && prev.voice === voice && prev.userApiKey === userApiKey) return;
     settingsRef.current = { engine, voice, userApiKey };
-    clearCache();
     setIsPlaying(false);
+    setIsBuffering(false);
     stopAll();
     if (audioRef.current) audioRef.current.removeAttribute("src");
-  }, [engine, voice, userApiKey, clearCache, stopAll]);
+  }, [engine, voice, userApiKey, stopAll]);
 
   useEffect(() => {
     return () => {
@@ -118,6 +211,7 @@ export function useTtsPlayer({
     setCurrentIndex((index) => {
       if (index >= sentences.length - 1) {
         setIsPlaying(false);
+        setIsBuffering(false);
         return index;
       }
       return index + 1;
@@ -131,11 +225,13 @@ export function useTtsPlayer({
     const synth = window.speechSynthesis;
     if (!isPlaying) {
       synth.cancel();
+      setIsBuffering(false);
       return;
     }
     const sentence = sentences[currentIndex];
     if (!sentence) {
       setIsPlaying(false);
+      setIsBuffering(false);
       return;
     }
 
@@ -158,6 +254,7 @@ export function useTtsPlayer({
     utterance.onerror = () => {
       if (requestId !== requestIdRef.current) return;
       setIsPlaying(false);
+      setIsBuffering(false);
       onError?.("Não foi possível narrar com as vozes do sistema.");
     };
     setIsBuffering(false);
@@ -168,16 +265,18 @@ export function useTtsPlayer({
     };
   }, [isSystem, isPlaying, currentIndex, sentences, voice, speed, advance, onError]);
 
-  // Narração com IA (Google)
+  // Narração com IA (Google Gemini TTS)
   useEffect(() => {
     if (isSystem) return;
     if (!isPlaying) {
       audioRef.current?.pause();
+      setIsBuffering(false);
       return;
     }
     const sentence = sentences[currentIndex];
     if (!sentence) {
       setIsPlaying(false);
+      setIsBuffering(false);
       return;
     }
 
@@ -187,7 +286,10 @@ export function useTtsPlayer({
 
     void (async () => {
       try {
-        const url = await getAudioUrl(currentIndex);
+        // Dispara em paralelo o prefetch dos 2 próximos trechos na fila
+        prefetchNextSentences(currentIndex, engine, voice);
+
+        const url = await getAudioUrl(currentIndex, engine, voice);
         if (cancelled || requestId !== requestIdRef.current) return;
 
         const audio = audioRef.current ?? new Audio();
@@ -196,19 +298,31 @@ export function useTtsPlayer({
         const numericSpeed = Math.max(0.5, Math.min(2.0, Number(speed) || 1.0));
         audio.defaultPlaybackRate = numericSpeed;
         audio.playbackRate = numericSpeed;
+
         audio.onplay = () => {
           if (audioRef.current) audioRef.current.playbackRate = numericSpeed;
+          if (!cancelled && requestId === requestIdRef.current) {
+            setIsBuffering(false);
+          }
+        };
+        audio.onwaiting = () => {
+          if (!cancelled && requestId === requestIdRef.current) {
+            setIsBuffering(true);
+          }
+        };
+        audio.onplaying = () => {
+          if (!cancelled && requestId === requestIdRef.current) {
+            setIsBuffering(false);
+          }
         };
         audio.onended = () => {
           if (requestId !== requestIdRef.current) return;
           advance();
         };
-        await audio.play();
-        if (!cancelled) setIsBuffering(false);
 
-        const next = currentIndex + 1;
-        if (next < sentences.length && !cacheRef.current.has(next)) {
-          void getAudioUrl(next).catch(() => undefined);
+        await audio.play();
+        if (!cancelled && requestId === requestIdRef.current) {
+          setIsBuffering(false);
         }
       } catch (error) {
         if (cancelled || requestId !== requestIdRef.current) return;
@@ -234,7 +348,9 @@ export function useTtsPlayer({
     sentences,
     speed,
     engine,
+    voice,
     getAudioUrl,
+    prefetchNextSentences,
     advance,
     onError,
     onEngineUnavailable,
@@ -250,7 +366,9 @@ export function useTtsPlayer({
   }, [speed]);
 
   const play = useCallback(() => {
-    if (sentences.length > 0) setIsPlaying(true);
+    if (sentences.length > 0) {
+      setIsPlaying(true);
+    }
   }, [sentences.length]);
 
   const pause = useCallback(() => {

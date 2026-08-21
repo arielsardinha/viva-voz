@@ -5,6 +5,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DocumentFormat, DocumentMetadata } from "@/lib/domain/document.types";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
+import {
+  getAudioCacheStats,
+  deleteAudioCacheByDocument,
+  clearAllAudioCache as clearAllAudioCacheStore,
+  type AudioCacheStats,
+} from "@/lib/tts-audio-cache";
 
 export const FORMAT_FILTER_TAGS = [
   "Todos",
@@ -29,11 +35,20 @@ export function useLibrary(facade: DocumentProcessingFacade = DocumentProcessing
   const [favorites, setFavorites] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [audioCacheStats, setAudioCacheStats] = useState<AudioCacheStats>({
+    totalBytes: 0,
+    totalTracks: 0,
+    byDocument: {},
+  });
 
   const refresh = useCallback(async () => {
     try {
-      const list = await facade.getRepository().list();
+      const [list, cacheStats] = await Promise.all([
+        facade.getRepository().list(),
+        getAudioCacheStats(),
+      ]);
       setDocuments(list);
+      setAudioCacheStats(cacheStats);
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +88,7 @@ export function useLibrary(facade: DocumentProcessingFacade = DocumentProcessing
   const deleteDocument = useCallback(
     async (id: string) => {
       await facade.getRepository().delete(id);
+      await deleteAudioCacheByDocument(id);
       setFavorites((prev) => {
         const next = prev.filter((f) => f !== id);
         try {
@@ -84,6 +100,31 @@ export function useLibrary(facade: DocumentProcessingFacade = DocumentProcessing
     },
     [facade, refresh]
   );
+
+  const deleteAudioCache = useCallback(
+    async (id: string) => {
+      await deleteAudioCacheByDocument(id);
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const clearAllAudioCache = useCallback(async () => {
+    await clearAllAudioCacheStore();
+    await refresh();
+  }, [refresh]);
+
+  const clearAllStorage = useCallback(async () => {
+    for (const doc of documents) {
+      await facade.getRepository().delete(doc.id);
+    }
+    await clearAllAudioCacheStore();
+    setFavorites([]);
+    try {
+      localStorage.removeItem(FAVORITES_STORAGE_KEY);
+    } catch {}
+    await refresh();
+  }, [documents, facade, refresh]);
 
   const downloadOriginal = useCallback(
     async (id: string) => {
@@ -147,8 +188,12 @@ export function useLibrary(facade: DocumentProcessingFacade = DocumentProcessing
     setDraftTitle,
     renameDocument,
     deleteDocument,
+    deleteAudioCache,
+    clearAllAudioCache,
+    clearAllStorage,
     downloadOriginal,
     refresh,
     totalBytes,
+    audioCacheStats,
   };
 }

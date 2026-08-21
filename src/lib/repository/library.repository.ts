@@ -14,9 +14,10 @@ import type {
   DocumentMetadata,
   ParsedDocument,
 } from "@/lib/domain/document.types";
+import { deleteAudioCacheByDocument, AUDIO_CACHE_STORE } from "@/lib/tts-audio-cache";
 
 const DB_NAME = "pdf-audio-library";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = "readings";
 const PREFS_STORE = "preferences";
 const PREFS_KEY = "app";
@@ -70,6 +71,12 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
         }
         if (!db.objectStoreNames.contains(PREFS_STORE)) {
           db.createObjectStore(PREFS_STORE);
+        }
+        if (!db.objectStoreNames.contains(AUDIO_CACHE_STORE)) {
+          const audioStore = db.createObjectStore(AUDIO_CACHE_STORE, { keyPath: "id" });
+          audioStore.createIndex("documentId", "documentId", { unique: false });
+          audioStore.createIndex("engine", "engine", { unique: false });
+          audioStore.createIndex("updatedAt", "updatedAt", { unique: false });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -206,6 +213,7 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
 
   public async delete(id: string): Promise<void> {
     await this.tx("readwrite", (store) => store.delete(id));
+    void deleteAudioCacheByDocument(id);
   }
 
   public async getPreferences(): Promise<Preferences> {

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Highlighter,
+  Loader2,
   Mic,
   Pause,
   Play,
@@ -351,13 +352,21 @@ export function ZenFocusTemplate({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={isPlaying ? "Pausar Narração" : "Iniciar Narração"}
+          aria-label={
+            isBuffering
+              ? "Carregando áudio..."
+              : isPlaying
+              ? "Pausar Narração"
+              : "Iniciar Narração"
+          }
           className="flex size-9 sm:size-10 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-md hover:scale-105 active:scale-95 transition-transform cursor-pointer"
         >
-          {isPlaying ? (
-            <Pause className="size-4 sm:size-4.5" />
+          {isBuffering ? (
+            <Loader2 className="size-4 sm:size-4.5 animate-spin" aria-hidden="true" />
+          ) : isPlaying ? (
+            <Pause className="size-4 sm:size-4.5" aria-hidden="true" />
           ) : (
-            <Play className="size-4 sm:size-4.5 translate-x-0.5" />
+            <Play className="size-4 sm:size-4.5 translate-x-0.5" aria-hidden="true" />
           )}
         </button>
 

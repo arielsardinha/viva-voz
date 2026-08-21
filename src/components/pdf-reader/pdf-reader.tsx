@@ -95,6 +95,7 @@ export function PdfReader() {
     voice,
     speed: Number(speed),
     userApiKey,
+    documentId: readingId,
     onError: handleError,
     onEngineUnavailable: handleEngineUnavailable,
   });

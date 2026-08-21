@@ -145,4 +145,34 @@ describe("ZenFocusTemplate Component", () => {
     fireEvent.click(geminiTrigger);
     expect(screen.getByText("Conectar conta do Gemini (Google AI Studio)")).toBeInTheDocument();
   });
+
+  it("deve exibir feedback visual de loading (aria-label 'Carregando áudio...') quando isBuffering for true", () => {
+    render(
+      <ZenFocusTemplate
+        sentences={mockSentences}
+        currentIndex={0}
+        title="Documento Zen"
+        settings={mockSettings}
+        isPlaying={true}
+        isBuffering={true}
+        voice="Kore"
+        speed="1"
+        engine="google"
+        voices={mockVoices}
+        disabledEngines={[]}
+        apiKey="fake-key"
+        onEngineChange={onEngineChangeMock}
+        onSelectSentence={onSelectSentenceMock}
+        onToggle={onToggleMock}
+        onPrevious={onPreviousMock}
+        onNext={onNextMock}
+        onRestart={onRestartMock}
+        onVoiceChange={onVoiceChangeMock}
+        onSpeedChange={onSpeedChangeMock}
+      />
+    );
+
+    const loadingButton = screen.getByRole("button", { name: "Carregando áudio..." });
+    expect(loadingButton).toBeInTheDocument();
+  });
 });

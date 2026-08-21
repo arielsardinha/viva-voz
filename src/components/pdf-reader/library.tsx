@@ -17,16 +17,19 @@ import {
   Pencil,
   Play,
   Search,
+  Sparkles,
   Trash2,
   Type,
+  VolumeX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { QuickPasteDialog } from "./quick-paste-dialog";
+import { DeleteConfirmDialog } from "./ui/delete-confirm-dialog";
 import { useReaderSettings } from "@/context/reader-settings-context";
 import { FORMAT_FILTER_TAGS, useLibrary } from "@/hooks/use-library";
 import { useDocumentUploader } from "@/hooks/use-document-uploader";
-import type { DocumentFormat } from "@/lib/domain/document.types";
+import type { DocumentFormat, DocumentMetadata } from "@/lib/domain/document.types";
 import { cn } from "@/lib/utils";
 
 function formatSize(bytes: number) {
@@ -93,11 +96,32 @@ const FORMAT_THEMES: Record<
   },
 };
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  itemTitle?: string | null;
+  hasAudioCache?: boolean;
+  cacheSizeBytes?: number;
+  cacheTrackCount?: number;
+  isAudioCacheOnly?: boolean;
+  confirmLabel?: string;
+  isLoading?: boolean;
+  action: () => Promise<void>;
+}
+
 export function Library() {
   const { settings } = useReaderSettings();
   const [isPasteOpen, setIsPasteOpen] = useState(false);
   const [isOver, setIsOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    title: "",
+    description: "",
+    action: async () => {},
+  });
 
   const libraryVM = useLibrary();
   const {
@@ -118,9 +142,12 @@ export function Library() {
     setDraftTitle,
     renameDocument,
     deleteDocument,
+    deleteAudioCache,
+    clearAllAudioCache,
     downloadOriginal,
     refresh,
     totalBytes,
+    audioCacheStats,
   } = libraryVM;
 
   const uploaderVM = useDocumentUploader({
@@ -138,9 +165,86 @@ export function Library() {
     toast.success("Título atualizado.");
   };
 
-  const handleRemove = async (id: string) => {
-    await deleteDocument(id);
-    toast.success("Leitura removida.");
+  const handleRequestDeleteDocument = (doc: DocumentMetadata) => {
+    const docCache = audioCacheStats.byDocument[doc.id];
+    const hasCache = Boolean(docCache && docCache.trackCount > 0);
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Excluir Leitura",
+      description: "Você tem certeza que deseja excluir esta leitura da sua biblioteca?",
+      itemTitle: doc.title,
+      hasAudioCache: hasCache,
+      cacheSizeBytes: docCache?.sizeBytes || 0,
+      cacheTrackCount: docCache?.trackCount || 0,
+      isAudioCacheOnly: false,
+      confirmLabel: "Sim, excluir leitura",
+      action: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await deleteDocument(doc.id);
+          toast.success("Leitura e dados associados excluídos.");
+          setConfirmModal((prev) => ({ ...prev, isOpen: false, isLoading: false }));
+        } catch {
+          toast.error("Não foi possível excluir a leitura.");
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  const handleRequestDeleteAudioCache = (doc: DocumentMetadata) => {
+    const docCache = audioCacheStats.byDocument[doc.id];
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Apagar Cache de Áudio",
+      description:
+        "Deseja apagar apenas as faixas de áudio em cache desta leitura? O arquivo original e seu texto permanecerão salvos na biblioteca.",
+      itemTitle: doc.title,
+      hasAudioCache: true,
+      cacheSizeBytes: docCache?.sizeBytes || 0,
+      cacheTrackCount: docCache?.trackCount || 0,
+      isAudioCacheOnly: true,
+      confirmLabel: "Apagar Faixas de Áudio",
+      action: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await deleteAudioCache(doc.id);
+          toast.success("Cache de áudio desta leitura foi apagado.");
+          setConfirmModal((prev) => ({ ...prev, isOpen: false, isLoading: false }));
+        } catch {
+          toast.error("Erro ao apagar cache de áudio.");
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  const handleRequestClearAllAudioCache = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Limpar Todo o Cache de Áudio IA",
+      description:
+        "Você tem certeza que deseja apagar todas as faixas de áudio geradas por IA salvas no seu navegador?",
+      itemTitle: "Todas as leituras",
+      hasAudioCache: true,
+      cacheSizeBytes: audioCacheStats.totalBytes,
+      cacheTrackCount: audioCacheStats.totalTracks,
+      isAudioCacheOnly: true,
+      confirmLabel: "Limpar Todos os Áudios",
+      action: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await clearAllAudioCache();
+          toast.success("Todo o cache de áudio foi limpo.");
+          setConfirmModal((prev) => ({ ...prev, isOpen: false, isLoading: false }));
+        } catch {
+          toast.error("Erro ao limpar cache de áudio.");
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   const handleQuickPasteSubmit = async (title: string, text: string) => {
@@ -158,8 +262,24 @@ export function Library() {
     >
       <AppHeader />
 
+      {/* Modal Reutilizável de Confirmação com Alerta de Gastos com IA */}
+      <DeleteConfirmDialog
+        open={confirmModal.isOpen}
+        onOpenChange={(open) => setConfirmModal((prev) => ({ ...prev, isOpen: open }))}
+        title={confirmModal.title}
+        description={confirmModal.description}
+        itemTitle={confirmModal.itemTitle}
+        hasAudioCache={confirmModal.hasAudioCache}
+        cacheSizeBytes={confirmModal.cacheSizeBytes}
+        cacheTrackCount={confirmModal.cacheTrackCount}
+        isAudioCacheOnly={confirmModal.isAudioCacheOnly}
+        confirmLabel={confirmModal.confirmLabel}
+        isLoading={confirmModal.isLoading}
+        onConfirm={confirmModal.action}
+      />
+
       <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8">
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar Navigation */}
           <aside className="space-y-3 sm:space-y-4">
             <div className="glass-panel p-1.5 sm:p-3 rounded-2xl sm:rounded-3xl border border-border/80 flex sm:flex-col gap-1.5 shadow-xs">
@@ -167,7 +287,7 @@ export function Library() {
                 type="button"
                 onClick={() => setActiveTab("library")}
                 className={cn(
-                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all",
+                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all cursor-pointer",
                   activeTab === "library"
                     ? "bg-accent text-accent-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -184,7 +304,7 @@ export function Library() {
                 type="button"
                 onClick={() => setActiveTab("favorites")}
                 className={cn(
-                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all",
+                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all cursor-pointer",
                   activeTab === "favorites"
                     ? "bg-accent text-accent-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -198,20 +318,52 @@ export function Library() {
               </button>
             </div>
 
-            {/* Armazenamento Local Widget */}
-            <div className="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-border/80 shadow-xs space-y-2 sm:space-y-3">
+            {/* Armazenamento Local Widget com Cache de Áudio */}
+            <div className="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-border/80 shadow-xs space-y-2.5 sm:space-y-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <HardDrive className="size-3.5 sm:size-4 text-accent" />
                 <span>Armazenamento Local</span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-snug">
-                {documents.length} documento(s) salvos no navegador ({formatSize(totalBytes)}).
-              </p>
+
+              <div className="space-y-1.5 text-[10px] sm:text-[11px] text-muted-foreground leading-snug">
+                <p>
+                  {documents.length} documento(s) salvos no navegador ({formatSize(totalBytes)}).
+                </p>
+                <p className="flex items-center gap-1.5 text-foreground/90 font-medium">
+                  <Sparkles className="size-3 text-accent shrink-0" />
+                  <span>
+                    Áudio em cache: {formatSize(audioCacheStats.totalBytes)} ({audioCacheStats.totalTracks} faixas)
+                  </span>
+                </p>
+              </div>
+
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div
                   className="h-full bg-accent rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, Math.max(5, documents.length * 10))}%` }}
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(5, documents.length * 8 + audioCacheStats.totalTracks * 2)
+                    )}%`,
+                  }}
                 />
+              </div>
+
+              {/* Botão de Ação para Limpar Apenas o Cache de Áudio */}
+              <div className="pt-2 border-t border-border/50">
+                <button
+                  type="button"
+                  disabled={audioCacheStats.totalTracks === 0}
+                  onClick={handleRequestClearAllAudioCache}
+                  className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-border bg-secondary/70 hover:bg-secondary text-[11px] font-semibold text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <VolumeX className="size-3.5 text-accent" aria-hidden="true" />
+                  <span>
+                    {audioCacheStats.totalTracks > 0
+                      ? "Limpar Cache de Áudio"
+                      : "Sem Cache de Áudio"}
+                  </span>
+                </button>
               </div>
             </div>
           </aside>
@@ -373,6 +525,8 @@ export function Library() {
                 {filteredDocuments.map((doc) => {
                   const formatInfo = FORMAT_THEMES[doc.format] || FORMAT_THEMES.txt;
                   const isFav = favorites.includes(doc.id);
+                  const docCache = audioCacheStats.byDocument[doc.id];
+                  const hasCache = Boolean(docCache && docCache.trackCount > 0);
 
                   return (
                     <div
@@ -455,7 +609,7 @@ export function Library() {
                           </div>
                         </div>
 
-                        {/* Badges de Duração & Palavras */}
+                        {/* Badges de Duração, Palavras e Cache IA */}
                         <div className="flex flex-wrap gap-1.5 mb-3 sm:mb-4">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary text-[10px] font-medium text-foreground">
                             <Clock className="size-3 text-muted-foreground" />
@@ -470,10 +624,16 @@ export function Library() {
                             <Mic className="size-3 text-accent" />
                             Voz Neural
                           </span>
+                          {hasCache && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent/15 border border-accent/30 text-[10px] font-bold text-accent">
+                              <Sparkles className="size-3" />
+                              Áudio: {formatSize(docCache.sizeBytes)} ({docCache.trackCount} {docCache.trackCount === 1 ? "faixa" : "faixas"})
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Ações Inferiores: Ouvir / Favoritar / Download / Excluir */}
+                      {/* Ações Inferiores: Ouvir / Favoritar / Download / Limpar Áudio / Excluir */}
                       <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-border/60">
                         <Link
                           href={`/?doc=${doc.id}`}
@@ -489,7 +649,7 @@ export function Library() {
                           title={isFav ? "Remover dos Favoritos" : "Favoritar"}
                           aria-label={isFav ? "Remover dos Favoritos" : "Favoritar"}
                           className={cn(
-                            "p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary transition-colors",
+                            "p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary transition-colors cursor-pointer",
                             isFav ? "text-amber-500 fill-amber-500" : "text-muted-foreground"
                           )}
                         >
@@ -501,17 +661,30 @@ export function Library() {
                           onClick={() => void downloadOriginal(doc.id)}
                           title="Baixar Arquivo Original"
                           aria-label="Baixar Arquivo Original"
-                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Download className="size-3.5" />
                         </button>
 
+                        {/* Botão para apagar apenas o cache de áudio deste arquivo */}
+                        {hasCache && (
+                          <button
+                            type="button"
+                            onClick={() => handleRequestDeleteAudioCache(doc)}
+                            title="Apagar cache de áudio deste arquivo"
+                            aria-label="Apagar cache de áudio deste arquivo"
+                            className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-amber-500/15 text-muted-foreground hover:text-amber-500 transition-colors cursor-pointer"
+                          >
+                            <VolumeX className="size-3.5" />
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          onClick={() => void handleRemove(doc.id)}
+                          onClick={() => handleRequestDeleteDocument(doc)}
                           title="Excluir leitura"
                           aria-label="Excluir leitura"
-                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                         >
                           <Trash2 className="size-3.5" />
                         </button>

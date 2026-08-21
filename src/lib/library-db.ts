@@ -3,9 +3,10 @@
  * Guarda o PDF original (Blob), o título editável e as frases extraídas.
  */
 import type { Sentence } from "@/lib/pdf-text";
+import { deleteAudioCacheByDocument, AUDIO_CACHE_STORE } from "./tts-audio-cache";
 
 const DB_NAME = "pdf-audio-library";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = "readings";
 const PREFS_STORE = "preferences";
 const PREFS_KEY = "app";
@@ -51,6 +52,12 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(PREFS_STORE)) {
         db.createObjectStore(PREFS_STORE);
+      }
+      if (!db.objectStoreNames.contains(AUDIO_CACHE_STORE)) {
+        const audioStore = db.createObjectStore(AUDIO_CACHE_STORE, { keyPath: "id" });
+        audioStore.createIndex("documentId", "documentId", { unique: false });
+        audioStore.createIndex("engine", "engine", { unique: false });
+        audioStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -126,4 +133,5 @@ export async function updateReading(id: string, patch: Partial<Reading>) {
 
 export async function deleteReading(id: string) {
   await tx("readwrite", (store) => store.delete(id));
+  void deleteAudioCacheByDocument(id);
 }
