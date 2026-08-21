@@ -73,32 +73,53 @@ export function AppHeader() {
 
         {/* Center/Right Nav Links & Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <nav aria-label="Navegação principal" className="flex items-center gap-0.5 sm:gap-1 rounded-2xl bg-secondary/80 p-1 border border-border/60">
+          <nav
+            aria-label="Navegação principal"
+            className="flex items-center gap-1 rounded-2xl bg-secondary/80 dark:bg-secondary/60 p-1 border border-border/80 shadow-xs backdrop-blur-xs"
+          >
             <Link
               href="/"
+              data-cy="nav-link-reader"
               aria-current={isReader ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all",
+                "group relative flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
                 isReader
-                  ? "bg-card text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                  ? "bg-gradient-to-r from-accent to-indigo-600 text-accent-foreground shadow-sm shadow-accent/25 font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               )}
             >
-              <Mic className="size-3.5" aria-hidden="true" />
+              <Mic
+                className={cn(
+                  "size-3.5 sm:size-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                  isReader
+                    ? "text-accent-foreground"
+                    : "text-muted-foreground group-hover:text-accent"
+                )}
+                aria-hidden="true"
+              />
               <span>Leitor</span>
             </Link>
 
             <Link
               href="/leituras"
+              data-cy="nav-link-library"
               aria-current={isLibrary ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all",
+                "group relative flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
                 isLibrary
-                  ? "bg-card text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                  ? "bg-gradient-to-r from-accent to-indigo-600 text-accent-foreground shadow-sm shadow-accent/25 font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               )}
             >
-              <FolderArchive className="size-3.5" aria-hidden="true" />
+              <FolderArchive
+                className={cn(
+                  "size-3.5 sm:size-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                  isLibrary
+                    ? "text-accent-foreground"
+                    : "text-muted-foreground group-hover:text-accent"
+                )}
+                aria-hidden="true"
+              />
               <span>Biblioteca</span>
             </Link>
           </nav>
