@@ -1,4 +1,5 @@
 import { defineConfig } from "cypress";
+import { lighthouse, prepareAudit } from "@cypress-audit/lighthouse";
 
 export default defineConfig({
   allowCypressEnv: false,
@@ -9,7 +10,14 @@ export default defineConfig({
     viewportHeight: 800,
     video: false,
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      on("before:browser:launch", (_browser, launchOptions) => {
+        prepareAudit(launchOptions);
+      });
+
+      on("task", {
+        lighthouse: lighthouse(),
+      });
     },
   },
 });
+

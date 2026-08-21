@@ -43,6 +43,7 @@ export function PdfDropzone({ onFile, isLoading, progress }: PdfDropzoneProps) {
           ref={inputRef}
           type="file"
           accept="application/pdf,.pdf"
+          aria-label="Selecionar arquivo PDF"
           className="sr-only"
           onChange={(event) => handleFiles(event.target.files)}
         />
