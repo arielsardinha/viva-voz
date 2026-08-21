@@ -36,6 +36,7 @@ import {
   type ReadingTheme,
   type ReadingFont,
 } from "@/context/reader-settings-context";
+import { savePreferences } from "@/lib/library-db";
 import { cn } from "@/lib/utils";
 
 interface PreferencesTutorialDialogProps {
@@ -213,6 +214,7 @@ export function PreferencesTutorialDialog({
       hasCompletedOnboarding: true,
     });
     setTheme(selectedTheme);
+    void savePreferences({ speed: String(selectedSpeed) });
     if (onClose) onClose();
     closeOnboarding(true);
   }, [

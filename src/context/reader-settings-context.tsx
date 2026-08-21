@@ -86,6 +86,7 @@ export interface ReaderSettings {
   font: ReadingFont;
   fontSize: number; // in px: 13 to 26
   lineHeight: number; // 1.6, 1.8, 2.0
+  speed?: number;
   hasCompletedOnboarding: boolean;
 }
 
@@ -95,6 +96,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   font: "inter",
   fontSize: 16,
   lineHeight: 1.8,
+  speed: 1.0,
   hasCompletedOnboarding: false,
 };
 
@@ -142,11 +144,13 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
         }
       } else {
         applyThemeToDocument(DEFAULT_READER_SETTINGS.theme);
-        // Primeiro acesso do usuário
+        // Primeiro acesso do usuário ou sem preferências definidas
         setIsOnboardingOpen(true);
       }
     } catch {
       applyThemeToDocument(DEFAULT_READER_SETTINGS.theme);
+      // Em caso de falha de leitura, abre o tutorial automaticamente
+      setIsOnboardingOpen(true);
     } finally {
       setIsInitialized(true);
     }
