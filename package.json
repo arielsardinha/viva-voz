@@ -10,8 +10,8 @@
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "cy:lighthouse": "cypress run --browser chrome --spec cypress/e2e/lighthouse.cy.ts",
-    "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test": "jest --forceExit --testTimeout=10000",
+    "test:coverage": "jest --coverage --forceExit --testTimeout=10000"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.32",

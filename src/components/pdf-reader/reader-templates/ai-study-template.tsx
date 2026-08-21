@@ -27,7 +27,7 @@ import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
 import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
-import { checkChromeAiAvailability, type ChromeAiAvailability } from "@/lib/client/chrome-ai";
+import { useChromeAi } from "@/hooks/use-chrome-ai";
 
 const STORAGE_KEY = "gemini-api-key";
 
@@ -77,7 +77,7 @@ export function AIStudyTemplate({
   initialPrompt,
 }: AIStudyTemplateProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [chromeAiStatus, setChromeAiStatus] = useState<ChromeAiAvailability>("no");
+  const { status: chromeAiStatus } = useChromeAi();
   const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -103,7 +103,6 @@ export function AIStudyTemplate({
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
-    checkChromeAiAvailability().then(setChromeAiStatus);
   }, []);
 
   const updateApiKey = useCallback((key: string | null) => {

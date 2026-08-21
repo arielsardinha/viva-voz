@@ -122,7 +122,7 @@ describe("handleAskRequest", () => {
     expect(await response.text()).toBe("streamed response content");
   });
 
-  it("deve processar quando a chave estiver configurada em GEMINI_API_KEY", async () => {
+  it("deve ignorar variáveis de ambiente no servidor e exigir userApiKey fornecida pelo usuário", async () => {
     process.env.GEMINI_API_KEY = "env_gemini_api_key_valid";
 
     const request = new Request("http://localhost/api/ask", {
@@ -135,6 +135,8 @@ describe("handleAskRequest", () => {
     });
 
     const response = await handleAskRequest(request);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    const body = await response.text();
+    expect(body).toContain("Chave de API do Gemini não configurada");
   });
 });

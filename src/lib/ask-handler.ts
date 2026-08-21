@@ -61,7 +61,7 @@ export async function handleAskRequest(request: Request): Promise<Response> {
       ? body.userApiKey.trim()
       : null;
 
-  const apiKey = userApiKey
+  const apiKey = userApiKey;
   if (!apiKey) {
     return new Response(
       "Chave de API do Gemini não configurada. Conecte sua conta do Google AI Studio no chat para continuar.",

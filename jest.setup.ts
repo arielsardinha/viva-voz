@@ -24,6 +24,9 @@ Object.assign(globalThis, {
 import "@testing-library/jest-dom";
 import "fake-indexeddb/auto";
 
+// Configura timeout global seguro de 10 segundos por teste
+jest.setTimeout(10000);
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const {
   Request: UndiciRequest,

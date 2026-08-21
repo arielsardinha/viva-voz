@@ -25,7 +25,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import type { Sentence } from "@/lib/pdf-text";
 import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
-import { checkChromeAiAvailability, type ChromeAiAvailability } from "@/lib/client/chrome-ai";
+import { useChromeAi } from "@/hooks/use-chrome-ai";
 
 const STORAGE_KEY = "gemini-api-key";
 
@@ -36,7 +36,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [chromeAiStatus, setChromeAiStatus] = useState<ChromeAiAvailability>("no");
+  const { status: chromeAiStatus } = useChromeAi();
   const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
@@ -46,7 +46,6 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
-    checkChromeAiAvailability().then(setChromeAiStatus);
   }, []);
 
   const updateApiKey = useCallback((key: string | null) => {

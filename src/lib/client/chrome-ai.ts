@@ -28,28 +28,56 @@ declare global {
   interface Window {
     ai?: {
       languageModel?: ChromeAiLanguageModel;
+      assistant?: ChromeAiLanguageModel;
     };
   }
 }
 
-/** Obtém o namespace de IA do navegador com segurança */
+/** Obtém o namespace de IA do navegador com suporte a múltiplas versões da spec */
 function getLanguageModelApi(): ChromeAiLanguageModel | undefined {
   if (typeof window === "undefined") return undefined;
-  // Suporte à especificação window.ai.languageModel ou global ai.languageModel
+  
+  // 1. window.ai.languageModel (Spec atual do Chrome 128+)
   if (window.ai?.languageModel) return window.ai.languageModel;
-  const globalAi = (globalThis as unknown as { ai?: { languageModel?: ChromeAiLanguageModel } }).ai;
-  return globalAi?.languageModel;
+  
+  // 2. window.ai.assistant (Spec inicial do Chrome 127)
+  if (window.ai?.assistant) return window.ai.assistant;
+
+  // 3. globalThis / self.ai
+  const globalAi = (globalThis as unknown as { ai?: { languageModel?: ChromeAiLanguageModel; assistant?: ChromeAiLanguageModel } }).ai;
+  if (globalAi?.languageModel) return globalAi.languageModel;
+  if (globalAi?.assistant) return globalAi.assistant;
+
+  return undefined;
 }
 
 /** Verifica se a Prompt API / Gemini Nano está disponível no navegador */
 export async function checkChromeAiAvailability(): Promise<ChromeAiAvailability> {
   try {
     const api = getLanguageModelApi();
-    if (!api || typeof api.capabilities !== "function") {
+    if (!api) {
       return "no";
     }
-    const capabilities = await api.capabilities();
-    return capabilities?.available ?? "no";
+
+    // Suporte a api.capabilities() (Chrome 127/128/129)
+    if (typeof api.capabilities === "function") {
+      const caps = await api.capabilities();
+      return caps?.available ?? "no";
+    }
+
+    // Suporte a api.availability() (Spec W3C mais recente / Chrome 130+)
+    const apiWithAvailability = api as unknown as { availability?: () => Promise<ChromeAiAvailability> };
+    if (typeof apiWithAvailability.availability === "function") {
+      const avail = await apiWithAvailability.availability();
+      return avail ?? "no";
+    }
+
+    // Se possui create mas sem método de checagem explícito
+    if (typeof api.create === "function") {
+      return "readily";
+    }
+
+    return "no";
   } catch (error) {
     console.warn("Falha ao verificar disponibilidade do Chrome AI:", error);
     return "no";

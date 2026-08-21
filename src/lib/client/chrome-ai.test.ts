@@ -29,6 +29,30 @@ describe("Chrome Built-in AI (Prompt API)", () => {
       expect(status).toBe("readily");
     });
 
+    it("deve retornar 'readily' quando a API relatar prontidão via availability()", async () => {
+      window.ai = {
+        languageModel: {
+          availability: jest.fn().mockResolvedValue("readily"),
+          create: jest.fn(),
+        } as unknown as Parameters<typeof checkChromeAiAvailability>[never],
+      };
+
+      const status = await checkChromeAiAvailability();
+      expect(status).toBe("readily");
+    });
+
+    it("deve suportar window.ai.assistant como fallback legado", async () => {
+      window.ai = {
+        assistant: {
+          capabilities: jest.fn().mockResolvedValue({ available: "readily" }),
+          create: jest.fn(),
+        },
+      };
+
+      const status = await checkChromeAiAvailability();
+      expect(status).toBe("readily");
+    });
+
     it("deve retornar 'no' caso ocorra um erro ao consultar capabilities", async () => {
       window.ai = {
         languageModel: {
