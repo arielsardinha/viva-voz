@@ -146,4 +146,22 @@ describe("Library Component", () => {
       expect(screen.getByText("Nenhuma leitura encontrada")).toBeInTheDocument();
     });
   });
+
+  it("deve renderizar o botão Selecionar Arquivo e Colar Texto na dropzone", async () => {
+    render(
+      <ReaderSettingsProvider>
+        <Library />
+      </ReaderSettingsProvider>
+    );
+
+    const selectFileButton = screen.getByRole("button", { name: /selecionar arquivo/i });
+    expect(selectFileButton).toBeInTheDocument();
+
+    const pasteTextButton = screen.getByRole("button", { name: /colar texto/i });
+    expect(pasteTextButton).toBeInTheDocument();
+
+    // Clicar em Colar Texto deve abrir o modal de texto rápido
+    fireEvent.click(pasteTextButton);
+    expect(screen.getByText(/Colar ou Digitar Texto/i)).toBeInTheDocument();
+  });
 });

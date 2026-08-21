@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import {
   Bookmark,
@@ -9,8 +9,10 @@ import {
   Cloud,
   Download,
   FileText,
+  FileUp,
   FolderArchive,
   HardDrive,
+  Loader2,
   Mic,
   Pencil,
   Play,
@@ -94,6 +96,8 @@ const FORMAT_THEMES: Record<
 export function Library() {
   const { settings } = useReaderSettings();
   const [isPasteOpen, setIsPasteOpen] = useState(false);
+  const [isOver, setIsOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const libraryVM = useLibrary();
   const {
@@ -219,12 +223,32 @@ export function Library() {
           >
             {/* Dropzone Compacta Superior */}
             <div
+              role="region"
+              aria-label="Zona de soltar arquivos e documentos para a biblioteca"
               data-webmcp-tool="uploadDocument"
               data-webmcp-action="quickUploadMulti"
               data-webmcp-schema="multipart/form-data"
-              className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden group hover:border-accent/60 transition-all shadow-xs"
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsOver(true);
+              }}
+              onDragLeave={() => setIsOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  void uploaderVM.uploadFiles(e.dataTransfer.files);
+                }
+              }}
+              className={cn(
+                "glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden transition-all shadow-xs",
+                isOver
+                  ? "border-accent bg-accent/10 scale-[1.01] ring-4 ring-accent/20"
+                  : "hover:border-accent/60 hover:bg-card/90"
+              )}
             >
               <input
+                ref={fileInputRef}
                 type="file"
                 name="libraryFiles"
                 multiple
@@ -239,31 +263,44 @@ export function Library() {
               />
 
               <div className="flex flex-col items-center justify-center">
-                <label
-                  htmlFor="library-multi-upload"
-                  className="cursor-pointer flex flex-col items-center justify-center w-full"
-                >
-                  <div className="size-10 sm:size-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                <div className="size-10 sm:size-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-2 sm:mb-3 transition-transform">
+                  {uploaderVM.isUploading ? (
+                    <Loader2 className="size-5 sm:size-6 animate-spin" aria-hidden="true" />
+                  ) : (
                     <Cloud className="size-5 sm:size-6 stroke-[1.5]" aria-hidden="true" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-semibold text-foreground">
-                    {uploaderVM.isUploading
-                      ? uploaderVM.currentProgress || "Processando e importando..."
-                      : "Arraste seus documentos (.pdf, .epub, .docx, .txt, .md) aqui ou toque para Enviar"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Importe livros, apostilas ou textos para ouvir a narração instantaneamente
-                  </p>
-                </label>
+                  )}
+                </div>
 
-                <div className="mt-3 flex items-center gap-2">
+                <p className="text-xs sm:text-sm font-semibold text-foreground">
+                  {uploaderVM.isUploading
+                    ? uploaderVM.currentProgress || "Processando e importando..."
+                    : "Arraste seus documentos (.pdf, .epub, .docx, .txt, .md) aqui ou toque para Enviar"}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Importe livros, apostilas ou textos para ouvir a narração instantaneamente
+                </p>
+
+                {/* Botões de Ação Principais */}
+                <div className="mt-3.5 sm:mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setIsPasteOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-secondary/80 text-xs font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                    disabled={uploaderVM.isUploading}
+                    aria-controls="library-multi-upload"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-accent-foreground shadow-md shadow-accent/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer"
                   >
-                    <Type className="size-3.5 text-accent" />
-                    <span>Colar Texto Direto</span>
+                    <FileUp className="size-4" aria-hidden="true" />
+                    <span>Selecionar Arquivo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={uploaderVM.isUploading}
+                    onClick={() => setIsPasteOpen(true)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/80 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-foreground hover:bg-secondary transition-all hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer"
+                  >
+                    <Type className="size-3.5 sm:size-4 text-accent" aria-hidden="true" />
+                    <span>Colar Texto</span>
                   </button>
                 </div>
               </div>
