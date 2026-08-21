@@ -7,7 +7,7 @@ import {
   Maximize2,
   Minimize2,
   Moon,
-  Sparkles,
+  ScrollText,
   Sun,
   Type,
   Volume2,
@@ -153,7 +153,7 @@ export function TemplateSwitcher({
                     : "border-amber-200 bg-[#FDFBF7] text-amber-900 hover:bg-[#F7F3EB]"
                 )}
               >
-                <Sparkles className="size-4 text-amber-600" />
+                <ScrollText className="size-4 text-amber-600" />
                 <span>Papel Zen</span>
               </button>
 

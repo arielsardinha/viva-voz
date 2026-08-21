@@ -15,7 +15,6 @@ import {
   Pencil,
   Play,
   Search,
-  Sparkles,
   Trash2,
   Type,
 } from "lucide-react";

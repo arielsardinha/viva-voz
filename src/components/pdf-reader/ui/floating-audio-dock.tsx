@@ -11,7 +11,6 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
-  Sparkles,
   Volume2,
   VolumeX,
 } from "lucide-react";

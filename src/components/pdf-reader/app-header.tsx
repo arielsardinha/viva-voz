@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Mic,
   Moon,
-  Sparkles,
+  ScrollText,
   Sun,
 } from "lucide-react";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
@@ -50,7 +50,7 @@ export function AppHeader() {
     settings.theme === "dark"
       ? Moon
       : settings.theme === "sepia"
-      ? Sparkles
+      ? ScrollText
       : Sun;
 
   return (
@@ -174,7 +174,7 @@ export function AppHeader() {
                   settings.theme === "sepia" && "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-semibold"
                 )}
               >
-                <Sparkles className="size-4 text-amber-600" aria-hidden="true" />
+                <ScrollText className="size-4 text-amber-600" aria-hidden="true" />
                 <span>Papel Zen (Sépia)</span>
               </DropdownMenuItem>
               <DropdownMenuItem

@@ -7,7 +7,6 @@ import {
   Check,
   FileText,
   Pencil,
-  Sparkles,
   X,
 } from "lucide-react";
 import { toast } from "sonner";

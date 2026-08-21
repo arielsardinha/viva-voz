@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Compass, Moon, Sparkles, Sun } from "lucide-react";
+import { BookOpen, Bot, Compass, Moon, ScrollText, Sun } from "lucide-react";
 import type { ReaderTemplateId, ReadingTheme } from "@/context/reader-settings-context";
 
 export const TEMPLATE_CHOICES: {
@@ -57,7 +57,7 @@ export const THEME_CHOICES: {
     description: "Tons quentes de papel envelhecido que reduzem a fadiga visual.",
     bgPreview: "bg-[#FBF0D9] border-amber-300",
     textPreview: "text-[#433422]",
-    icon: Sparkles,
+    icon: ScrollText,
   },
   {
     id: "dark",
