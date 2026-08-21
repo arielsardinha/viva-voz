@@ -98,7 +98,7 @@ export function ZenFocusTemplate({
     <div
       ref={containerRef}
       className={cn(
-        "relative mx-auto max-w-3xl px-4 py-8 sm:py-12 transition-all duration-300 pb-36",
+        "relative mx-auto max-w-3xl px-3 sm:px-4 py-6 sm:py-12 transition-all duration-300 pb-36",
         fontClass
       )}
       data-reading-theme={settings.theme === "light" ? "sepia" : settings.theme}
@@ -114,17 +114,17 @@ export function ZenFocusTemplate({
       />
 
       {/* Cabeçalho Editorial do Documento (Inspiração 04) */}
-      <header className="mb-12 text-left sm:text-center border-b border-border/40 pb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
+      <header className="mb-8 sm:mb-12 text-left sm:text-center border-b border-border/40 pb-6 sm:pb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
           {title ?? "Leitura Imersiva"}
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground italic font-sans">
+        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground italic font-sans">
           Modo Focado & Som de Fundo • {totalPages} páginas
         </p>
       </header>
 
       {/* Conteúdo com Tipografia Arejada */}
-      <main className="space-y-6">
+      <main className="space-y-4 sm:space-y-6">
         <div
           style={{
             fontSize: `${settings.fontSize + 1}px`,
@@ -141,8 +141,8 @@ export function ZenFocusTemplate({
             return (
               <span key={sentence.index}>
                 {showPageMark && (
-                  <div className="my-10 text-center select-none font-sans">
-                    <span className="inline-block px-4 py-1 rounded-full text-xs font-semibold tracking-widest text-muted-foreground uppercase bg-secondary/50">
+                  <div className="my-8 sm:my-10 text-center select-none font-sans">
+                    <span className="inline-block px-3 sm:px-4 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold tracking-widest text-muted-foreground uppercase bg-secondary/50">
                       Capítulo / Página {sentence.page}
                     </span>
                   </div>
@@ -152,7 +152,7 @@ export function ZenFocusTemplate({
                   ref={isActive ? activeRef : undefined}
                   onClick={() => onSelectSentence(sentence.index)}
                   className={cn(
-                    "cursor-pointer rounded px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
+                    "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
                     isActive && highlightMode && "sentence-highlight-active font-medium text-foreground",
                     !isActive && isRead && "text-muted-foreground/80 hover:text-foreground",
                     !isActive && !isRead && "text-foreground hover:bg-accent/10"
@@ -167,8 +167,8 @@ export function ZenFocusTemplate({
       </main>
 
       {/* Indicador Circular de Progresso da Página (Inspiração 04) */}
-      <div className="mt-16 flex flex-col items-center justify-center gap-2 select-none">
-        <div className="relative flex size-20 items-center justify-center">
+      <div className="mt-12 sm:mt-16 flex flex-col items-center justify-center gap-2 select-none">
+        <div className="relative flex size-16 sm:size-20 items-center justify-center">
           <svg className="size-full -rotate-90" viewBox="0 0 36 36">
             {/* Background Circle */}
             <path
@@ -196,7 +196,7 @@ export function ZenFocusTemplate({
           Página {currentPage} de {totalPages}
         </p>
 
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-1 sm:mt-2">
           <button
             type="button"
             onClick={() => currentPage > 1 && jumpToPage(currentPage - 1)}
@@ -217,54 +217,57 @@ export function ZenFocusTemplate({
       </div>
 
       {/* Pílula de Ações Flutuante Zen (Inspiração 04) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 glass-panel flex items-center gap-2 rounded-full p-2 shadow-xl border border-border/80 font-sans">
+      <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 glass-panel flex items-center gap-1 sm:gap-2 rounded-full p-1.5 sm:p-2 shadow-xl border border-border/80 font-sans max-w-[96vw]">
         <button
           type="button"
           onClick={() => setIsBookmarked(!isBookmarked)}
           title={isBookmarked ? "Marcado" : "Salvar marcador"}
+          aria-label={isBookmarked ? "Marcado" : "Salvar marcador"}
           className={cn(
-            "flex size-10 items-center justify-center rounded-full transition-colors",
+            "flex size-8 sm:size-10 items-center justify-center rounded-full transition-colors",
             isBookmarked
               ? "bg-amber-500/20 text-amber-600 font-bold"
               : "hover:bg-secondary text-foreground/80"
           )}
         >
-          <Bookmark className="size-4" />
+          <Bookmark className="size-3.5 sm:size-4" />
         </button>
 
         <button
           type="button"
           onClick={() => setHighlightMode(!highlightMode)}
           title={highlightMode ? "Destaque de voz ativo" : "Destaque desligado"}
+          aria-label={highlightMode ? "Destaque de voz ativo" : "Destaque desligado"}
           className={cn(
-            "flex size-10 items-center justify-center rounded-full transition-colors",
+            "flex size-8 sm:size-10 items-center justify-center rounded-full transition-colors",
             highlightMode
               ? "bg-accent/20 text-accent font-bold"
               : "hover:bg-secondary text-foreground/80"
           )}
         >
-          <Highlighter className="size-4" />
+          <Highlighter className="size-3.5 sm:size-4" />
         </button>
 
         <button
           type="button"
           onClick={onToggle}
           aria-label={isPlaying ? "Pausar Narração" : "Iniciar Narração"}
-          className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-md hover:scale-105 active:scale-95 transition-transform"
+          className="flex size-9 sm:size-11 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-md hover:scale-105 active:scale-95 transition-transform"
         >
-          {isPlaying ? <Pause className="size-5" /> : <Play className="size-5 translate-x-0.5" />}
+          {isPlaying ? <Pause className="size-4 sm:size-5" /> : <Play className="size-4 sm:size-5 translate-x-0.5" />}
         </button>
 
         <button
           type="button"
           onClick={onRestart}
           title="Reiniciar Narração"
-          className="flex size-10 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors"
+          aria-label="Reiniciar Narração"
+          className="flex size-8 sm:size-10 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors"
         >
-          <RotateCcw className="size-4" />
+          <RotateCcw className="size-3.5 sm:size-4" />
         </button>
 
-        <div className="h-6 w-px bg-border my-auto mx-1" />
+        <div className="h-5 sm:h-6 w-px bg-border my-auto mx-0.5 sm:mx-1" />
 
         {/* Gerador de Som Ambiente */}
         <AmbientSoundPlayer />

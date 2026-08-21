@@ -45,10 +45,15 @@ export function TextSelectionMenu({
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
 
+    const screenW = typeof window !== "undefined" ? window.innerWidth : 360;
+    // Garante que o centro do menu fique dentro dos limites da tela mobile
+    const safeX = Math.max(120, Math.min(screenW - 120, rect.left + rect.width / 2));
+    const safeY = rect.top < 60 ? rect.bottom + 45 : Math.max(50, rect.top - 10);
+
     setSelectedText(text);
     setPosition({
-      x: Math.max(10, rect.left + rect.width / 2),
-      y: Math.max(10, rect.top - 10),
+      x: safeX,
+      y: safeY,
     });
   }, [containerRef]);
 
@@ -102,12 +107,12 @@ export function TextSelectionMenu({
         transform: "translate(-50%, -100%)",
         zIndex: 50,
       }}
-      className="glass-panel animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1 p-1 rounded-xl shadow-xl border border-border/80"
+      className="glass-panel animate-in fade-in zoom-in-95 duration-150 flex items-center gap-0.5 sm:gap-1 p-1 rounded-xl shadow-xl border border-border/80 max-w-[95vw]"
     >
       <button
         type="button"
         onClick={handleSummarize}
-        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent/15 hover:text-accent rounded-lg transition-colors"
+        className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent/15 hover:text-accent rounded-lg transition-colors"
       >
         <Sparkles className="size-3.5 text-accent" />
         <span>Resumir</span>

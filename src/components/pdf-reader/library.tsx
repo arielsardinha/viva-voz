@@ -174,24 +174,24 @@ export function Library() {
       <AppHeader />
 
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           {/* Sidebar Navigation (Inspiração 03) */}
-          <aside className="space-y-4">
-            <div className="glass-panel p-3 rounded-3xl border border-border/80 space-y-1 shadow-sm">
+          <aside className="space-y-3 sm:space-y-4">
+            <div className="glass-panel p-1.5 sm:p-3 rounded-2xl sm:rounded-3xl border border-border/80 flex sm:flex-col gap-1.5 shadow-xs">
               <button
                 type="button"
                 onClick={() => setActiveTab("library")}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all",
+                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all",
                   activeTab === "library"
-                    ? "bg-accent text-accent-foreground shadow-sm"
+                    ? "bg-accent text-accent-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                <FolderArchive className="size-4" />
+                <FolderArchive className="size-4 shrink-0" />
                 <span>Biblioteca</span>
-                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-background/50 text-foreground font-bold">
+                <span className="ml-1 sm:ml-auto text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-background/50 text-foreground font-bold">
                   {readings.length}
                 </span>
               </button>
@@ -200,28 +200,28 @@ export function Library() {
                 type="button"
                 onClick={() => setActiveTab("favorites")}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all",
+                  "flex-1 sm:flex-initial w-full flex items-center justify-center sm:justify-start gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold transition-all",
                   activeTab === "favorites"
-                    ? "bg-accent text-accent-foreground shadow-sm"
+                    ? "bg-accent text-accent-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                <Bookmark className="size-4" />
+                <Bookmark className="size-4 shrink-0" />
                 <span>Favoritos</span>
-                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-background/50 text-foreground font-bold">
+                <span className="ml-1 sm:ml-auto text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-background/50 text-foreground font-bold">
                   {favorites.length}
                 </span>
               </button>
             </div>
 
             {/* Armazenamento Local Widget */}
-            <div className="glass-panel p-4 rounded-3xl border border-border/80 shadow-sm space-y-3">
+            <div className="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-border/80 shadow-xs space-y-2 sm:space-y-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <HardDrive className="size-4 text-accent" />
+                <HardDrive className="size-3.5 sm:size-4 text-accent" />
                 <span>Armazenamento Local</span>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                {readings.length} leitura(s) salvas no IndexedDB deste navegador ({formatSize(totalBytes)}).
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-snug">
+                {readings.length} leitura(s) salvas no IndexedDB ({formatSize(totalBytes)}).
               </p>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div
@@ -233,9 +233,9 @@ export function Library() {
           </aside>
 
           {/* Conteúdo Principal do Dashboard */}
-          <section className="space-y-6 min-w-0">
+          <section className="space-y-4 sm:space-y-6 min-w-0">
             {/* Top Dropzone Card Rápido (Inspiração 03) */}
-            <div className="glass-panel p-6 rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden group hover:border-accent/60 transition-all shadow-sm">
+            <div className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden group hover:border-accent/60 transition-all shadow-xs">
               <input
                 type="file"
                 accept="application/pdf,.pdf"
@@ -251,33 +251,33 @@ export function Library() {
                 htmlFor="library-quick-upload"
                 className="flex flex-col items-center justify-center cursor-pointer"
               >
-                <div className="size-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <Cloud className="size-6 stroke-[1.5]" />
+                <div className="size-10 sm:size-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                  <Cloud className="size-5 sm:size-6 stroke-[1.5]" />
                 </div>
-                <p className="text-sm font-semibold text-foreground">
-                  {isUploading ? "Processando e importando..." : "Arraste seu PDF aqui ou clique para Enviar"}
+                <p className="text-xs sm:text-sm font-semibold text-foreground">
+                  {isUploading ? "Processando e importando..." : "Arraste seu PDF aqui ou toque para Enviar"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   Adicione novos documentos para ouvir a narração instantaneamente
                 </p>
               </label>
             </div>
 
             {/* Barra de Busca e Filtros de Tags */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
               <div className="relative w-full sm:max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 sm:size-4 text-muted-foreground" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Pesquisar leituras…"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+                  className="w-full pl-9 pr-3 py-1.5 sm:py-2 text-xs bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
                 />
               </div>
 
               {/* Tags de Filtro */}
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5 sm:pb-0">
                 {TAG_PRESETS.map((t) => (
                   <button
                     key={t}
@@ -300,7 +300,7 @@ export function Library() {
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando leituras salvas…</p>
             ) : filteredReadings.length === 0 ? (
-              <div className="glass-panel rounded-3xl p-12 text-center border border-border/80">
+              <div className="glass-panel rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center border border-border/80">
                 <FileText className="size-10 text-muted-foreground mx-auto mb-3 stroke-1" />
                 <h3 className="text-base font-bold text-foreground">Nenhuma leitura encontrada</h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -310,7 +310,7 @@ export function Library() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredReadings.map((reading, idx) => {
                   const gradientClass = COVER_GRADIENTS[idx % COVER_GRADIENTS.length];
                   const isFav = favorites.includes(reading.id);
@@ -326,18 +326,18 @@ export function Library() {
                   return (
                     <div
                       key={reading.id}
-                      className="glass-panel group flex flex-col justify-between rounded-3xl p-4 border border-border/80 hover:border-accent/40 hover:shadow-lg transition-all duration-200"
+                      className="glass-panel group flex flex-col justify-between rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-border/80 hover:border-accent/40 hover:shadow-lg transition-all duration-200"
                     >
                       <div>
                         {/* Top Card: Capa Estilizada + Título */}
-                        <div className="flex items-start gap-3 mb-3">
+                        <div className="flex items-start gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
                           <div
                             className={cn(
-                              "size-14 rounded-2xl bg-gradient-to-br p-2 flex flex-col justify-between shrink-0 shadow-md",
+                              "size-12 sm:size-14 rounded-2xl bg-gradient-to-br p-2 flex flex-col justify-between shrink-0 shadow-md",
                               gradientClass
                             )}
                           >
-                            <FileText className="size-4 opacity-80" />
+                            <FileText className="size-3.5 sm:size-4 opacity-80" />
                             <span className="text-[9px] font-mono font-bold tracking-tight line-clamp-1">
                               PDF
                             </span>
@@ -389,7 +389,7 @@ export function Library() {
                         </div>
 
                         {/* Barra de Progresso de Leitura */}
-                        <div className="space-y-1 mb-3">
+                        <div className="space-y-1 mb-2.5 sm:mb-3">
                           <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
                             <span>Progresso da Leitura</span>
                             <span className="font-bold text-foreground">{progressPct}%</span>
@@ -403,7 +403,7 @@ export function Library() {
                         </div>
 
                         {/* Badges de Duração & Voz (Inspiração 03) */}
-                        <div className="flex flex-wrap gap-1.5 mb-4">
+                        <div className="flex flex-wrap gap-1.5 mb-3 sm:mb-4">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary text-[10px] font-medium text-foreground">
                             <Clock className="size-3 text-muted-foreground" />
                             {estimatedMinsLeft} min restantes
@@ -416,10 +416,10 @@ export function Library() {
                       </div>
 
                       {/* Ações Inferiores: Ouvir / Download / Excluir */}
-                      <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/60">
+                      <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-border/60">
                         <Link
                           href={`/?doc=${reading.id}`}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-semibold shadow-md shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all"
+                          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:scale-[1.02] active:scale-95 transition-all"
                         >
                           <Play className="size-3.5 fill-current" />
                           <span>Ouvir Áudio</span>
@@ -429,8 +429,9 @@ export function Library() {
                           type="button"
                           onClick={() => toggleFavorite(reading.id)}
                           title={isFav ? "Remover dos Favoritos" : "Favoritar"}
+                          aria-label={isFav ? "Remover dos Favoritos" : "Favoritar"}
                           className={cn(
-                            "p-2 rounded-xl border border-border/80 hover:bg-secondary transition-colors",
+                            "p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary transition-colors",
                             isFav ? "text-amber-500 fill-amber-500" : "text-muted-foreground"
                           )}
                         >
@@ -441,7 +442,8 @@ export function Library() {
                           type="button"
                           onClick={() => void download(reading.id)}
                           title="Baixar PDF Original"
-                          className="p-2 rounded-xl border border-border/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Baixar PDF Original"
+                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Download className="size-3.5" />
                         </button>
@@ -450,7 +452,8 @@ export function Library() {
                           type="button"
                           onClick={() => void remove(reading.id)}
                           title="Excluir leitura"
-                          className="p-2 rounded-xl border border-border/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          aria-label="Excluir leitura"
+                          className="p-1.5 sm:p-2 rounded-xl border border-border/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         >
                           <Trash2 className="size-3.5" />
                         </button>

@@ -49,18 +49,21 @@ export const TEMPLATES = [
   {
     id: "modern" as const,
     label: "Estúdio Moderno",
+    shortLabel: "Estúdio",
     description: "Leitor clean com player flutuante dock e waveform",
     icon: Compass,
   },
   {
     id: "ai-study" as const,
     label: "Assistente IA",
+    shortLabel: "Assistente",
     description: "Split-view com chat inteligente e menu flutuante",
     icon: Bot,
   },
   {
     id: "zen" as const,
     label: "Modo Zen Imersivo",
+    shortLabel: "Modo Zen",
     description: "Leitura focada sem distrações com som ambiente",
     icon: BookOpen,
   },
@@ -75,9 +78,9 @@ export function TemplateSwitcher({
   totalPages,
 }: TemplateSwitcherProps) {
   return (
-    <div className="glass-panel flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3 py-2 shadow-sm border border-border/80">
+    <div className="glass-panel flex flex-wrap items-center justify-between gap-2 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-xs border border-border/80">
       {/* Selector de Template com Tabs em Pílulas */}
-      <div className="flex items-center gap-1 bg-secondary/80 p-1 rounded-xl">
+      <div className="flex items-center gap-1 bg-secondary/80 p-0.5 sm:p-1 rounded-xl overflow-x-auto no-scrollbar">
         {TEMPLATES.map((t) => {
           const Icon = t.icon;
           const isActive = settings.template === t.id;
@@ -88,14 +91,15 @@ export function TemplateSwitcher({
               onClick={() => onChangeSettings({ template: t.id })}
               title={t.description}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all",
+                "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0",
                 isActive
-                  ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                  ? "bg-card text-foreground shadow-xs ring-1 ring-border"
                   : "text-muted-foreground hover:text-foreground hover:bg-card/50"
               )}
             >
               <Icon className={cn("size-3.5", isActive ? "text-accent" : "")} />
-              <span>{t.label}</span>
+              <span className="hidden sm:inline">{t.label}</span>
+              <span className="inline sm:hidden">{t.shortLabel}</span>
             </button>
           );
         })}

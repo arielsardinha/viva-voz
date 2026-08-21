@@ -33,7 +33,7 @@ export function PdfDropzone({ onFile, isLoading, progress }: PdfDropzoneProps) {
           handleFiles(event.dataTransfer.files);
         }}
         className={cn(
-          "relative overflow-hidden rounded-3xl border-2 border-dashed border-border/80 bg-card/80 p-8 sm:p-14 text-center transition-all duration-300 shadow-sm glass-panel",
+          "relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 bg-card/80 p-6 sm:p-14 text-center transition-all duration-300 shadow-xs glass-panel",
           isOver
             ? "border-accent bg-accent/10 scale-[1.01] ring-4 ring-accent/20"
             : "hover:border-accent/60 hover:bg-card"
@@ -48,15 +48,15 @@ export function PdfDropzone({ onFile, isLoading, progress }: PdfDropzoneProps) {
         />
 
         {/* Ícone com gradiente */}
-        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 text-accent shadow-sm">
+        <div className="mx-auto flex size-12 sm:size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 text-accent shadow-xs">
           {isLoading ? (
-            <Loader2 className="size-8 animate-spin" />
+            <Loader2 className="size-6 sm:size-8 animate-spin" />
           ) : (
-            <Cloud className="size-8 stroke-[1.5]" />
+            <Cloud className="size-6 sm:size-8 stroke-[1.5]" />
           )}
         </div>
 
-        <h2 className="mt-5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+        <h2 className="mt-4 sm:mt-5 text-lg sm:text-2xl font-bold tracking-tight text-foreground">
           {isLoading ? "Processando e preparando narração…" : "Arraste seu PDF aqui ou selecione"}
         </h2>
 
@@ -68,7 +68,7 @@ export function PdfDropzone({ onFile, isLoading, progress }: PdfDropzoneProps) {
           type="button"
           disabled={isLoading}
           onClick={() => inputRef.current?.click()}
-          className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer"
+          className="mt-5 sm:mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer"
         >
           <FileUp className="size-4" />
           <span>Escolher arquivo PDF</span>

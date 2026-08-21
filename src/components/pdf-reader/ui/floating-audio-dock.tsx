@@ -81,21 +81,22 @@ export function FloatingAudioDock({
   return (
     <div
       className={cn(
-        "glass-panel fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl rounded-3xl p-3 sm:p-4 shadow-2xl transition-all duration-300",
+        "glass-panel fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-5xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 shadow-2xl transition-all duration-300",
         className
       )}
     >
       {/* Barra de Progresso Fina no Topo */}
-      <div className="absolute top-0 left-6 right-6 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-secondary/80">
+      <div className="absolute top-0 left-4 right-4 sm:left-6 sm:right-6 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-secondary/80">
         <div
           className="h-full bg-gradient-to-r from-accent to-accent/70 transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+      {/* Layout Desktop (sm e acima): 1 linha fluida */}
+      <div className="hidden sm:flex items-center justify-between gap-4">
         {/* Info do Documento (Esquerda) */}
-        <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
+        <div className="flex items-center gap-3 min-w-0 max-w-xs lg:max-w-sm">
           <div className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 text-accent ring-1 ring-accent/30 shadow-inner">
             <FileText className="size-5" />
             {isPlaying && (
@@ -120,7 +121,7 @@ export function FloatingAudioDock({
         </div>
 
         {/* Controles Centrais + Waveform Visualizer */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
           <button
             type="button"
             onClick={onRestart}
@@ -169,13 +170,13 @@ export function FloatingAudioDock({
           </button>
 
           {/* Forma de Onda Visual no Player Flutuante */}
-          <div className="hidden md:block w-36 lg:w-44 px-1">
-            <WaveformVisualizer isPlaying={isPlaying} isBuffering={isBuffering} barCount={26} />
+          <div className="hidden md:block w-32 lg:w-44 px-1">
+            <WaveformVisualizer isPlaying={isPlaying} isBuffering={isBuffering} barCount={24} />
           </div>
         </div>
 
         {/* Controles de Voz & Velocidade (Direita) */}
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-1.5 justify-end">
           {/* Seletor de Velocidade */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -204,7 +205,7 @@ export function FloatingAudioDock({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors max-w-[150px] truncate"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors max-w-[140px] truncate"
               >
                 <Mic className="size-3 text-accent shrink-0" />
                 <span className="truncate">{voiceLabel}</span>
@@ -243,6 +244,146 @@ export function FloatingAudioDock({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Layout Mobile (< sm): 2 linhas ultra compactas e ergonômicas */}
+      <div className="flex sm:hidden flex-col gap-2">
+        {/* Linha 1 Mobile: Info do PDF + Velocidade & Voz */}
+        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
+              <FileText className="size-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-foreground">
+                {title ?? "Documento"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Pág. {currentPage} • {currentIndex + 1}/{total} ({progressPercent}%)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Velocidade Mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-bold bg-secondary/90 text-foreground border border-border/60"
+                >
+                  <Gauge className="size-3 text-accent" />
+                  <span>{speed}x</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-panel">
+                <DropdownMenuLabel className="text-xs">Velocidade</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={speed} onValueChange={onSpeedChange}>
+                  {SPEEDS.map((s) => (
+                    <DropdownMenuRadioItem key={s} value={s} className="cursor-pointer text-xs">
+                      {s}x {s === "1" ? "(Normal)" : ""}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Voz Mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium bg-secondary/90 text-foreground border border-border/60 max-w-[90px] truncate"
+                >
+                  <Mic className="size-3 text-accent shrink-0" />
+                  <span className="truncate">{voiceLabel}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 max-h-64 overflow-y-auto glass-panel">
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+                  Motor ({engineLabel})
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={engine}
+                  onValueChange={(val) => onEngineChange(val as TtsEngine)}
+                >
+                  {TTS_ENGINES.map((eng) => (
+                    <DropdownMenuRadioItem
+                      key={eng.id}
+                      value={eng.id}
+                      disabled={disabledEngines.includes(eng.id)}
+                      className="cursor-pointer text-xs"
+                    >
+                      {eng.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+
+                <DropdownMenuSeparator className="my-1.5" />
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+                  Voz
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
+                  {voices.map((v) => (
+                    <DropdownMenuRadioItem key={v.id} value={v.id} className="cursor-pointer text-xs">
+                      {v.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Linha 2 Mobile: Controles de Playback Centralizados */}
+        <div className="flex items-center justify-center gap-4 py-0.5">
+          <button
+            type="button"
+            onClick={onRestart}
+            title="Reiniciar leitura"
+            aria-label="Reiniciar"
+            className="text-muted-foreground hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-secondary transition-colors"
+          >
+            <RotateCcw className="size-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onPrevious}
+            disabled={currentIndex === 0}
+            title="Trecho anterior"
+            aria-label="Trecho anterior"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+          >
+            <SkipBack className="size-4.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={isPlaying ? "Pausar" : "Reproduzir"}
+            className="bg-accent text-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full shadow-md shadow-accent/25 transition-transform active:scale-95"
+          >
+            {isBuffering ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="size-5" />
+            ) : (
+              <Play className="size-5 translate-x-0.5" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={currentIndex >= total - 1}
+            title="Próximo trecho"
+            aria-label="Próximo trecho"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+          >
+            <SkipForward className="size-4.5" />
+          </button>
         </div>
       </div>
     </div>

@@ -128,10 +128,13 @@ export function AIStudyTemplate({
     }
   }, [messages, status]);
 
+  const [mobileTab, setMobileTab] = useState<"doc" | "chat">("doc");
+
   const handleSendPrompt = (promptText: string) => {
     const clean = promptText.trim();
     if (!clean || isLoadingAI) return;
     setInput("");
+    setMobileTab("chat");
     void sendMessage({ text: clean });
   };
 
@@ -158,7 +161,7 @@ export function AIStudyTemplate({
   return (
     <div
       ref={containerRef}
-      className={cn("grid gap-5 lg:grid-cols-12 min-h-[calc(100vh-10rem)]", fontClass)}
+      className={cn("flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-5 min-h-[calc(100vh-10rem)]", fontClass)}
       data-reading-theme={settings.theme}
     >
       {/* Menu flutuante de seleção de texto */}
@@ -171,46 +174,88 @@ export function AIStudyTemplate({
         }}
       />
 
-      {/* Painel Esquerdo: Leitor do Documento (7 Colunas) */}
-      <div className="lg:col-span-7 flex flex-col gap-4">
+      {/* Seletor de Abas Mobile (< lg) */}
+      <div className="flex lg:hidden items-center p-1 bg-secondary/80 rounded-2xl border border-border/60">
+        <button
+          type="button"
+          onClick={() => setMobileTab("doc")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all",
+            mobileTab === "doc"
+              ? "bg-card text-foreground shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Headphones className="size-3.5" />
+          <span>Documento & Áudio</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("chat")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all relative",
+            mobileTab === "chat"
+              ? "bg-card text-accent shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Sparkles className="size-3.5 text-accent" />
+          <span>Assistente IA</span>
+          {messages.length > 0 && (
+            <span className="size-2 rounded-full bg-accent" />
+          )}
+        </button>
+      </div>
+
+      {/* Painel Esquerdo: Leitor do Documento (7 Colunas no Desktop) */}
+      <div
+        className={cn(
+          "lg:col-span-7 flex flex-col gap-3 sm:gap-4",
+          mobileTab !== "doc" && "hidden lg:flex"
+        )}
+      >
         {/* Barra Compacta do Leitor */}
-        <div className="glass-panel flex items-center justify-between gap-2 rounded-2xl p-2.5 shadow-sm border border-border/80">
-          <div className="flex items-center gap-1 bg-secondary/80 px-2 py-1 rounded-xl">
+        <div className="glass-panel flex items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/80 px-1.5 sm:px-2 py-1 rounded-xl">
             <button
               type="button"
               onClick={() => currentPage > 1 && jumpToPage(currentPage - 1)}
               disabled={currentPage <= 1}
-              className="flex size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
+              aria-label="Página anterior"
+              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="size-3.5 sm:size-4" />
             </button>
-            <span className="px-2 text-xs font-semibold text-foreground">
-              Página {currentPage} / {totalPages}
+            <span className="px-1.5 sm:px-2 text-xs font-semibold text-foreground whitespace-nowrap">
+              Pág. {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               onClick={() => currentPage < totalPages && jumpToPage(currentPage + 1)}
               disabled={currentPage >= totalPages}
-              className="flex size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
+              aria-label="Próxima página"
+              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
             >
-              <ChevronRight className="size-4" />
+              <ChevronRight className="size-3.5 sm:size-4" />
             </button>
           </div>
 
           {/* Mini Player Control */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={onRestart}
-              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground"
+              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               title="Reiniciar"
+              aria-label="Reiniciar"
             >
               <RotateCcw className="size-3.5" />
             </button>
             <button
               type="button"
               onClick={onToggle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-sm hover:opacity-90"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95"
             >
               {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
               <span>{isPlaying ? "Pausar" : "Ouvir"}</span>
@@ -222,7 +267,7 @@ export function AIStudyTemplate({
         </div>
 
         {/* Visualizador de Texto */}
-        <div className="glass-panel flex-1 rounded-3xl p-6 sm:p-8 h-[calc(100vh-14rem)] overflow-y-auto shadow-sm border border-border/80">
+        <div className="glass-panel flex-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 h-[calc(100vh-14rem)] overflow-y-auto shadow-xs border border-border/80">
           <div
             style={{
               fontSize: `${settings.fontSize}px`,
@@ -239,7 +284,7 @@ export function AIStudyTemplate({
               return (
                 <span key={sentence.index}>
                   {showPageMark && (
-                    <span className="my-6 flex items-center gap-3 text-xs font-bold tracking-wider text-muted-foreground/70 uppercase">
+                    <span className="my-5 sm:my-6 flex items-center gap-3 text-[11px] sm:text-xs font-bold tracking-wider text-muted-foreground/70 uppercase">
                       <span className="h-px flex-1 bg-border/80" />
                       Pág. {sentence.page}
                       <span className="h-px flex-1 bg-border/80" />
@@ -250,7 +295,7 @@ export function AIStudyTemplate({
                     ref={isActive ? activeRef : undefined}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
-                      "cursor-pointer rounded px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
+                      "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
                       isActive && "sentence-highlight-active font-medium text-foreground",
                       !isActive && isRead && "text-muted-foreground hover:bg-accent/10",
                       !isActive && !isRead && "text-foreground hover:bg-accent/10"
@@ -265,33 +310,38 @@ export function AIStudyTemplate({
         </div>
       </div>
 
-      {/* Painel Direito: Assistente de IA de Estudos (5 Colunas - Inspiração 02) */}
-      <div className="lg:col-span-5 glass-panel flex flex-col rounded-3xl overflow-hidden h-[calc(100vh-10rem)] border border-border/80 shadow-md">
+      {/* Painel Direito: Assistente de IA de Estudos (5 Colunas no Desktop) */}
+      <div
+        className={cn(
+          "lg:col-span-5 glass-panel flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] border border-border/80 shadow-md",
+          mobileTab !== "chat" && "hidden lg:flex"
+        )}
+      >
         {/* Header do Chat com IA */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/60">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border bg-card/60">
           <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-accent/15 text-accent">
-              <Sparkles className="size-4" />
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-accent/15 text-accent">
+              <Sparkles className="size-3.5 sm:size-4" />
             </div>
             <div>
               <h3 className="text-xs font-bold text-foreground">AI Study Assistant</h3>
               <p className="text-[10px] text-muted-foreground">Pergunte e analise o documento</p>
             </div>
           </div>
-          <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
+          <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
         </div>
 
         {/* Histórico de Mensagens */}
         <div
           ref={chatScrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scroll-smooth"
+          className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 text-xs scroll-smooth"
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4 text-muted-foreground">
               <BotMessageSquare className="size-10 text-accent/50 mb-2 stroke-1" />
               <p className="font-semibold text-foreground text-sm">Pronto para tirar dúvidas</p>
               <p className="text-xs max-w-xs mt-1">
-                Selecione qualquer trecho no texto à esquerda para resumir, ou use os atalhos abaixo.
+                Selecione qualquer trecho no texto para resumir, ou use as sugestões rápidas abaixo.
               </p>
             </div>
           ) : (
@@ -304,14 +354,14 @@ export function AIStudyTemplate({
               return (
                 <div
                   key={m.id}
-                  className={cn("flex flex-col gap-1 max-w-[90%]", isUser ? "ml-auto items-end" : "mr-auto items-start")}
+                  className={cn("flex flex-col gap-1 max-w-[92%] sm:max-w-[90%]", isUser ? "ml-auto items-end" : "mr-auto items-start")}
                 >
                   <div
                     className={cn(
                       "p-3 rounded-2xl leading-relaxed whitespace-pre-wrap",
                       isUser
-                        ? "bg-accent text-accent-foreground rounded-br-none shadow-sm"
-                        : "bg-secondary/90 text-secondary-foreground rounded-bl-none border border-border/80 shadow-sm"
+                        ? "bg-accent text-accent-foreground rounded-br-none shadow-xs"
+                        : "bg-secondary/90 text-secondary-foreground rounded-bl-none border border-border/80 shadow-xs"
                     )}
                   >
                     {text}
@@ -333,14 +383,14 @@ export function AIStudyTemplate({
         </div>
 
         {/* Chips de Ações Rápidas */}
-        <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-border/60 bg-secondary/40">
+        <div className="flex items-center gap-1.5 px-3 py-2 border-t border-border/60 bg-secondary/40 overflow-x-auto no-scrollbar">
           {quickPrompts.map((q) => (
             <button
               key={q}
               type="button"
               onClick={() => handleSendPrompt(q)}
               disabled={isLoadingAI}
-              className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-card hover:bg-accent/15 hover:text-accent border border-border text-foreground/80 transition-colors disabled:opacity-50"
+              className="text-[10px] sm:text-[11px] font-medium px-2.5 py-1 rounded-full bg-card hover:bg-accent/15 hover:text-accent border border-border text-foreground/80 transition-colors disabled:opacity-50 shrink-0"
             >
               ✨ {q}
             </button>
@@ -348,13 +398,13 @@ export function AIStudyTemplate({
         </div>
 
         {/* Input de Pergunta */}
-        <div className="p-3 border-t border-border bg-card/80">
+        <div className="p-2.5 sm:p-3 border-t border-border bg-card/80">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendPrompt(input);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 sm:gap-2"
           >
             <textarea
               ref={textareaRef}
@@ -367,13 +417,13 @@ export function AIStudyTemplate({
                   handleSendPrompt(input);
                 }
               }}
-              placeholder="Faça uma pergunta sobre o documento…"
-              className="flex-1 min-h-[38px] max-h-24 resize-none rounded-xl border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+              placeholder="Pergunte sobre o documento..."
+              className="flex-1 min-h-[36px] max-h-24 resize-none rounded-xl border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoadingAI}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-sm"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-xs"
               aria-label="Enviar pergunta"
             >
               <Send className="size-4" />

@@ -264,14 +264,14 @@ export function PdfReader() {
     >
       <AppHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8 space-y-5">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8 space-y-3 sm:space-y-5">
         {sentences.length === 0 ? (
           <PdfDropzone onFile={handleFile} isLoading={isLoading} progress={progress} />
         ) : (
           <>
             {/* Barra de Título & Ações Principais */}
-            <div className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3 sm:px-5 border border-border/80 shadow-xs">
-              <div className="flex min-w-0 items-center gap-2.5 flex-1">
+            <div className="glass-panel flex items-center justify-between gap-2 sm:gap-3 rounded-2xl p-2.5 sm:px-5 sm:py-3 border border-border/80 shadow-xs">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 flex-1">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
                   <FileText className="size-4" />
                 </div>
@@ -299,7 +299,7 @@ export function PdfReader() {
                   </div>
                 ) : (
                   <div className="flex min-w-0 items-center gap-1.5">
-                    <h2 className="truncate text-sm sm:text-base font-bold text-foreground">
+                    <h2 className="truncate text-xs sm:text-base font-bold text-foreground max-w-[180px] xs:max-w-[260px] sm:max-w-md">
                       {title}
                     </h2>
                     <button
@@ -317,14 +317,16 @@ export function PdfReader() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={reset}
-                  className="flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  title="Trocar arquivo PDF"
+                  className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border bg-card/80 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                 >
                   <X className="size-3.5" />
-                  <span>Trocar PDF</span>
+                  <span className="hidden xs:inline">Trocar PDF</span>
+                  <span className="inline xs:hidden">Trocar</span>
                 </button>
               </div>
             </div>

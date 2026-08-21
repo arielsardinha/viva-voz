@@ -14,13 +14,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface GeminiKeyDialogProps {
   apiKey: string | null;
   onChange: (key: string | null) => void;
 }
 
-export function GeminiKeyDialog({ apiKey, onChange }: GeminiKeyDialogProps) {
+export function GeminiKeyDialog({
+  apiKey,
+  onChange,
+  compact = false,
+}: GeminiKeyDialogProps & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
 
@@ -39,10 +44,25 @@ export function GeminiKeyDialog({ apiKey, onChange }: GeminiKeyDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
-          <Sparkle className="size-3.5" />
-          {apiKey ? "Conta Gemini conectada" : "Conectar minha conta Gemini"}
-        </Button>
+        <button
+          type="button"
+          title={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
+          aria-label={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-2xl border text-xs font-semibold transition-all px-2.5 sm:px-3 py-1.5 shadow-xs",
+            apiKey
+              ? "border-accent/40 bg-accent/10 text-accent hover:bg-accent/15"
+              : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          )}
+        >
+          <Sparkle className={cn("size-3.5 shrink-0", apiKey ? "text-accent fill-accent/20" : "")} />
+          <span className={cn(compact ? "hidden" : "hidden sm:inline")}>
+            {apiKey ? "Gemini Conectado" : "Conectar Gemini"}
+          </span>
+          {apiKey && (
+            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" title="Ativo" />
+          )}
+        </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
