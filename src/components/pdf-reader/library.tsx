@@ -426,7 +426,7 @@ export function Library() {
                 <p className="text-xs sm:text-sm font-semibold text-foreground">
                   {uploaderVM.isUploading
                     ? uploaderVM.currentProgress || "Processando e importando..."
-                    : "Arraste seus documentos (.pdf, .epub, .docx, .txt, .md) aqui ou toque para Enviar"}
+                    : "Arraste seus documentos (.pdf, .epub, .docx, .odt, .txt, .md) aqui ou toque para Enviar"}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   Importe livros, apostilas ou textos para ouvir a narração instantaneamente

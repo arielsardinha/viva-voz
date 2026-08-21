@@ -6,6 +6,7 @@ import type { IDocumentParserAdapter } from "./adapter.interface";
 import { DocxDocumentAdapter } from "./docx.adapter";
 import { EpubDocumentAdapter } from "./epub.adapter";
 import { MdDocumentAdapter } from "./md.adapter";
+import { OdtDocumentAdapter } from "./odt.adapter";
 import { PdfDocumentAdapter } from "./pdf.adapter";
 import { TxtDocumentAdapter } from "./txt.adapter";
 
@@ -28,6 +29,7 @@ export class AdapterRegistry {
     this.register(new PdfDocumentAdapter());
     this.register(new EpubDocumentAdapter());
     this.register(new DocxDocumentAdapter());
+    this.register(new OdtDocumentAdapter());
     this.register(new TxtDocumentAdapter());
     this.register(new MdDocumentAdapter());
   }
@@ -55,13 +57,13 @@ export class AdapterRegistry {
    * Retorna todas as extensões suportadas pelo catálogo ativo.
    */
   public getSupportedExtensions(): string[] {
-    return [".pdf", ".epub", ".docx", ".txt", ".md", ".markdown"];
+    return [".pdf", ".epub", ".docx", ".odt", ".txt", ".md", ".markdown"];
   }
 
   /**
    * Retorna a string do atributo `accept` para inputs de arquivo HTML.
    */
   public getAcceptAttribute(): string {
-    return ".pdf,.epub,.docx,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown";
+    return ".pdf,.epub,.docx,.odt,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain,text/markdown";
   }
 }

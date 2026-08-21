@@ -24,6 +24,7 @@ const SUPPORTED_FORMAT_BADGES = [
   { label: "PDF", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
   { label: "EPUB", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
   { label: "DOCX", color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" },
+  { label: "ODT", color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
   { label: "TXT", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   { label: "MD", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
 ];
@@ -82,7 +83,7 @@ export function PdfDropzone({
           name="pdfFile"
           type="file"
           multiple
-          accept=".pdf,.epub,.docx,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+          accept=".pdf,.epub,.docx,.odt,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain,text/markdown"
           aria-label="Selecionar documento para leitura e narração"
           className="sr-only"
           onChange={(event) => handleFiles(event.target.files)}
@@ -103,7 +104,7 @@ export function PdfDropzone({
 
         <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-muted-foreground">
           {progress ??
-            "Converta livros, artigos e documentos (.pdf, .epub, .docx, .txt, .md) em leitura em voz alta com IA."}
+            "Converta livros, artigos e documentos (.pdf, .epub, .docx, .odt, .txt, .md) em leitura em voz alta com IA."}
         </p>
 
         {/* Botões de Ação Principais */}

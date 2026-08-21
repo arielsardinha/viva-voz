@@ -31,7 +31,7 @@ export class DocumentProcessingFacade {
   }
 
   /**
-   * Processa qualquer arquivo compatível (PDF, EPUB, DOCX, TXT, MD), extrai sentenças e salva no repositório.
+   * Processa qualquer arquivo compatível (PDF, EPUB, DOCX, ODT, TXT, MD), extrai sentenças e salva no repositório.
    */
   public async processAndSaveFile(
     file: File,

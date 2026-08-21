@@ -127,7 +127,14 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
     if (!entity) return null;
 
     const detectedFormat: DocumentFormat =
-      entity.format || (entity.fileName.endsWith(".epub") ? "epub" : entity.fileName.endsWith(".docx") ? "docx" : "pdf");
+      entity.format ||
+      (entity.fileName.endsWith(".epub")
+        ? "epub"
+        : entity.fileName.endsWith(".docx")
+        ? "docx"
+        : entity.fileName.endsWith(".odt")
+        ? "odt"
+        : "pdf");
 
     const chapters: DocumentChapter[] =
       entity.chapters && entity.chapters.length > 0
@@ -172,7 +179,14 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
     return all
       .map((entity) => {
         const detectedFormat: DocumentFormat =
-          entity.format || (entity.fileName.endsWith(".epub") ? "epub" : entity.fileName.endsWith(".docx") ? "docx" : "pdf");
+          entity.format ||
+          (entity.fileName.endsWith(".epub")
+            ? "epub"
+            : entity.fileName.endsWith(".docx")
+            ? "docx"
+            : entity.fileName.endsWith(".odt")
+            ? "odt"
+            : "pdf");
         const chapterCount = entity.chapters?.length || 1;
         return {
           id: entity.id,

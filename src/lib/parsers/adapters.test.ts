@@ -3,6 +3,7 @@ import { AdapterRegistry } from "./adapter-registry";
 import { DocxDocumentAdapter } from "./docx.adapter";
 import { EpubDocumentAdapter } from "./epub.adapter";
 import { MdDocumentAdapter } from "./md.adapter";
+import { OdtDocumentAdapter } from "./odt.adapter";
 import { PdfDocumentAdapter } from "./pdf.adapter";
 import { QuickPasteAdapter } from "./quick-paste.adapter";
 import { TxtDocumentAdapter } from "./txt.adapter";
@@ -81,6 +82,124 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       expect(parsed.metadata.title).toBe("relatorio");
       expect(parsed.metadata.format).toBe("docx");
       expect(parsed.sentences.length).toBe(2);
+    });
+  });
+
+  describe("OdtDocumentAdapter", () => {
+    it("deve descompactar arquivo .odt e extrair metadados e parágrafos", async () => {
+      const zip = new JSZip();
+
+      zip.file(
+        "meta.xml",
+        `<?xml version="1.0" encoding="UTF-8"?>
+         <office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+           <office:meta>
+             <dc:title>Relatório Aberto ODT</dc:title>
+             <dc:creator>Pesquisador Livre</dc:creator>
+           </office:meta>
+         </office:document-meta>`
+      );
+
+      zip.file(
+        "content.xml",
+        `<?xml version="1.0" encoding="UTF-8"?>
+         <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+           <office:body>
+             <office:text>
+               <text:p>Primeiro parágrafo do documento ODT com texto simples.</text:p>
+               <text:p>Segundo parágrafo com <text:span text:style-name="Bold">destaque em negrito</text:span> &amp; pontuação.</text:p>
+             </office:text>
+           </office:body>
+         </office:document-content>`
+      );
+
+      const buffer = await zip.generateAsync({ type: "arraybuffer" });
+      const file = new File([buffer], "documento.odt", {
+        type: "application/vnd.oasis.opendocument.text",
+      });
+
+      const adapter = new OdtDocumentAdapter();
+      expect(adapter.canHandle(file)).toBe(true);
+
+      const parsed = await adapter.parse(file);
+      expect(parsed.metadata.title).toBe("Relatório Aberto ODT");
+      expect(parsed.metadata.author).toBe("Pesquisador Livre");
+      expect(parsed.metadata.format).toBe("odt");
+      expect(parsed.sentences.length).toBeGreaterThanOrEqual(2);
+      expect(parsed.sentences[0].text).toContain("Primeiro parágrafo do documento ODT");
+      expect(parsed.sentences.some((s) => s.text.includes("&"))).toBe(true);
+    });
+
+    it("deve extrair capítulos de tags <text:h> e estruturar no ParsedDocument", async () => {
+      const zip = new JSZip();
+
+      zip.file(
+        "content.xml",
+        `<?xml version="1.0" encoding="UTF-8"?>
+         <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+           <office:body>
+             <office:text>
+               <text:h text:outline-level="1">Capítulo 1: Fundamentos</text:h>
+               <text:p>Este é o conteúdo fundamental do primeiro capítulo.</text:p>
+               <text:h text:outline-level="1">Capítulo 2: Aplicações Práticas</text:h>
+               <text:p>Aqui explicamos as aplicações no dia a dia do usuário.</text:p>
+             </office:text>
+           </office:body>
+         </office:document-content>`
+      );
+
+      const buffer = await zip.generateAsync({ type: "arraybuffer" });
+      const file = new File([buffer], "tese.odt", {
+        type: "application/vnd.oasis.opendocument.text",
+      });
+
+      const adapter = new OdtDocumentAdapter();
+      const parsed = await adapter.parse(file);
+
+      expect(parsed.metadata.format).toBe("odt");
+      expect(parsed.chapters.length).toBe(2);
+      expect(parsed.chapters[0].title).toBe("Capítulo 1: Fundamentos");
+      expect(parsed.chapters[1].title).toBe("Capítulo 2: Aplicações Práticas");
+      expect(parsed.sentences.some((s) => s.text.includes("conteúdo fundamental"))).toBe(true);
+    });
+
+    it("deve processar espaços múltiplos <text:s>, tabs e quebras de linha", async () => {
+      const zip = new JSZip();
+
+      zip.file(
+        "content.xml",
+        `<?xml version="1.0" encoding="UTF-8"?>
+         <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+           <office:body>
+             <office:text>
+               <text:p>Texto com<text:s text:c="3"/>espaços e tabulação<text:tab/>seguido de quebra.<text:line-break/>Nova linha aqui.</text:p>
+             </office:text>
+           </office:body>
+         </office:document-content>`
+      );
+
+      const buffer = await zip.generateAsync({ type: "arraybuffer" });
+      const file = new File([buffer], "espacos.odt", {
+        type: "application/vnd.oasis.opendocument.text",
+      });
+
+      const adapter = new OdtDocumentAdapter();
+      const parsed = await adapter.parse(file);
+
+      expect(parsed.sentences.length).toBeGreaterThan(0);
+      expect(parsed.sentences.some((s) => s.text.includes("Texto com"))).toBe(true);
+    });
+
+    it("deve lançar erro se content.xml não estiver presente", async () => {
+      const zip = new JSZip();
+      zip.file("outro.xml", "<vazio />");
+      const buffer = await zip.generateAsync({ type: "arraybuffer" });
+      const file = new File([buffer], "invalido.odt", {
+        type: "application/vnd.oasis.opendocument.text",
+      });
+
+      const adapter = new OdtDocumentAdapter();
+      await expect(adapter.parse(file)).rejects.toThrow("content.xml não encontrado");
     });
   });
 
@@ -182,6 +301,9 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       const docx = new File([""], "teste.docx", {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
+      const odt = new File([""], "teste.odt", {
+        type: "application/vnd.oasis.opendocument.text",
+      });
       const epub = new File([""], "teste.epub", { type: "application/epub+zip" });
       const pdf = new File([""], "teste.pdf", { type: "application/pdf" });
       const unknown = new File([""], "arquivo.xyz", { type: "application/unknown" });
@@ -189,6 +311,7 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       expect(registry.getAdapterFor(txt)).toBeInstanceOf(TxtDocumentAdapter);
       expect(registry.getAdapterFor(md)).toBeInstanceOf(MdDocumentAdapter);
       expect(registry.getAdapterFor(docx)).toBeInstanceOf(DocxDocumentAdapter);
+      expect(registry.getAdapterFor(odt)).toBeInstanceOf(OdtDocumentAdapter);
       expect(registry.getAdapterFor(epub)).toBeInstanceOf(EpubDocumentAdapter);
       expect(registry.getAdapterFor(pdf)).toBeInstanceOf(PdfDocumentAdapter);
       expect(registry.getAdapterFor(unknown)).toBeNull();
@@ -200,12 +323,16 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       expect(extensions).toContain(".pdf");
       expect(extensions).toContain(".epub");
       expect(extensions).toContain(".docx");
+      expect(extensions).toContain(".odt");
       expect(extensions).toContain(".txt");
       expect(extensions).toContain(".md");
 
       const accept = registry.getAcceptAttribute();
       expect(accept).toContain(".pdf");
       expect(accept).toContain(".epub");
+      expect(accept).toContain(".docx");
+      expect(accept).toContain(".odt");
+      expect(accept).toContain("application/vnd.oasis.opendocument.text");
     });
   });
 });

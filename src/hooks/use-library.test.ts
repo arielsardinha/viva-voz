@@ -26,8 +26,17 @@ describe("useLibrary (ViewModel MVVM)", () => {
       .addSentence("Texto de tecnologia.")
       .build();
 
+    const doc3 = new ParsedDocumentBuilder()
+      .setId("lib-3")
+      .setTitle("Documento Aberto")
+      .setAuthor("Richard Stallman")
+      .setFormat("odt")
+      .addSentence("Texto livre em formato aberto.")
+      .build();
+
     await facade.getRepository().save(doc1);
     await facade.getRepository().save(doc2);
+    await facade.getRepository().save(doc3);
   });
 
   it("deve carregar lista de documentos e calcular bytes totais", async () => {
@@ -37,8 +46,8 @@ describe("useLibrary (ViewModel MVVM)", () => {
       await result.current.refresh();
     });
 
-    expect(result.current.documents.length).toBe(2);
-    expect(result.current.filteredDocuments.length).toBe(2);
+    expect(result.current.documents.length).toBe(3);
+    expect(result.current.filteredDocuments.length).toBe(3);
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -57,7 +66,7 @@ describe("useLibrary (ViewModel MVVM)", () => {
     expect(result.current.filteredDocuments[0].title).toBe("Livro de Filosofia");
   });
 
-  it("deve filtrar por formato (ex: EPUB)", async () => {
+  it("deve filtrar por formato (ex: EPUB e ODT)", async () => {
     const { result } = renderHook(() => useLibrary(facade));
 
     await act(async () => {
@@ -70,6 +79,14 @@ describe("useLibrary (ViewModel MVVM)", () => {
 
     expect(result.current.filteredDocuments.length).toBe(1);
     expect(result.current.filteredDocuments[0].format).toBe("epub");
+
+    act(() => {
+      result.current.setActiveFormat("ODT");
+    });
+
+    expect(result.current.filteredDocuments.length).toBe(1);
+    expect(result.current.filteredDocuments[0].format).toBe("odt");
+    expect(result.current.filteredDocuments[0].title).toBe("Documento Aberto");
   });
 
   it("deve favoritar e desfavoritar documentos", async () => {
