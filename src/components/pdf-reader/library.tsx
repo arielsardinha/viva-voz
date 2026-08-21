@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
+import { useReaderSettings } from "@/context/reader-settings-context";
 import {
   deleteReading,
   getReading,
@@ -35,6 +36,7 @@ import {
 } from "@/lib/library-db";
 import { extractSentencesFromPdf } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
+
 
 function formatSize(bytes: number) {
   return bytes > 1024 * 1024
@@ -55,6 +57,7 @@ const COVER_GRADIENTS = [
 const TAG_PRESETS = ["Todos", "Design", "Tech", "Estudos", "Artigos"];
 
 export function Library() {
+  const { settings } = useReaderSettings();
   const [readings, setReadings] = useState<ReadingSummary[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -164,8 +167,12 @@ export function Library() {
   const totalBytes = useMemo(() => readings.reduce((acc, r) => acc + r.size, 0), [readings]);
 
   return (
-    <div className="bg-background min-h-screen">
+    <div
+      className="bg-background text-foreground min-h-screen transition-colors"
+      data-reading-theme={settings.theme}
+    >
       <AppHeader />
+
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">

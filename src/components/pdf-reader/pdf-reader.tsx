@@ -10,6 +10,7 @@ import {
   TemplateSwitcher,
   type ReaderSettings,
 } from "./ui/template-switcher";
+import { useReaderSettings } from "@/context/reader-settings-context";
 import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
 import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { ZenFocusTemplate } from "./reader-templates/zen-focus-template";
@@ -34,15 +35,6 @@ import {
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 
 const GEMINI_KEY_STORAGE = "gemini-api-key";
-const READER_SETTINGS_STORAGE = "vivavoz-reader-settings";
-
-const DEFAULT_READER_SETTINGS: ReaderSettings = {
-  template: "modern",
-  theme: "light",
-  font: "sans",
-  fontSize: 16,
-  lineHeight: 1.8,
-};
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -61,8 +53,8 @@ export function PdfReader() {
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Template & Display Settings
-  const [readerSettings, setReaderSettings] = useState<ReaderSettings>(DEFAULT_READER_SETTINGS);
+  // Template & Display Settings vindos do contexto global
+  const { settings: readerSettings, patchSettings } = useReaderSettings();
 
   const engine = prefs.engine;
   const speed = prefs.speed;
@@ -74,25 +66,6 @@ export function PdfReader() {
     void savePreferences(patch);
   }, []);
 
-  const patchSettings = useCallback((patch: Partial<ReaderSettings>) => {
-    setReaderSettings((curr) => {
-      const next = { ...curr, ...patch };
-      try {
-        localStorage.setItem(READER_SETTINGS_STORAGE, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  // Load saved visual settings
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(READER_SETTINGS_STORAGE);
-      if (saved) {
-        setReaderSettings((curr) => ({ ...curr, ...JSON.parse(saved) }));
-      }
-    } catch {}
-  }, []);
 
   const handleError = useCallback((message: string) => toast.error(message), []);
 

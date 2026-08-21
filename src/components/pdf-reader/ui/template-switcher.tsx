@@ -25,24 +25,21 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { AmbientSoundPlayer } from "./ambient-sound-player";
+import type {
+  ReaderTemplateId,
+  ReadingTheme,
+  ReadingFont,
+  ReaderSettings,
+} from "@/context/reader-settings-context";
 
-export type ReaderTemplateId = "modern" | "ai-study" | "zen";
-export type ReadingTheme = "light" | "sepia" | "dark";
-export type ReadingFont = "sans" | "serif" | "mono";
-
-export interface ReaderSettings {
-  template: ReaderTemplateId;
-  theme: ReadingTheme;
-  font: ReadingFont;
-  fontSize: number; // in px or percentage: 14, 16, 18, 20, 24
-  lineHeight: number; // 1.6, 1.8, 2.0
-}
+export type { ReaderTemplateId, ReadingTheme, ReadingFont, ReaderSettings };
 
 interface TemplateSwitcherProps {
   settings: ReaderSettings;
   onChangeSettings: (patch: Partial<ReaderSettings>) => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+
   currentPage?: number;
   totalPages?: number;
 }

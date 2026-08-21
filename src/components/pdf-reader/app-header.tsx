@@ -3,8 +3,24 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AudioLines, Bookmark, FolderArchive, Headphones, Key, Mic, Sparkles } from "lucide-react";
+import {
+  AudioLines,
+  FolderArchive,
+  Mic,
+  Moon,
+  Sparkles,
+  Sun,
+} from "lucide-react";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useReaderSettings } from "@/context/reader-settings-context";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "gemini-api-key";
@@ -15,6 +31,7 @@ export function AppHeader() {
   const isLibrary = pathname === "/leituras";
 
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const { settings, setTheme } = useReaderSettings();
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
@@ -25,6 +42,13 @@ export function AppHeader() {
     if (key) window.localStorage.setItem(STORAGE_KEY, key);
     else window.localStorage.removeItem(STORAGE_KEY);
   }, []);
+
+  const ThemeIcon =
+    settings.theme === "dark"
+      ? Moon
+      : settings.theme === "sepia"
+      ? Sparkles
+      : Sun;
 
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-border/80 shadow-xs">
@@ -79,6 +103,70 @@ export function AppHeader() {
             </Link>
           </nav>
 
+          {/* Alternador Rápido de Tema */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Alternar tema de leitura"
+                title={`Tema atual: ${
+                  settings.theme === "dark"
+                    ? "Escuro"
+                    : settings.theme === "sepia"
+                    ? "Papel Zen"
+                    : "Clean"
+                }`}
+                className="flex size-9 items-center justify-center rounded-2xl border border-border/80 bg-background/80 hover:bg-secondary text-foreground transition-colors shadow-xs"
+              >
+                <ThemeIcon
+                  className={cn(
+                    "size-4 transition-transform",
+                    settings.theme === "dark" && "text-indigo-400",
+                    settings.theme === "sepia" && "text-amber-600",
+                    settings.theme === "light" && "text-amber-500"
+                  )}
+                />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-44 p-2 glass-panel">
+              <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Tema de Leitura
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setTheme("light")}
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",
+                  settings.theme === "light" && "bg-accent/15 text-accent font-semibold"
+                )}
+              >
+                <Sun className="size-4 text-amber-500" />
+                <span>Clean (Claro)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setTheme("sepia")}
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",
+                  settings.theme === "sepia" && "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-semibold"
+                )}
+              >
+                <Sparkles className="size-4 text-amber-600" />
+                <span>Papel Zen (Sépia)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setTheme("dark")}
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",
+                  settings.theme === "dark" && "bg-accent/20 text-accent font-semibold"
+                )}
+              >
+                <Moon className="size-4 text-indigo-400" />
+                <span>Escuro (Midnight)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Dialog da chave Gemini */}
           <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
         </div>
@@ -86,3 +174,4 @@ export function AppHeader() {
     </header>
   );
 }
+

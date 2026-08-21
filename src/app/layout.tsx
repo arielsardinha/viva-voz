@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,17 +29,40 @@ export const metadata: Metadata = {
   },
 };
 
+const themeInitScript = `
+  try {
+    var raw = localStorage.getItem('vivavoz-reader-settings');
+    var theme = 'light';
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.theme) theme = parsed.theme;
+    }
+    document.documentElement.setAttribute('data-reading-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
-      <body className="antialiased">
-        {children}
-        <Toaster />
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="antialiased bg-background text-foreground transition-colors">
+        <ReaderSettingsProvider>
+          {children}
+          <Toaster />
+        </ReaderSettingsProvider>
       </body>
     </html>
   );
 }
+
