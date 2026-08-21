@@ -12,7 +12,7 @@ import {
   ScrollText,
   Sun,
 } from "lucide-react";
-import { GeminiKeyDialog } from "./gemini-key-dialog";
+import { DeveloperContactDialog } from "./developer-contact-dialog";
 import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
 import { SupportDialog } from "./support-dialog";
 import {
@@ -26,25 +26,12 @@ import {
 import { useReaderSettings } from "@/context/reader-settings-context";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "gemini-api-key";
-
 export function AppHeader() {
   const pathname = usePathname();
   const isReader = pathname === "/";
   const isLibrary = pathname === "/leituras";
 
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const { settings, setTheme, openOnboarding, isInitialized } = useReaderSettings();
-
-  useEffect(() => {
-    setApiKey(window.localStorage.getItem(STORAGE_KEY));
-  }, []);
-
-  const updateApiKey = useCallback((key: string | null) => {
-    setApiKey(key);
-    if (key) window.localStorage.setItem(STORAGE_KEY, key);
-    else window.localStorage.removeItem(STORAGE_KEY);
-  }, []);
 
   const ThemeIcon =
     settings.theme === "dark"
@@ -121,6 +108,9 @@ export function AppHeader() {
 
           {/* Botão de Contribuição Voluntária Pix */}
           <SupportDialog />
+
+          {/* Botão para Falar com o Desenvolvedor / Sugerir Recursos */}
+          <DeveloperContactDialog />
 
           {/* Alternador Rápido de Tema & Ajustes */}
           <DropdownMenu>
@@ -201,9 +191,6 @@ export function AppHeader() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Dialog da chave Gemini */}
-          <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
         </div>
       </div>
     </header>

@@ -39,7 +39,7 @@ describe("AppHeader Component", () => {
     expect(screen.getByRole("link", { name: /biblioteca/i })).toBeInTheDocument();
   });
 
-  it("deve renderizar os botões principais de ação (apoio Pix, tema e chave Gemini) e não exibir botão fixo de tutorial", () => {
+  it("deve renderizar os botões principais de ação (apoio Pix, contato com dev e tema) e não exibir botões de tutorial ou chave Gemini fixos", () => {
     render(
       <ReaderSettingsProvider>
         <AppHeader />
@@ -51,30 +51,37 @@ describe("AppHeader Component", () => {
       screen.queryByRole("button", { name: /personalizar preferências e tutorial/i })
     ).not.toBeInTheDocument();
 
+    // O botão do Gemini NÃO deve ficar fixo no menu superior
+    expect(
+      screen.queryByRole("button", { name: /conectar chave gemini/i })
+    ).not.toBeInTheDocument();
+
     // Os outros botões principais devem estar presentes
     expect(
       screen.getByRole("button", { name: /apoiar o desenvolvimento do vivavoz/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /alternar tema de leitura/i })
+      screen.getByRole("button", { name: /entrar em contato com o desenvolvedor/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /conectar chave gemini/i })
+      screen.getByRole("button", { name: /alternar tema de leitura/i })
     ).toBeInTheDocument();
   });
 
-  it("deve abrir o modal de chave Gemini ao clicar no botão correspondente", () => {
+  it("deve abrir o modal de contato com o desenvolvedor ao clicar no botão correspondente", () => {
     render(
       <ReaderSettingsProvider>
         <AppHeader />
       </ReaderSettingsProvider>
     );
 
-    const geminiBtn = screen.getByRole("button", { name: /conectar chave gemini/i });
-    fireEvent.click(geminiBtn);
+    const contactBtn = screen.getByRole("button", {
+      name: /entrar em contato com o desenvolvedor/i,
+    });
+    fireEvent.click(contactBtn);
 
     expect(
-      screen.getByText("Conectar conta do Gemini (Google AI Studio)")
+      screen.getByText("Falar com o Desenvolvedor")
     ).toBeInTheDocument();
   });
 });

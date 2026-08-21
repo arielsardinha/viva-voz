@@ -107,9 +107,9 @@ export function SupportDialog({ trigger, open, onOpenChange }: SupportDialogProp
             data-cy="support-project-btn"
             aria-label="Apoiar o desenvolvimento do VivaVoz"
             title="Contribuição voluntária para o VivaVoz"
-            className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-all text-xs font-bold shadow-xs hover:scale-[1.02] cursor-pointer"
+            className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-border/80 bg-background/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all text-xs font-semibold shadow-xs cursor-pointer"
           >
-            <Heart className="size-3.5 fill-rose-500/30 text-rose-500" aria-hidden="true" />
+            <Heart className="size-3.5 shrink-0" aria-hidden="true" />
             <span className="hidden sm:inline">Apoiar</span>
           </button>
         )}
