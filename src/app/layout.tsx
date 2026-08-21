@@ -44,13 +44,23 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Leitor de PDF em áudio | Ouça seus documentos",
+  title: "VivaVoz | Leitor de PDF em Áudio & Narração Inteligente",
   description:
-    "Envie um PDF, acompanhe a transcrição na tela e ouça o conteúdo narrado com controles de play, pause, voltar e avançar.",
+    "Envie seus PDFs e documentos, acompanhe o texto em tempo real e ouça narrações fluidas com IA, velocidade ajustável e modos de leitura imersivos.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "Leitor de PDF em áudio",
+    title: "VivaVoz | Leitor de PDF em Áudio",
     description:
-      "Transcreva PDFs e ouça a narração com o trecho atual destacado na tela, em português.",
+      "Transcreva PDFs e ouça a narração com o trecho atual destacado na tela em português com IA.",
     type: "website",
   },
   twitter: {

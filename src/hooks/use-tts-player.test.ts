@@ -146,11 +146,19 @@ describe("useTtsPlayer Hook", () => {
     });
 
     it("deve aplicar a taxa (rate) correta de acordo com a propriedade speed", () => {
-      let createdUtterance: { text: string; rate?: number } | null = null;
+      interface MockUtterance {
+        text: string;
+        rate?: number;
+        voice?: SpeechSynthesisVoice | null;
+        lang?: string;
+        onend?: (() => void) | null;
+        onerror?: (() => void) | null;
+      }
+      const createdUtteranceRef: { current: MockUtterance | null } = { current: null };
       const originalUtterance = globalThis.SpeechSynthesisUtterance;
       globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
-        const obj = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
-        createdUtterance = obj;
+        const obj: MockUtterance = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
+        createdUtteranceRef.current = obj;
         return obj;
       }) as unknown as typeof SpeechSynthesisUtterance;
 
@@ -167,16 +175,24 @@ describe("useTtsPlayer Hook", () => {
         result.current.play();
       });
 
-      expect(createdUtterance?.rate).toBe(1.5);
+      expect(createdUtteranceRef.current?.rate).toBe(1.5);
       globalThis.SpeechSynthesisUtterance = originalUtterance;
     });
 
     it("deve atualizar dinamicamente a taxa (rate) quando a propriedade speed mudar", () => {
-      let createdUtterance: { text: string; rate?: number } | null = null;
+      interface MockUtterance {
+        text: string;
+        rate?: number;
+        voice?: SpeechSynthesisVoice | null;
+        lang?: string;
+        onend?: (() => void) | null;
+        onerror?: (() => void) | null;
+      }
+      const createdUtteranceRef: { current: MockUtterance | null } = { current: null };
       const originalUtterance = globalThis.SpeechSynthesisUtterance;
       globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
-        const obj = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
-        createdUtterance = obj;
+        const obj: MockUtterance = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
+        createdUtteranceRef.current = obj;
         return obj;
       }) as unknown as typeof SpeechSynthesisUtterance;
 
@@ -194,15 +210,15 @@ describe("useTtsPlayer Hook", () => {
       act(() => {
         result.current.play();
       });
-      expect(createdUtterance?.rate).toBe(1.0);
+      expect(createdUtteranceRef.current?.rate).toBe(1.0);
 
       // Altera velocidade para 0.8x
       rerender({ speed: 0.8 });
-      expect(createdUtterance?.rate).toBe(0.8);
+      expect(createdUtteranceRef.current?.rate).toBe(0.8);
 
       // Altera velocidade para 1.5x
       rerender({ speed: 1.5 });
-      expect(createdUtterance?.rate).toBe(1.5);
+      expect(createdUtteranceRef.current?.rate).toBe(1.5);
 
       globalThis.SpeechSynthesisUtterance = originalUtterance;
     });

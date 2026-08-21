@@ -170,10 +170,19 @@ describe("PreferencesTutorialDialog Component", () => {
   });
 
   it("deve reproduzir a demonstração sonora na velocidade selecionada (0.8x, 1.5x)", () => {
-    let lastUtterance: { text: string; rate?: number } | null = null;
+    interface MockUtterance {
+      text: string;
+      rate?: number;
+      voice?: SpeechSynthesisVoice | null;
+      lang?: string;
+      onstart?: (() => void) | null;
+      onend?: (() => void) | null;
+      onerror?: (() => void) | null;
+    }
+    const lastUtteranceRef: { current: MockUtterance | null } = { current: null };
     globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
-      const obj = { text, rate: 1, voice: null, lang: "pt-BR", onstart: null, onend: null, onerror: null };
-      lastUtterance = obj;
+      const obj: MockUtterance = { text, rate: 1, voice: null, lang: "pt-BR", onstart: null, onend: null, onerror: null };
+      lastUtteranceRef.current = obj;
       return obj;
     }) as unknown as typeof SpeechSynthesisUtterance;
 
@@ -195,8 +204,8 @@ describe("PreferencesTutorialDialog Component", () => {
 
     // Dispara teste sonoro
     fireEvent.click(screen.getByTestId("voice-test-btn"));
-    expect(lastUtterance?.rate).toBe(1.5);
-    expect(lastUtterance?.text).toContain("1.5x");
+    expect(lastUtteranceRef.current?.rate).toBe(1.5);
+    expect(lastUtteranceRef.current?.text).toContain("1.5x");
 
     // Clica em 0.8x
     fireEvent.click(screen.getByTestId("speed-option-0.8x"));
@@ -204,7 +213,7 @@ describe("PreferencesTutorialDialog Component", () => {
 
     // Dispara teste sonoro
     fireEvent.click(screen.getByTestId("voice-test-btn"));
-    expect(lastUtterance?.rate).toBe(0.8);
-    expect(lastUtterance?.text).toContain("0.8x");
+    expect(lastUtteranceRef.current?.rate).toBe(0.8);
+    expect(lastUtteranceRef.current?.text).toContain("0.8x");
   });
 });

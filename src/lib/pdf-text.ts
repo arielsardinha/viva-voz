@@ -69,9 +69,13 @@ export async function extractSentencesFromPdf(
     const content = await page.getTextContent();
     const pageText = content.items
       .map((item) => {
-        const anyItem = item as { str?: string; hasEOL?: boolean };
-        if (typeof anyItem.str !== "string") return "";
-        return anyItem.hasEOL ? `${anyItem.str} ` : anyItem.str;
+        interface PdfTextItem {
+          str?: string;
+          hasEOL?: boolean;
+        }
+        const textItem = item as PdfTextItem;
+        if (typeof textItem.str !== "string") return "";
+        return textItem.hasEOL ? `${textItem.str} ` : textItem.str;
       })
       .join("");
 
