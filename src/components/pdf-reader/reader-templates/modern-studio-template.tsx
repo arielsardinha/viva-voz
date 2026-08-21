@@ -3,10 +3,13 @@
 import { useRef, useState, useMemo } from "react";
 import {
   BookOpen,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   List,
   Search,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -84,7 +87,9 @@ export function ModernStudioTemplate({
   onOpenNote,
 }: ModernStudioTemplateProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeMatchIndex, setActiveMatchIndex] = useState(-1);
   const [showChapters, setShowChapters] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
 
@@ -92,6 +97,84 @@ export function ModernStudioTemplate({
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
+
+  // Lista de índices de sentenças que correspondem à busca
+  const matchedIndices = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return sentences
+      .filter((s) => s.text.toLowerCase().includes(query))
+      .map((s) => s.index);
+  }, [sentences, searchQuery]);
+
+  // Executa scrollIntoView suave até o elemento da sentença
+  const scrollToSentence = (sentenceIndex: number) => {
+    if (!containerRef.current) return;
+    const el = containerRef.current.querySelector<HTMLElement>(
+      `[data-sentence-index="${sentenceIndex}"]`
+    );
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  // Atualização do termo de busca com auto-scroll para o primeiro resultado
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    const query = val.trim().toLowerCase();
+    if (!query) {
+      setActiveMatchIndex(-1);
+      return;
+    }
+    const matches = sentences
+      .filter((s) => s.text.toLowerCase().includes(query))
+      .map((s) => s.index);
+
+    if (matches.length > 0) {
+      setActiveMatchIndex(0);
+      scrollToSentence(matches[0]);
+    } else {
+      setActiveMatchIndex(-1);
+    }
+  };
+
+  // Navega para a próxima ocorrência (descer)
+  const handleNextMatch = () => {
+    if (matchedIndices.length === 0) return;
+    const nextIndex = (activeMatchIndex + 1) % matchedIndices.length;
+    setActiveMatchIndex(nextIndex);
+    scrollToSentence(matchedIndices[nextIndex]);
+  };
+
+  // Navega para a ocorrência anterior (subir)
+  const handlePrevMatch = () => {
+    if (matchedIndices.length === 0) return;
+    const prevIndex = (activeMatchIndex - 1 + matchedIndices.length) % matchedIndices.length;
+    setActiveMatchIndex(prevIndex);
+    scrollToSentence(matchedIndices[prevIndex]);
+  };
+
+  // Limpa o termo de busca
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setActiveMatchIndex(-1);
+    searchInputRef.current?.focus();
+  };
+
+  // Atalhos de teclado no campo de busca (Enter / Shift+Enter / Esc)
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (e.shiftKey) {
+        handlePrevMatch();
+      } else {
+        handleNextMatch();
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleClearSearch();
+    }
+  };
 
   // Group pages for chapter navigation
   const pageList = useMemo(() => {
@@ -176,16 +259,64 @@ export function ModernStudioTemplate({
           </button>
         </div>
 
-        {/* Busca dentro do documento */}
-        <div className="relative flex-1 max-w-[180px] sm:max-w-xs min-w-0">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar..."
-            className="w-full pl-8 pr-2.5 py-1 text-xs bg-background/90 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
-          />
+        {/* Busca dentro do documento com navegação Ctrl+F */}
+        <div className="relative flex-1 min-w-0 max-w-[200px] sm:max-w-xs md:max-w-sm">
+          <div className="relative flex items-center bg-background/90 border border-border rounded-xl focus-within:ring-1 focus-within:ring-accent transition-all">
+            <Search className="absolute left-2.5 size-3.5 text-muted-foreground pointer-events-none shrink-0" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Buscar..."
+              aria-label="Buscar no documento"
+              data-webmcp-tool="searchInDocument"
+              className="w-full pl-8 pr-1.5 py-1 text-xs bg-transparent border-0 focus:outline-none text-foreground placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searchQuery.trim().length > 0 && (
+              <div className="flex items-center gap-0.5 pr-1.5 shrink-0 animate-in fade-in duration-150">
+                <span
+                  className="px-1 text-[10px] font-semibold text-muted-foreground tabular-nums select-none"
+                  aria-live="polite"
+                >
+                  {matchedIndices.length > 0 ? `${activeMatchIndex + 1}/${matchedIndices.length}` : "0/0"}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handlePrevMatch}
+                  disabled={matchedIndices.length === 0}
+                  aria-label="Ocorrência anterior"
+                  title="Ocorrência anterior (Shift+Enter)"
+                  className="flex size-5 sm:size-5.5 items-center justify-center rounded-md hover:bg-secondary text-foreground disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronUp className="size-3 sm:size-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNextMatch}
+                  disabled={matchedIndices.length === 0}
+                  aria-label="Próxima ocorrência"
+                  title="Próxima ocorrência (Enter)"
+                  className="flex size-5 sm:size-5.5 items-center justify-center rounded-md hover:bg-secondary text-foreground disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronDown className="size-3 sm:size-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  aria-label="Limpar busca"
+                  title="Limpar busca (Esc)"
+                  className="flex size-5 sm:size-5.5 items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <X className="size-3 sm:size-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Zoom e Lista de Páginas */}
@@ -245,9 +376,13 @@ export function ModernStudioTemplate({
               const showPageMark = sentence.page !== lastRenderedPage;
               lastRenderedPage = sentence.page;
 
-              const matchesSearch =
+              const isMatched =
                 searchQuery.trim() !== "" &&
-                sentence.text.toLowerCase().includes(searchQuery.toLowerCase());
+                sentence.text.toLowerCase().includes(searchQuery.trim().toLowerCase());
+              const isCurrentMatch =
+                isMatched &&
+                activeMatchIndex >= 0 &&
+                matchedIndices[activeMatchIndex] === sentence.index;
 
               return (
                 <span key={sentence.index}>
@@ -263,13 +398,16 @@ export function ModernStudioTemplate({
                   <button
                     type="button"
                     data-sentence-index={sentence.index}
+                    data-search-match={isMatched ? "true" : undefined}
+                    data-search-active={isCurrentMatch ? "true" : undefined}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
                       "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
                       isActive && "sentence-highlight-active font-medium text-foreground",
                       !isActive && isRead && "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
                       !isActive && !isRead && "text-foreground hover:bg-accent/10",
-                      matchesSearch && "bg-amber-400/40 ring-1 ring-amber-400"
+                      isMatched && !isCurrentMatch && "bg-amber-400/30 ring-1 ring-amber-400/50 text-foreground",
+                      isCurrentMatch && "bg-amber-400 text-amber-950 font-semibold ring-2 ring-amber-500 shadow-xs dark:bg-amber-400 dark:text-amber-950"
                     )}
                   >
                     <HighlightedSentenceText
