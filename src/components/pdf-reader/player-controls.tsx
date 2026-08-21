@@ -85,8 +85,21 @@ export function PlayerControls({
   );
 
   return (
-    <div className="border-border bg-card min-w-0 rounded-2xl border p-3 sm:p-5">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+    <div
+      role="region"
+      aria-label="Controles de reprodução de áudio"
+      data-webmcp-tool="ttsPlaybackControl"
+      data-webmcp-action="manageAudioPlayback"
+      className="border-border bg-card min-w-0 rounded-2xl border p-3 sm:p-5"
+    >
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Progresso da narração do áudio"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+      >
         <div
           className="bg-accent h-full rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
@@ -97,46 +110,50 @@ export function PlayerControls({
         <div className="flex min-w-0 flex-wrap items-center justify-center gap-1 sm:gap-2 md:justify-start">
           <button
             type="button"
+            data-webmcp-action="restart"
             onClick={onRestart}
-            title="Reiniciar"
-            aria-label="Reiniciar"
-            className="text-muted-foreground hover:bg-secondary hover:text-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10"
+            title="Reiniciar narração"
+            aria-label="Reiniciar narração"
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10 cursor-pointer"
           >
-            <RotateCcw className="size-4" />
+            <RotateCcw className="size-4" aria-hidden="true" />
           </button>
           <button
             type="button"
+            data-webmcp-action="previous-sentence"
             onClick={onPrevious}
             disabled={currentIndex === 0}
             title="Trecho anterior"
             aria-label="Trecho anterior"
-            className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 sm:size-10"
+            className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 sm:size-10 cursor-pointer"
           >
-            <SkipBack className="size-5" />
+            <SkipBack className="size-5" aria-hidden="true" />
           </button>
           <button
             type="button"
+            data-webmcp-action="toggle-playback"
             onClick={onToggle}
-            aria-label={isPlaying ? "Pausar" : "Reproduzir"}
-            className="bg-accent text-accent-foreground inline-flex size-12 shrink-0 items-center justify-center rounded-full shadow-sm transition-opacity hover:opacity-90 sm:size-14"
+            aria-label={isPlaying ? "Pausar narração" : "Reproduzir narração"}
+            className="bg-accent text-accent-foreground inline-flex size-12 shrink-0 items-center justify-center rounded-full shadow-sm transition-opacity hover:opacity-90 sm:size-14 cursor-pointer"
           >
             {isBuffering ? (
-              <Loader2 className="size-6 animate-spin" />
+              <Loader2 className="size-6 animate-spin" aria-hidden="true" />
             ) : isPlaying ? (
-              <Pause className="size-6" />
+              <Pause className="size-6" aria-hidden="true" />
             ) : (
-              <Play className="size-6 translate-x-0.5" />
+              <Play className="size-6 translate-x-0.5" aria-hidden="true" />
             )}
           </button>
           <button
             type="button"
+            data-webmcp-action="next-sentence"
             onClick={onNext}
             disabled={currentIndex >= total - 1}
             title="Próximo trecho"
             aria-label="Próximo trecho"
-            className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 sm:size-10"
+            className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 sm:size-10 cursor-pointer"
           >
-            <SkipForward className="size-5" />
+            <SkipForward className="size-5" aria-hidden="true" />
           </button>
 
           {/* Compactos (estilo YouTube) até lg */}
@@ -147,9 +164,9 @@ export function PlayerControls({
                   type="button"
                   title={`Motor de narração: ${engineLabel}`}
                   aria-label="Motor de narração"
-                  className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10"
+                  className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10 cursor-pointer"
                 >
-                  <Speech className="size-5" />
+                  <Speech className="size-5" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">{engineMenu}</DropdownMenuContent>
@@ -161,9 +178,9 @@ export function PlayerControls({
                   type="button"
                   title="Voz da narração"
                   aria-label="Voz da narração"
-                  className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10"
+                  className="text-foreground hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors sm:size-10 cursor-pointer"
                 >
-                  <AudioLines className="size-5" />
+                  <AudioLines className="size-5" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -182,11 +199,11 @@ export function PlayerControls({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  title="Velocidade"
-                  aria-label="Velocidade"
-                  className="text-foreground hover:bg-secondary inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-xs font-semibold transition-colors sm:h-10"
+                  title="Velocidade de reprodução"
+                  aria-label="Velocidade de reprodução"
+                  className="text-foreground hover:bg-secondary inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-xs font-semibold transition-colors sm:h-10 cursor-pointer"
                 >
-                  <Gauge className="size-5" />
+                  <Gauge className="size-5" aria-hidden="true" />
                   {speed}x
                 </button>
               </DropdownMenuTrigger>
@@ -255,3 +272,4 @@ export function PlayerControls({
     </div>
   );
 }
+

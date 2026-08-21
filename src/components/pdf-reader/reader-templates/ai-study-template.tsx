@@ -416,6 +416,8 @@ export function AIStudyTemplate({
         {/* Input de Pergunta */}
         <div className="p-2.5 sm:p-3 border-t border-border bg-card/80">
           <form
+            data-webmcp-tool="askDocumentAI"
+            data-webmcp-action="queryPdfContext"
             onSubmit={(e) => {
               e.preventDefault();
               handleSendPrompt(input);
@@ -424,6 +426,8 @@ export function AIStudyTemplate({
           >
             <textarea
               ref={textareaRef}
+              id="ai-study-prompt-input"
+              name="userPrompt"
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -434,15 +438,16 @@ export function AIStudyTemplate({
                 }
               }}
               placeholder="Pergunte sobre o documento..."
+              aria-label="Perguntar sobre o documento PDF"
               className="flex-1 min-h-[36px] max-h-24 resize-none rounded-xl border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoadingAI}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-xs"
-              aria-label="Enviar pergunta"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-xs cursor-pointer"
+              aria-label="Enviar pergunta sobre o documento"
             >
-              <Send className="size-4" />
+              <Send className="size-4" aria-hidden="true" />
             </button>
           </form>
           <p className="text-[10px] text-muted-foreground mt-1 text-center">

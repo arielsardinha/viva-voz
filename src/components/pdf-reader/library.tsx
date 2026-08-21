@@ -233,15 +233,22 @@ export function Library() {
           </aside>
 
           {/* Conteúdo Principal do Dashboard */}
-          <section className="space-y-4 sm:space-y-6 min-w-0">
+          <section aria-label="Gerenciador da biblioteca de leituras" className="space-y-4 sm:space-y-6 min-w-0">
             {/* Top Dropzone Card Rápido (Inspiração 03) */}
-            <div className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden group hover:border-accent/60 transition-all shadow-xs">
+            <div
+              data-webmcp-tool="uploadPdf"
+              data-webmcp-action="quickUploadPdf"
+              data-webmcp-schema="application/pdf"
+              className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-border/80 text-center relative overflow-hidden group hover:border-accent/60 transition-all shadow-xs"
+            >
               <input
                 type="file"
+                name="pdfFile"
                 accept="application/pdf,.pdf"
                 className="sr-only"
                 id="library-quick-upload"
                 disabled={isUploading}
+                aria-label="Selecionar arquivo PDF para adicionar à biblioteca"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) void handleQuickUpload(file);
@@ -252,7 +259,7 @@ export function Library() {
                 className="flex flex-col items-center justify-center cursor-pointer"
               >
                 <div className="size-10 sm:size-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
-                  <Cloud className="size-5 sm:size-6 stroke-[1.5]" />
+                  <Cloud className="size-5 sm:size-6 stroke-[1.5]" aria-hidden="true" />
                 </div>
                 <p className="text-xs sm:text-sm font-semibold text-foreground">
                   {isUploading ? "Processando e importando..." : "Arraste seu PDF aqui ou toque para Enviar"}
@@ -265,19 +272,28 @@ export function Library() {
 
             {/* Barra de Busca e Filtros de Tags */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
-              <div className="relative w-full sm:max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 sm:size-4 text-muted-foreground" />
+              <form
+                role="search"
+                data-webmcp-tool="searchLibrary"
+                data-webmcp-action="filterReadings"
+                onSubmit={(e) => e.preventDefault()}
+                className="relative w-full sm:max-w-xs"
+              >
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 sm:size-4 text-muted-foreground" aria-hidden="true" />
                 <input
-                  type="text"
+                  id="library-search-input"
+                  name="searchQuery"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Pesquisar leituras…"
+                  aria-label="Pesquisar leituras salvas por título"
                   className="w-full pl-9 pr-3 py-1.5 sm:py-2 text-xs bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
                 />
-              </div>
+              </form>
 
               {/* Tags de Filtro */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5 sm:pb-0">
+              <div role="toolbar" aria-label="Filtro por categorias" className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5 sm:pb-0">
                 {TAG_PRESETS.map((t) => (
                   <button
                     key={t}

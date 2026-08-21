@@ -56,84 +56,103 @@ export function GeminiKeyDialog({
               : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
           )}
         >
-          <Sparkle className={cn("size-3.5 shrink-0", apiKey ? "text-accent fill-accent/20" : "")} />
+          <Sparkle className={cn("size-3.5 shrink-0", apiKey ? "text-accent fill-accent/20" : "")} aria-hidden="true" />
           <span className={cn(compact ? "hidden" : "hidden sm:inline")}>
             {apiKey ? "Gemini Conectado" : "Conectar Gemini"}
           </span>
           {apiKey && (
-            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" title="Ativo" />
+            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" title="Ativo" aria-label="Status: Ativo" />
           )}
         </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Conectar conta do Gemini (Google AI Studio)</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id="gemini-dialog-title">Conectar conta do Gemini (Google AI Studio)</DialogTitle>
+          <DialogDescription id="gemini-dialog-desc">
             Siga os 3 passos abaixo para conectar sua chave do Google AI Studio (gratuita ou paga) — a chave fica salva apenas neste navegador.
           </DialogDescription>
         </DialogHeader>
 
-        <ol className="text-muted-foreground space-y-3 text-sm">
-          <li className="flex items-start gap-2">
-            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              1
-            </span>
-            <span>
-              Acesse o{" "}
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
-              >
-                Google AI Studio
-                <ExternalLink className="size-3 inline" />
-              </a>{" "}
-              e faça login com sua conta Google.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              2
-            </span>
-            <span>
-              Clique em <strong className="text-foreground">Get API key</strong> e crie uma nova chave.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              3
-            </span>
-            <span>Cole a chave gerada abaixo e clique em Salvar:</span>
-          </li>
-        </ol>
+        <form
+          data-webmcp-tool="configureGeminiApiKey"
+          data-webmcp-action="saveApiKey"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+          className="space-y-4"
+        >
+          <ol className="text-muted-foreground space-y-3 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold" aria-hidden="true">
+                1
+              </span>
+              <span>
+                Acesse o{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
+                >
+                  Google AI Studio
+                  <ExternalLink className="size-3 inline" aria-hidden="true" />
+                </a>{" "}
+                e faça login com sua conta Google.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold" aria-hidden="true">
+                2
+              </span>
+              <span>
+                Clique em <strong className="text-foreground">Get API key</strong> e crie uma nova chave.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold" aria-hidden="true">
+                3
+              </span>
+              <span>Cole a chave gerada abaixo e clique em Salvar:</span>
+            </li>
+          </ol>
 
-        <Input
-          data-cy="gemini-key-input"
-          type="password"
-          placeholder="AIza..."
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          autoComplete="off"
-        />
-        <DialogFooter className="gap-2 sm:justify-between">
-          {apiKey ? (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                onChange(null);
-                setOpen(false);
-                toast.success("Conta Gemini desconectada.");
-              }}
-            >
-              Desconectar
+          <Input
+            id="gemini-key-input"
+            name="geminiApiKey"
+            data-cy="gemini-key-input"
+            type="password"
+            placeholder="AIza..."
+            value={value}
+            aria-label="Chave de API do Google AI Studio"
+            aria-describedby="gemini-dialog-desc"
+            onChange={(event) => setValue(event.target.value)}
+            autoComplete="off"
+          />
+
+          <DialogFooter className="gap-2 sm:justify-between pt-2">
+            {apiKey ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  onChange(null);
+                  setOpen(false);
+                  toast.success("Conta Gemini desconectada.");
+                }}
+              >
+                Desconectar
+              </Button>
+            ) : (
+              <span />
+            )}
+            <Button type="submit" data-cy="gemini-key-save-btn">
+              Salvar chave
             </Button>
-          ) : (
-            <span />
-          )}
-          <Button data-cy="gemini-key-save-btn" onClick={save}>Salvar chave</Button>
-        </DialogFooter>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
+

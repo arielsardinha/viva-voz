@@ -53,14 +53,19 @@ export function AppHeader() {
 
   return (
     <header
+      role="banner"
       data-hydrated={isInitialized ? "true" : "false"}
       className="sticky top-0 z-50 glass-panel border-b border-border/80 shadow-xs"
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3">
         {/* Logo Branding */}
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
+        <Link
+          href="/"
+          aria-label="VivaVoz - Início"
+          className="flex items-center gap-2 group shrink-0"
+        >
           <div className="flex size-9 sm:size-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent to-indigo-500 text-accent-foreground shadow-md shadow-accent/20 group-hover:scale-105 transition-transform">
-            <AudioLines className="size-4 sm:size-5" />
+            <AudioLines className="size-4 sm:size-5" aria-hidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -79,9 +84,10 @@ export function AppHeader() {
 
         {/* Center/Right Nav Links & Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <nav className="flex items-center gap-0.5 sm:gap-1 rounded-2xl bg-secondary/80 p-1 border border-border/60">
+          <nav aria-label="Navegação principal" className="flex items-center gap-0.5 sm:gap-1 rounded-2xl bg-secondary/80 p-1 border border-border/60">
             <Link
               href="/"
+              aria-current={isReader ? "page" : undefined}
               className={cn(
                 "flex items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all",
                 isReader
@@ -89,12 +95,13 @@ export function AppHeader() {
                   : "text-muted-foreground hover:text-foreground hover:bg-card/50"
               )}
             >
-              <Mic className="size-3.5" />
+              <Mic className="size-3.5" aria-hidden="true" />
               <span>Leitor</span>
             </Link>
 
             <Link
               href="/leituras"
+              aria-current={isLibrary ? "page" : undefined}
               className={cn(
                 "flex items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all",
                 isLibrary
@@ -102,7 +109,7 @@ export function AppHeader() {
                   : "text-muted-foreground hover:text-foreground hover:bg-card/50"
               )}
             >
-              <FolderArchive className="size-3.5" />
+              <FolderArchive className="size-3.5" aria-hidden="true" />
               <span>Biblioteca</span>
             </Link>
           </nav>
@@ -117,7 +124,7 @@ export function AppHeader() {
                 aria-label="Personalizar preferências e tutorial"
                 className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent transition-all text-xs font-bold shadow-xs hover:scale-[1.02] cursor-pointer"
               >
-                <Sparkles className="size-3.5" />
+                <Sparkles className="size-3.5" aria-hidden="true" />
                 <span className="hidden md:inline">Tutorial</span>
               </button>
             }
@@ -146,6 +153,7 @@ export function AppHeader() {
                     settings.theme === "sepia" && "text-amber-600",
                     settings.theme === "light" && "text-amber-500"
                   )}
+                  aria-hidden="true"
                 />
               </button>
             </DropdownMenuTrigger>
@@ -163,7 +171,7 @@ export function AppHeader() {
                   settings.theme === "light" && "bg-accent/15 text-accent font-semibold"
                 )}
               >
-                <Sun className="size-4 text-amber-500" />
+                <Sun className="size-4 text-amber-500" aria-hidden="true" />
                 <span>Clean (Claro)</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -174,7 +182,7 @@ export function AppHeader() {
                   settings.theme === "sepia" && "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-semibold"
                 )}
               >
-                <Sparkles className="size-4 text-amber-600" />
+                <Sparkles className="size-4 text-amber-600" aria-hidden="true" />
                 <span>Papel Zen (Sépia)</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -185,7 +193,7 @@ export function AppHeader() {
                   settings.theme === "dark" && "bg-accent/20 text-accent font-semibold"
                 )}
               >
-                <Moon className="size-4 text-indigo-400" />
+                <Moon className="size-4 text-indigo-400" aria-hidden="true" />
                 <span>Escuro (Midnight)</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -198,4 +206,5 @@ export function AppHeader() {
     </header>
   );
 }
+
 

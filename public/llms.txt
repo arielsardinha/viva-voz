@@ -1,0 +1,22 @@
+# VivaVoz — Leitor de PDF em Áudio & Narração Inteligente
+
+> VivaVoz é uma aplicação web de alta performance voltada para leitura acessível de PDFs, narração de texto em áudio neural sincronizado em tempo real, personalização tipográfica e assistência inteligente de estudos alimentada pelo Google Gemini.
+
+## Rotas Públicas Principais
+
+- [Leitor de Documentos](/): Ambiente principal de leitura e narração em áudio, com suporte a upload de PDFs, sincronização de trechos, seleção de templates de leitura e interação contextual com assistente de IA.
+- [Biblioteca de Leituras](/leituras): Painel local (IndexedDB) para gerenciar documentos arquivados, retomar posições de leitura, buscar títulos, gerenciar favoritos e baixar arquivos originais.
+
+## Endpoints e Serviços Estruturados
+
+- [/api/tts](/api/tts): Endpoint POST para sintetização de voz neural (Google Cloud TTS / Gemini TTS) com controle fino de voz, pitch e velocidade de reprodução.
+- [/api/ask](/api/ask): Endpoint POST para streaming de respostas e análises contextuais sobre o documento PDF via Google Gemini.
+
+## Ferramentas WebMCP (Agent-Ready Capabilities)
+
+- **uploadPdf** (`data-webmcp-tool="uploadPdf"`): Carrega arquivos PDF, extrai camadas de texto e divide o conteúdo em sentenças indexadas para reprodução.
+- **configureGeminiApiKey** (`data-webmcp-tool="configureGeminiApiKey"`): Conecta e persiste com segurança no navegador a chave de API do Google AI Studio.
+- **ttsPlaybackControl** (`data-webmcp-tool="ttsPlaybackControl"`): Executa comandos de reprodução, pausa, navegação entre trechos, alteração de velocidade e seleção de vozes neurais.
+- **askDocumentAI** (`data-webmcp-tool="askDocumentAI"`): Envia perguntas e instruções ao assistente de IA com base nas sentenças e páginas do PDF ativo.
+- **searchLibrary** (`data-webmcp-tool="searchLibrary"`): Filtra e consulta leituras armazenadas na base local do navegador.
+- **configureReaderPreferences** (`data-webmcp-tool="configureReaderPreferences"`): Ajusta temas de contraste (Clean, Papel Zen, Escuro), famílias tipográficas e modos de exibição.

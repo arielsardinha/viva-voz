@@ -83,10 +83,10 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
   };
 
   const surface = (
-    <>
+    <section aria-label="Assistente de IA para análise do documento" className="flex flex-col h-full">
       <div className="border-border flex items-center justify-between gap-2 border-b px-4 py-3 pr-10">
         <div className="flex items-center gap-2">
-          <BotMessageSquare className="text-accent size-4" />
+          <BotMessageSquare className="text-accent size-4" aria-hidden="true" />
           <h2 className="text-sm font-semibold">Perguntar sobre o PDF</h2>
         </div>
         <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
@@ -119,15 +119,26 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
       </Conversation>
 
       <div className="border-border border-t p-3">
-        <PromptInput onSubmit={handleSubmit}>
+        <PromptInput
+          data-webmcp-tool="askDocumentAI"
+          data-webmcp-action="queryPdfContext"
+          onSubmit={handleSubmit}
+        >
           <PromptInputTextarea
             ref={textareaRef}
+            id="chat-prompt-textarea"
+            name="userPrompt"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Pergunte algo sobre este documento…"
+            aria-label="Mensagem ou pergunta sobre o documento PDF"
           />
           <PromptInputFooter className="justify-end">
-            <PromptInputSubmit status={status} disabled={!input.trim() || isLoading} />
+            <PromptInputSubmit
+              status={status}
+              disabled={!input.trim() || isLoading}
+              aria-label="Enviar pergunta para o assistente IA"
+            />
           </PromptInputFooter>
         </PromptInput>
         <p className="text-muted-foreground mt-2 text-[11px]">
@@ -136,12 +147,12 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
             : "Conecte sua conta do Google AI Studio para conversar com o documento."}
         </p>
       </div>
-    </>
+    </section>
   );
 
   if (isDesktop) {
     return (
-      <aside className="border-border bg-card flex h-[calc(100vh-8rem)] min-w-0 flex-col overflow-hidden rounded-xl border">
+      <aside aria-label="Painel lateral do assistente IA" className="border-border bg-card flex h-[calc(100vh-8rem)] min-w-0 flex-col overflow-hidden rounded-xl border">
         {surface}
       </aside>
     );
@@ -153,9 +164,9 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
         <button
           type="button"
           aria-label="Perguntar para a IA sobre o PDF"
-          className="bg-accent text-accent-foreground fixed right-4 bottom-4 z-40 inline-flex size-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className="bg-accent text-accent-foreground fixed right-4 bottom-4 z-40 inline-flex size-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <BotMessageSquare className="size-6" />
+          <BotMessageSquare className="size-6" aria-hidden="true" />
         </button>
       </SheetTrigger>
       <SheetContent
@@ -171,3 +182,4 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
     </Sheet>
   );
 }
+

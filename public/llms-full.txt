@@ -1,0 +1,96 @@
+# VivaVoz — Especificação Técnica Completa para Agentes de IA (Full Specification)
+
+> VivaVoz é uma plataforma de acessibilidade e produtividade para leitura de documentos PDF com síntese de voz (TTS) neural sincronizada e assistente de estudos contextuais com inteligência artificial.
+
+## Arquitetura do Sistema
+
+- **Framework**: Next.js (App Router) + React Server Components (RSC) + Tailwind CSS
+- **Gerenciamento de Estado Local**: IndexedDB via `idb` / armazenamento seguro no cliente
+- **Síntese de Fala (TTS)**: Web Speech API (Vozes nativas do sistema) e Google Cloud TTS (Vozes neurais Studio/Wavenet)
+- **IA Generativa**: `@ai-sdk/react` integrado aos modelos Google Gemini para análise de documentos
+
+## Rotas da Aplicação
+
+### 1. `/` (Leitor Principal)
+- Permite carregar documentos via drag-and-drop ou seleção de arquivos.
+- Divide o texto do PDF em sentenças com metadados de paginação.
+- Sincroniza o áudio reproduzido com destaque visual do trecho corrente.
+- Modos de visualização (Templates):
+  - `modern`: Estúdio Moderno com player flutuante e visualizador de ondas.
+  - `ai-study`: Divisão em painéis com leitor de texto e assistente de chat em tempo real.
+  - `zen`: Modo de foco sem distrações com gerador de sons ambientes.
+
+### 2. `/leituras` (Biblioteca de Documentos)
+- Listagem dos PDFs salvos no navegador com paginação, tamanho e progresso.
+- Filtros por tags, busca instantânea por texto e favoritos.
+- Download do arquivo binário PDF original e exclusão.
+
+## Esquemas das Ferramentas WebMCP
+
+```json
+{
+  "tools": [
+    {
+      "name": "uploadPdf",
+      "selector": "[data-webmcp-tool='uploadPdf']",
+      "action": "extract-sentences",
+      "parameters": {
+        "file": {
+          "type": "file",
+          "accept": "application/pdf"
+        }
+      }
+    },
+    {
+      "name": "configureGeminiApiKey",
+      "selector": "form[data-webmcp-tool='configureGeminiApiKey']",
+      "action": "saveApiKey",
+      "parameters": {
+        "geminiApiKey": {
+          "type": "string",
+          "description": "Chave de API do Google AI Studio iniciada com AIza"
+        }
+      }
+    },
+    {
+      "name": "ttsPlaybackControl",
+      "selector": "[data-webmcp-tool='ttsPlaybackControl']",
+      "actions": ["toggle-playback", "previous-sentence", "next-sentence", "restart", "set-speed", "set-voice"]
+    },
+    {
+      "name": "askDocumentAI",
+      "selector": "form[data-webmcp-tool='askDocumentAI']",
+      "action": "queryPdfContext",
+      "parameters": {
+        "userPrompt": {
+          "type": "string",
+          "description": "Texto da dúvida ou comando sobre o documento PDF"
+        }
+      }
+    },
+    {
+      "name": "searchLibrary",
+      "selector": "form[data-webmcp-tool='searchLibrary']",
+      "action": "filterReadings",
+      "parameters": {
+        "searchQuery": {
+          "type": "string",
+          "description": "Termo de busca para filtrar documentos salvos"
+        }
+      }
+    },
+    {
+      "name": "configureReaderPreferences",
+      "selector": "[data-webmcp-tool='configureReaderPreferences']",
+      "action": "saveSettings",
+      "parameters": {
+        "template": { "enum": ["modern", "ai-study", "zen"] },
+        "theme": { "enum": ["light", "sepia", "dark"] },
+        "font": { "enum": ["inter", "roboto", "merriweather", "lora", "literata"] },
+        "fontSize": { "type": "number", "min": 12, "max": 28 },
+        "lineHeight": { "type": "number", "min": 1.4, "max": 2.4 }
+      }
+    }
+  ]
+}
+```
