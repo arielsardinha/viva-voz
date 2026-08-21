@@ -31,6 +31,7 @@ import type {
   ReadingFont,
   ReaderSettings,
 } from "@/context/reader-settings-context";
+import { READING_FONTS } from "@/context/reader-settings-context";
 
 export type { ReaderTemplateId, ReadingTheme, ReadingFont, ReaderSettings };
 
@@ -119,7 +120,7 @@ export function TemplateSwitcher({
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-64 p-3 glass-panel">
+          <DropdownMenuContent align="end" className="w-72 p-3 glass-panel">
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Tema de Leitura
             </DropdownMenuLabel>
@@ -170,21 +171,33 @@ export function TemplateSwitcher({
             <DropdownMenuSeparator className="my-2" />
 
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Família da Fonte
+              Família da Fonte (Google)
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={settings.font}
               onValueChange={(val) => onChangeSettings({ font: val as ReadingFont })}
+              className="space-y-1 py-1"
             >
-              <DropdownMenuRadioItem value="sans" className="cursor-pointer font-sans">
-                Inter (Moderna Sem Serifa)
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="serif" className="cursor-pointer font-serif">
-                Editorial (Com Serifa Clássica)
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="mono" className="cursor-pointer font-mono text-xs">
-                Monospace (Técnica / Código)
-              </DropdownMenuRadioItem>
+              {READING_FONTS.map((font) => (
+                <DropdownMenuRadioItem
+                  key={font.id}
+                  value={font.id}
+                  className={cn(
+                    "cursor-pointer rounded-lg px-2.5 py-1.5 transition-colors flex flex-col items-start gap-0.5",
+                    font.fontClass
+                  )}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-semibold tracking-tight">{font.name}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-sans font-normal border border-border/50">
+                      {font.category}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-normal leading-snug font-sans">
+                    {font.description}
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
             </DropdownMenuRadioGroup>
 
             <DropdownMenuSeparator className="my-2" />

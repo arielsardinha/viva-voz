@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { FloatingAudioDock } from "../ui/floating-audio-dock";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import type { ReaderSettings } from "../ui/template-switcher";
+import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
 
 interface ModernStudioTemplateProps {
@@ -100,12 +101,7 @@ export function ModernStudioTemplate({
   };
 
   // Font class based on settings
-  const fontClass =
-    settings.font === "serif"
-      ? "font-serif"
-      : settings.font === "mono"
-        ? "font-mono"
-        : "font-sans";
+  const fontClass = getFontFamilyClass(settings.font);
 
   let lastRenderedPage = 0;
 

@@ -4,7 +4,81 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 
 export type ReaderTemplateId = "modern" | "ai-study" | "zen";
 export type ReadingTheme = "light" | "sepia" | "dark";
-export type ReadingFont = "sans" | "serif" | "mono";
+export type ReadingFont =
+  | "inter"
+  | "merriweather"
+  | "lora"
+  | "roboto"
+  | "literata"
+  | "sans"
+  | "serif"
+  | "mono";
+
+export interface FontOption {
+  id: ReadingFont;
+  name: string;
+  category: string;
+  description: string;
+  fontClass: string;
+}
+
+export const READING_FONTS: FontOption[] = [
+  {
+    id: "inter",
+    name: "Inter",
+    category: "Sans-Serif Moderna",
+    description: "Excelente nitidez e clareza para leitura em telas digitais",
+    fontClass: "font-inter",
+  },
+  {
+    id: "merriweather",
+    name: "Merriweather",
+    category: "Serifa Editorial",
+    description: "Criada especificamente para leitura confortável de textos longos",
+    fontClass: "font-merriweather",
+  },
+  {
+    id: "lora",
+    name: "Lora",
+    category: "Serifa Literária",
+    description: "Curvas caligráficas elegantes com estética clássica de livro",
+    fontClass: "font-lora",
+  },
+  {
+    id: "roboto",
+    name: "Roboto",
+    category: "Sans-Serif Neutra",
+    description: "A mais popular do Google, equilibrada e com ritmo de leitura fluido",
+    fontClass: "font-roboto",
+  },
+  {
+    id: "literata",
+    name: "Literata",
+    category: "Serifa E-Book",
+    description: "Desenvolvida para o Google Play Livros com foco em leitura contínua",
+    fontClass: "font-literata",
+  },
+];
+
+export function getFontFamilyClass(font: ReadingFont): string {
+  switch (font) {
+    case "merriweather":
+    case "serif":
+      return "font-merriweather font-serif";
+    case "lora":
+      return "font-lora font-serif";
+    case "roboto":
+      return "font-roboto font-sans";
+    case "literata":
+      return "font-literata font-serif";
+    case "mono":
+      return "font-mono";
+    case "inter":
+    case "sans":
+    default:
+      return "font-inter font-sans";
+  }
+}
 
 export interface ReaderSettings {
   template: ReaderTemplateId;
@@ -17,7 +91,7 @@ export interface ReaderSettings {
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   template: "modern",
   theme: "light",
-  font: "sans",
+  font: "inter",
   fontSize: 16,
   lineHeight: 1.8,
 };

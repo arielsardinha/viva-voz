@@ -23,6 +23,7 @@ import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
 import type { ReaderSettings } from "../ui/template-switcher";
+import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
 
 const STORAGE_KEY = "gemini-api-key";
@@ -149,12 +150,8 @@ export function AIStudyTemplate({
     }
   };
 
-  const fontClass =
-    settings.font === "serif"
-      ? "font-serif"
-      : settings.font === "mono"
-        ? "font-mono"
-        : "font-sans";
+  // Font class based on settings
+  const fontClass = getFontFamilyClass(settings.font);
 
   let lastRenderedPage = 0;
 
