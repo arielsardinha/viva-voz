@@ -102,4 +102,38 @@ describe("Tutorial e Onboarding de Preferências", () => {
     cy.get('[data-cy="skip-onboarding-top-btn"]').click();
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
   });
+
+  it("deve renderizar com perfeita responsividade e espaçamento inferior em dispositivos móveis (370px)", () => {
+    cy.viewport(370, 667);
+    cy.visit("/");
+
+    // Modal de onboarding visível e adaptado
+    cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
+    cy.get('[data-cy="start-journey-btn"]').scrollIntoView().should("be.visible").click();
+
+    // Etapa 1: Modo de Leitura
+    cy.contains("Escolha seu Modo de Leitura Favorito").should("be.visible");
+    cy.get('[data-cy="prev-step-btn"]').should("be.visible");
+    cy.get('[data-cy="next-step-btn"]').should("be.visible").click();
+
+    // Etapa 2: Ambiente & Tema
+    cy.contains("Selecione o Ambiente & Tema Visual").should("be.visible");
+    cy.get('[data-cy="theme-option-dark"]').click();
+    cy.get('[data-cy="next-step-btn"]').click();
+
+    // Etapa 3: Tipografia & Tamanho
+    cy.contains("Ajuste a Tipografia & Conforto Visual").should("be.visible");
+    cy.get('[data-cy="next-step-btn"]').click();
+
+    // Etapa 4: Velocidade
+    cy.contains("Configure a Velocidade de Narração").should("be.visible");
+    cy.get('[data-cy="voice-test-btn"]').should("be.visible");
+    cy.get('[data-cy="next-step-btn"]').click();
+
+    // Etapa 5: Conclusão
+    cy.contains("Configurações salvas com sucesso!").should("be.visible");
+    cy.get('[data-cy="finish-onboarding-btn"]').should("be.visible").click();
+
+    cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
+  });
 });

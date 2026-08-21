@@ -327,22 +327,22 @@ export function PreferencesTutorialDialog({
         data-testid="onboarding-dialog"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
-        className="max-w-2xl sm:max-w-3xl p-0 overflow-hidden border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl rounded-3xl"
+        className="w-[calc(100%-1.25rem)] xs:w-[calc(100%-2rem)] max-w-2xl sm:max-w-3xl p-0 overflow-hidden border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl rounded-2xl sm:rounded-3xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] my-auto"
       >
         {/* Cabeçalho do Modal com Barra de Progresso */}
-        <div className="border-b border-border/60 bg-secondary/30 px-6 pt-5 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-md shadow-accent/20">
-                <Sparkles className="size-4" />
+        <div className="shrink-0 border-b border-border/60 bg-secondary/30 px-4 sm:px-6 pt-4 sm:pt-5 pb-3.5 sm:pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-md shadow-accent/20">
+                <Sparkles className="size-3.5 sm:size-4" />
               </div>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-accent">
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-accent truncate block">
                   {step === 0
                     ? "Bem-vindo ao VivaVoz"
                     : `Jornada de Preferências • Etapa ${step} de 5`}
                 </span>
-                <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+                <DialogTitle className="text-sm sm:text-lg font-bold text-foreground truncate">
                   {step === 0 && "Personalize sua experiência de leitura"}
                   {step === 1 && "Escolha seu Modo de Leitura Favorito"}
                   {step === 2 && "Selecione o Ambiente & Tema Visual"}
@@ -359,16 +359,17 @@ export function PreferencesTutorialDialog({
               onClick={handleSkipAll}
               data-cy="skip-onboarding-top-btn"
               data-testid="skip-onboarding-top-btn"
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-lg hover:bg-secondary/80 flex items-center gap-1 cursor-pointer"
+              className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-secondary/80 flex items-center gap-1 cursor-pointer"
             >
-              <span>Pular tudo</span>
+              <span className="hidden xs:inline">Pular tudo</span>
+              <span className="inline xs:hidden">Pular</span>
               <X className="size-3.5" />
             </button>
           </div>
 
           {/* Indicador de passos (visível da etapa 1 em diante) */}
           {step > 0 && (
-            <div className="mt-4 flex items-center gap-1.5 sm:gap-2">
+            <div className="mt-3 sm:mt-4 flex items-center gap-1 sm:gap-2">
               {[1, 2, 3, 4, 5].map((s) => (
                 <div
                   key={s}
@@ -385,26 +386,26 @@ export function PreferencesTutorialDialog({
         </div>
 
         {/* Corpo do Conteúdo por Etapa */}
-        <div className="p-5 sm:p-7 max-h-[70vh] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3 sm:p-7 pb-5 sm:pb-7">
           {/* ================= ETAPA 0: BOAS-VINDAS ================= */}
           {step === 0 && (
-            <div className="space-y-6 text-center py-2">
-              <div className="mx-auto flex size-16 sm:size-20 items-center justify-center rounded-3xl bg-gradient-to-tr from-accent/20 via-accent/10 to-indigo-500/20 text-accent ring-1 ring-accent/30 shadow-inner">
-                <AudioLines className="size-8 sm:size-10" />
+            <div className="space-y-3 sm:space-y-6 text-center py-0.5 sm:py-2">
+              <div className="mx-auto flex size-11 sm:size-20 items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-accent/20 via-accent/10 to-indigo-500/20 text-accent ring-1 ring-accent/30 shadow-inner">
+                <AudioLines className="size-5 sm:size-10" />
               </div>
 
-              <div className="space-y-2 max-w-lg mx-auto">
-                <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+              <div className="space-y-1 sm:space-y-2 max-w-lg mx-auto">
+                <h3 className="text-base sm:text-2xl font-extrabold tracking-tight text-foreground">
                   Transforme qualquer PDF em áudio inteligente
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Você pode configurar rapidamente seu estilo de leitor, temas visuais e velocidade de narração, ou começar direto com os padrões recomendados.
                 </p>
               </div>
 
               {/* Grid com destaques do app */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left max-w-xl mx-auto pt-2">
-                <div className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-left max-w-xl mx-auto pt-0.5 sm:pt-2">
+                <div className="p-2.5 sm:p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-0.5 sm:space-y-1">
                   <div className="flex items-center gap-2 text-accent font-semibold text-xs">
                     <Compass className="size-3.5" />
                     <span>3 Modos de Leitura</span>
@@ -414,7 +415,7 @@ export function PreferencesTutorialDialog({
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-1">
+                <div className="p-2.5 sm:p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-0.5 sm:space-y-1">
                   <div className="flex items-center gap-2 text-amber-500 font-semibold text-xs">
                     <Sparkles className="size-3.5" />
                     <span>Temas Confortáveis</span>
@@ -424,7 +425,7 @@ export function PreferencesTutorialDialog({
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-1">
+                <div className="p-2.5 sm:p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-0.5 sm:space-y-1">
                   <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs">
                     <Volume2 className="size-3.5" />
                     <span>Áudio Sincronizado</span>
@@ -435,14 +436,14 @@ export function PreferencesTutorialDialog({
                 </div>
               </div>
 
-              {/* Botões de Ação Inicial */}
-              <div className="flex items-center justify-center pt-4 max-w-sm mx-auto">
+              {/* Botões de Ação Inicial com espaçamento inferior generoso */}
+              <div className="flex items-center justify-center pt-2 sm:pt-4 pb-1 sm:pb-3 max-w-sm mx-auto">
                 <Button
                   type="button"
                   data-cy="start-journey-btn"
                   data-testid="start-journey-btn"
                   onClick={() => setStep(1)}
-                  className="w-full gap-2 rounded-2xl bg-accent text-accent-foreground hover:bg-accent/90 py-5 text-sm font-bold shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] cursor-pointer"
+                  className="w-full gap-2 rounded-2xl bg-accent text-accent-foreground hover:bg-accent/90 py-3.5 sm:py-5 text-xs sm:text-sm font-bold shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] cursor-pointer"
                 >
                   <Sparkles className="size-4" />
                   <span>Fazer a Jornada (Personalizar)</span>
@@ -458,7 +459,7 @@ export function PreferencesTutorialDialog({
                 Escolha o layout que melhor se adapta à sua rotina. Você poderá alternar entre eles a qualquer momento no leitor.
               </DialogDescription>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5 pt-1">
                 {TEMPLATE_CHOICES.map((t) => {
                   const Icon = t.icon;
                   const isSelected = selectedTemplate === t.id;
@@ -469,17 +470,17 @@ export function PreferencesTutorialDialog({
                       data-testid={`template-option-${t.id}`}
                       onClick={() => setSelectedTemplate(t.id)}
                       className={cn(
-                        "group relative flex flex-col justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200",
+                        "group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200",
                         isSelected
                           ? "border-accent bg-accent/5 shadow-md shadow-accent/10 ring-1 ring-accent"
                           : "border-border/70 bg-card/60 hover:border-border hover:bg-secondary/40"
                       )}
                     >
-                      <div className="space-y-2.5">
+                      <div className="space-y-2 sm:space-y-2.5">
                         <div className="flex items-center justify-between">
                           <div
                             className={cn(
-                              "flex size-9 items-center justify-center rounded-xl transition-colors",
+                              "flex size-8 sm:size-9 items-center justify-center rounded-xl transition-colors",
                               isSelected
                                 ? "bg-accent text-accent-foreground"
                                 : "bg-secondary text-muted-foreground group-hover:text-foreground"
@@ -500,10 +501,10 @@ export function PreferencesTutorialDialog({
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
                             {t.title}
                           </h4>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-relaxed">
                             {t.description}
                           </p>
                         </div>
@@ -521,7 +522,7 @@ export function PreferencesTutorialDialog({
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold">
+                      <div className="mt-3 sm:mt-4 pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold">
                         <span className={isSelected ? "text-accent" : "text-muted-foreground"}>
                           {isSelected ? "Selecionado" : "Selecionar"}
                         </span>
@@ -550,7 +551,7 @@ export function PreferencesTutorialDialog({
                 Escolha o esquema de cores para sua leitura. O tema será aplicado na hora para você testar.
               </DialogDescription>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 pt-1">
                 {THEME_CHOICES.map((th) => {
                   const Icon = th.icon;
                   const isSelected = selectedTheme === th.id;
@@ -561,17 +562,17 @@ export function PreferencesTutorialDialog({
                       data-testid={`theme-option-${th.id}`}
                       onClick={() => handleSelectTheme(th.id)}
                       className={cn(
-                        "group relative flex flex-col justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200",
+                        "group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200",
                         isSelected
                           ? "border-accent bg-accent/5 shadow-md ring-1 ring-accent"
                           : "border-border/70 bg-card/60 hover:border-border hover:bg-secondary/40"
                       )}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2.5 sm:space-y-3">
                         {/* Mini preview visual do tema */}
                         <div
                           className={cn(
-                            "h-20 w-full rounded-xl border p-2.5 flex flex-col justify-between shadow-xs transition-transform group-hover:scale-[1.02]",
+                            "h-16 sm:h-20 w-full rounded-xl border p-2.5 flex flex-col justify-between shadow-xs transition-transform group-hover:scale-[1.02]",
                             th.bgPreview
                           )}
                         >
@@ -588,8 +589,8 @@ export function PreferencesTutorialDialog({
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-bold text-foreground">{th.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          <h4 className="text-xs sm:text-sm font-bold text-foreground">{th.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-relaxed">
                             {th.description}
                           </p>
                         </div>
@@ -619,17 +620,17 @@ export function PreferencesTutorialDialog({
 
           {/* ================= ETAPA 3: TIPOGRAFIA & TAMANHO ================= */}
           {step === 3 && (
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
                 Selecione a fonte ideal e o tamanho do texto para uma leitura sem cansaço visual.
               </DialogDescription>
 
               {/* Escolha da Família da Fonte */}
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Família da Fonte Google
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5">
                   {READING_FONTS.map((font) => {
                     const isSelected = selectedFont === font.id;
                     return (
@@ -639,7 +640,7 @@ export function PreferencesTutorialDialog({
                         data-testid={`font-option-${font.id}`}
                         onClick={() => setSelectedFont(font.id)}
                         className={cn(
-                          "p-3 rounded-2xl border-2 cursor-pointer transition-all duration-200",
+                          "p-2.5 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all duration-200",
                           isSelected
                             ? "border-accent bg-accent/5 ring-1 ring-accent"
                             : "border-border/70 bg-card/60 hover:bg-secondary/40"
@@ -647,7 +648,7 @@ export function PreferencesTutorialDialog({
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className={cn("text-base font-bold text-foreground", font.fontClass)}
+                            className={cn("text-sm sm:text-base font-bold text-foreground", font.fontClass)}
                           >
                             {font.name}
                           </span>
@@ -656,7 +657,7 @@ export function PreferencesTutorialDialog({
                         <span className="text-[10px] text-accent font-semibold">
                           {font.category}
                         </span>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-tight line-clamp-2">
+                        <p className="text-[11px] text-muted-foreground mt-0.5 sm:mt-1 leading-tight line-clamp-2">
                           {font.description}
                         </p>
                       </div>
@@ -666,35 +667,35 @@ export function PreferencesTutorialDialog({
               </div>
 
               {/* Escolha do Tamanho do Texto */}
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Tamanho do Texto
                   </label>
                   <span className="text-xs font-bold text-accent">{selectedFontSize}px</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                   {FONT_SIZE_PRESETS.map((preset) => (
                     <button
                       key={preset.size}
                       type="button"
                       onClick={() => setSelectedFontSize(preset.size)}
                       className={cn(
-                        "py-2 px-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-between",
+                        "py-2 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-between",
                         selectedFontSize === preset.size
                           ? "border-accent bg-accent/10 text-accent ring-1 ring-accent"
                           : "border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                       )}
                     >
                       <span>{preset.label}</span>
-                      <span className="text-[11px] opacity-70">{preset.size}px</span>
+                      <span className="text-[10px] sm:text-[11px] opacity-70">{preset.size}px</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Caixa de Exemplo ao Vivo */}
-              <div className="p-4 rounded-2xl bg-secondary/50 border border-border/80 space-y-1.5">
+              <div className="p-3 sm:p-4 rounded-2xl bg-secondary/50 border border-border/80 space-y-1 sm:space-y-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Prévia em Tempo Real
                 </span>
@@ -713,17 +714,17 @@ export function PreferencesTutorialDialog({
 
           {/* ================= ETAPA 4: VELOCIDADE & TESTE DE VOZ ================= */}
           {step === 4 && (
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
                 Defina o ritmo de audição padrão e experimente o áudio com um teste sonoro.
               </DialogDescription>
 
               {/* Seletor de Velocidade */}
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Velocidade de Reprodução Padrão
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                   {SPEED_PRESETS.map((sp) => {
                     const isSelected = selectedSpeed === sp.value;
                     return (
@@ -734,17 +735,17 @@ export function PreferencesTutorialDialog({
                         data-testid={`speed-option-${sp.label}`}
                         onClick={() => handleSelectSpeed(sp.value)}
                         className={cn(
-                          "p-3 rounded-2xl border-2 text-left transition-all cursor-pointer",
+                          "p-2.5 sm:p-3 rounded-2xl border-2 text-left transition-all cursor-pointer",
                           isSelected
                             ? "border-accent bg-accent/10 text-accent ring-1 ring-accent"
                             : "border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="text-base font-extrabold">{sp.label}</div>
+                          <div className="text-sm sm:text-base font-extrabold">{sp.label}</div>
                           {isSelected && <Check className="size-3.5 text-accent stroke-[3]" />}
                         </div>
-                        <div className="text-[11px] opacity-80">{sp.desc}</div>
+                        <div className="text-[10px] sm:text-[11px] opacity-80">{sp.desc}</div>
                       </button>
                     );
                   })}
@@ -752,14 +753,14 @@ export function PreferencesTutorialDialog({
               </div>
 
               {/* Demonstração Sonora com Web Speech */}
-              <div className="p-4 rounded-2xl bg-secondary/50 border border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-accent/20 text-accent">
-                    <Headphones className="size-5" />
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-secondary/50 border border-border/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3 text-left">
+                  <div className="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent">
+                    <Headphones className="size-4 sm:size-5" />
                   </div>
                   <div>
                     <h5 className="text-xs font-bold text-foreground">Teste Sonoro Instantâneo</h5>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground">
                       Ouça uma frase de demonstração na velocidade selecionada ({selectedSpeed}x).
                     </p>
                   </div>
@@ -772,7 +773,7 @@ export function PreferencesTutorialDialog({
                   onClick={() => handlePlayVoiceSample()}
                   variant="outline"
                   className={cn(
-                    "w-full sm:w-auto gap-2 rounded-xl border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent font-bold text-xs shrink-0 cursor-pointer",
+                    "w-full sm:w-auto gap-2 rounded-xl border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent font-bold text-xs shrink-0 cursor-pointer py-2.5 sm:py-2",
                     isPlayingTestVoice && "animate-pulse ring-2 ring-accent bg-accent/20"
                   )}
                 >
@@ -809,35 +810,35 @@ export function PreferencesTutorialDialog({
               </div>
 
               {/* Resumo das escolhas */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-xl mx-auto text-left">
-                <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 max-w-xl mx-auto text-left">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-secondary/50 border border-border/60">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Modo
                   </span>
-                  <span className="text-xs font-bold text-foreground">
+                  <span className="text-xs font-bold text-foreground truncate block">
                     {TEMPLATE_CHOICES.find((t) => t.id === selectedTemplate)?.title}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-secondary/50 border border-border/60">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Tema
                   </span>
-                  <span className="text-xs font-bold text-foreground">
+                  <span className="text-xs font-bold text-foreground truncate block">
                     {THEME_CHOICES.find((th) => th.id === selectedTheme)?.title}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-secondary/50 border border-border/60">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Fonte
                   </span>
-                  <span className="text-xs font-bold text-foreground">
+                  <span className="text-xs font-bold text-foreground truncate block">
                     {READING_FONTS.find((f) => f.id === selectedFont)?.name} ({selectedFontSize}px)
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-secondary/50 border border-border/60">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Velocidade
                   </span>
@@ -852,29 +853,29 @@ export function PreferencesTutorialDialog({
           )}
         </div>
 
-        {/* Rodapé de Navegação da Jornada */}
+        {/* Rodapé de Navegação da Jornada com Safe-Area e espaçamento inferior */}
         {step > 0 && (
-          <div className="border-t border-border/60 bg-secondary/30 px-6 py-4 flex items-center justify-between gap-3">
+          <div className="shrink-0 border-t border-border/60 bg-secondary/30 px-3.5 sm:px-6 py-3 sm:py-4 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-1.5 sm:gap-3">
             <Button
               type="button"
               data-cy="prev-step-btn"
               data-testid="prev-step-btn"
               variant="outline"
               onClick={() => setStep((curr) => Math.max(0, curr - 1))}
-              className="gap-1.5 rounded-xl border-border/80 bg-background text-xs font-semibold"
+              className="gap-1 sm:gap-1.5 rounded-xl border-border/80 bg-background text-xs font-semibold px-2.5 sm:px-4 py-2 shrink-0"
             >
               <ChevronLeft className="size-4" />
               <span>{step === 1 ? "Voltar ao início" : "Voltar"}</span>
             </Button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Button
                 type="button"
                 data-cy="skip-onboarding-bottom-btn"
                 data-testid="skip-onboarding-bottom-btn"
                 variant="ghost"
                 onClick={handleSkipAll}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 sm:px-3 shrink-0"
               >
                 Pular tudo
               </Button>
@@ -885,7 +886,7 @@ export function PreferencesTutorialDialog({
                   data-cy="next-step-btn"
                   data-testid="next-step-btn"
                   onClick={() => setStep((curr) => curr + 1)}
-                  className="gap-1.5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-bold shadow-md shadow-accent/20 px-4"
+                  className="gap-1 sm:gap-1.5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-bold shadow-md shadow-accent/20 px-3 sm:px-4 shrink-0"
                 >
                   <span>Próximo</span>
                   <ChevronRight className="size-4" />
@@ -896,10 +897,11 @@ export function PreferencesTutorialDialog({
                   data-cy="finish-onboarding-btn"
                   data-testid="finish-onboarding-btn"
                   onClick={handleFinishJourney}
-                  className="gap-1.5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-bold shadow-lg shadow-accent/25 px-5"
+                  className="gap-1.5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-bold shadow-lg shadow-accent/25 px-3.5 sm:px-5 shrink-0"
                 >
                   <Zap className="size-4" />
-                  <span>Concluir e Começar</span>
+                  <span className="hidden xs:inline">Concluir e Começar</span>
+                  <span className="inline xs:hidden">Concluir</span>
                 </Button>
               )}
             </div>
