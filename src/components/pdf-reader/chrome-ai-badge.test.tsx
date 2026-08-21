@@ -85,7 +85,7 @@ describe("ChromeAiBadge", () => {
     unmount();
   });
 
-  it("deve permitir copiar a URL da flag e disparar checkNow ao clicar em Verificar", async () => {
+  it("deve permitir copiar a URL da flag e não exibir botão manual de verificar", async () => {
     const writeTextMock = jest.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
       clipboard: {
@@ -113,14 +113,11 @@ describe("ChromeAiBadge", () => {
       "chrome://flags/#prompt-api-for-gemini-nano",
     );
 
-    const verifyButton = screen.getByRole("button", {
-      name: /Verificar disponibilidade da IA no navegador/i,
-    });
-    act(() => {
-      fireEvent.click(verifyButton);
-    });
-
-    expect(mockCheckNow).toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", {
+        name: /Verificar disponibilidade da IA no navegador/i,
+      }),
+    ).not.toBeInTheDocument();
 
     unmount();
   });

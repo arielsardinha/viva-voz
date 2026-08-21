@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  RefreshCw,
   DownloadCloud,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -38,12 +37,7 @@ export function ChromeAiBadge({
   const [copied, setCopied] = useState(false);
 
   // Hook que monitora eventos de foco na janela, visibilidade e faz auto-polling inteligente
-  const {
-    status: internalStatus,
-    isChecking,
-    isDownloading,
-    checkNow,
-  } = useChromeAi({
+  const { status: internalStatus } = useChromeAi({
     pollIntervalMs: open ? 2500 : 5000,
     onStatusChange,
   });
@@ -134,26 +128,9 @@ export function ChromeAiBadge({
         className="w-[330px] sm:w-[360px] p-4 text-xs space-y-3 bg-popover text-popover-foreground shadow-xl rounded-2xl border border-border"
       >
         {/* Cabeçalho do Popover */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-          <div className="flex items-center gap-1.5 font-semibold text-foreground">
-            <Sparkles className="size-4 text-accent" aria-hidden="true" />
-            <span className="text-sm">Motor de Inteligência Artificial</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void checkNow()}
-            disabled={isChecking}
-            title="Verificar status novamente"
-            aria-label="Verificar disponibilidade da IA no navegador"
-            className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 px-2 py-1 rounded-lg hover:bg-secondary cursor-pointer"
-          >
-            <RefreshCw
-              className={`size-3.5 ${isChecking ? "animate-spin text-accent" : ""}`}
-              aria-hidden="true"
-            />
-            <span>{isChecking ? "Verificando..." : "Verificar"}</span>
-          </button>
+        <div className="flex items-center gap-1.5 border-b border-border/60 pb-2.5 font-semibold text-foreground">
+          <Sparkles className="size-4 text-accent" aria-hidden="true" />
+          <span className="text-sm">Motor de Inteligência Artificial</span>
         </div>
 
         {/* Estado 1: Nuvem Conectada */}
