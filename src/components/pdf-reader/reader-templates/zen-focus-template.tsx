@@ -18,6 +18,8 @@ import {
 import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
+import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
+import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
 import { PagesDrawer } from "../ui/pages-drawer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
 import type { ReaderSettings } from "../ui/template-switcher";
@@ -58,6 +60,9 @@ interface ZenFocusTemplateProps {
   onVoiceChange: (voice: string) => void;
   onSpeedChange: (speed: string) => void;
   onAskAI?: (prompt: string) => void;
+  getHighlightsForSentence?: (index: number) => TextHighlight[];
+  onHighlight?: (color: HighlightColor, text: string, container?: HTMLElement | null) => void;
+  onRemoveHighlight?: (text: string, container?: HTMLElement | null) => void;
 }
 
 export function ZenFocusTemplate({
@@ -83,6 +88,9 @@ export function ZenFocusTemplate({
   onVoiceChange,
   onSpeedChange,
   onAskAI,
+  getHighlightsForSentence,
+  onHighlight,
+  onRemoveHighlight,
 }: ZenFocusTemplateProps) {
   const { apiKey: hookApiKey, updateApiKey: hookUpdateApiKey } = useGeminiApiKey();
   const apiKey = propApiKey !== undefined ? propApiKey : hookApiKey;
@@ -170,6 +178,8 @@ export function ZenFocusTemplate({
           const matched = sentences.findIndex((s) => s.text.includes(text) || text.includes(s.text));
           if (matched !== -1) onSelectSentence(matched);
         }}
+        onHighlight={(color, text) => onHighlight?.(color, text, containerRef.current)}
+        onRemoveHighlight={(text) => onRemoveHighlight?.(text, containerRef.current)}
       />
 
       {/* Cabeçalho Editorial do Documento (Inspiração 04) */}
@@ -213,6 +223,7 @@ export function ZenFocusTemplate({
                 )}
                 <button
                   type="button"
+                  data-sentence-index={sentence.index}
                   ref={isActive ? activeRef : undefined}
                   onClick={() => onSelectSentence(sentence.index)}
                   className={cn(
@@ -222,7 +233,10 @@ export function ZenFocusTemplate({
                     !isActive && !isRead && "text-foreground hover:bg-accent/10"
                   )}
                 >
-                  {sentence.text}
+                  <HighlightedSentenceText
+                    text={sentence.text}
+                    highlights={getHighlightsForSentence?.(sentence.index) ?? []}
+                  />
                 </button>{" "}
               </span>
             );

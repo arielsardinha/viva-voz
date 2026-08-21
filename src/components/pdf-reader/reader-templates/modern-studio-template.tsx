@@ -14,6 +14,8 @@ import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import { FloatingAudioDock } from "../ui/floating-audio-dock";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
+import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
+import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
@@ -42,6 +44,9 @@ interface ModernStudioTemplateProps {
   onVoiceChange: (voice: string) => void;
   onSpeedChange: (speed: string) => void;
   onAskAI?: (prompt: string) => void;
+  getHighlightsForSentence?: (index: number) => TextHighlight[];
+  onHighlight?: (color: HighlightColor, text: string, container?: HTMLElement | null) => void;
+  onRemoveHighlight?: (text: string, container?: HTMLElement | null) => void;
 }
 
 export function ModernStudioTemplate({
@@ -67,6 +72,9 @@ export function ModernStudioTemplate({
   onVoiceChange,
   onSpeedChange,
   onAskAI,
+  getHighlightsForSentence,
+  onHighlight,
+  onRemoveHighlight,
 }: ModernStudioTemplateProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,6 +130,8 @@ export function ModernStudioTemplate({
           const matched = sentences.findIndex((s) => s.text.includes(text) || text.includes(s.text));
           if (matched !== -1) onSelectSentence(matched);
         }}
+        onHighlight={(color, text) => onHighlight?.(color, text, containerRef.current)}
+        onRemoveHighlight={(text) => onRemoveHighlight?.(text, containerRef.current)}
       />
 
       {/* Barra de Ferramentas Superior do Leitor (Inspiração 01) */}
@@ -241,6 +251,7 @@ export function ModernStudioTemplate({
                   )}
                   <button
                     type="button"
+                    data-sentence-index={sentence.index}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
                       "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
@@ -250,7 +261,10 @@ export function ModernStudioTemplate({
                       matchesSearch && "bg-amber-400/40 ring-1 ring-amber-400"
                     )}
                   >
-                    {sentence.text}
+                    <HighlightedSentenceText
+                      text={sentence.text}
+                      highlights={getHighlightsForSentence?.(sentence.index) ?? []}
+                    />
                   </button>{" "}
                 </span>
               );

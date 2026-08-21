@@ -41,6 +41,8 @@ import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facad
 import type { DocumentChapter, DocumentFormat } from "@/lib/domain/document.types";
 import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 import { useMediaSession } from "@/hooks/use-media-session";
+import { useDocumentHighlights } from "@/hooks/use-document-highlights";
+import type { HighlightColor } from "@/lib/domain/document-highlight.types";
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -60,6 +62,22 @@ export function PdfReader() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
   const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
+
+  const docHighlights = useDocumentHighlights(readingId);
+
+  const handleHighlight = useCallback(
+    (color: HighlightColor, text: string, container?: HTMLElement | null) => {
+      docHighlights.applyHighlight(color, text, container, sentences);
+    },
+    [docHighlights, sentences]
+  );
+
+  const handleRemoveHighlight = useCallback(
+    (text: string, container?: HTMLElement | null) => {
+      docHighlights.removeHighlightsForSelection(text, container, sentences);
+    },
+    [docHighlights, sentences]
+  );
 
   const facade = useMemo(() => DocumentProcessingFacade.getInstance(), []);
 
@@ -478,6 +496,9 @@ export function PdfReader() {
                 onAskAI={() => {
                   patchSettings({ template: "ai-study" });
                 }}
+                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
+                onHighlight={handleHighlight}
+                onRemoveHighlight={handleRemoveHighlight}
               />
             )}
 
@@ -504,6 +525,9 @@ export function PdfReader() {
                 onRestart={player.restart}
                 onVoiceChange={setVoice}
                 onSpeedChange={setSpeed}
+                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
+                onHighlight={handleHighlight}
+                onRemoveHighlight={handleRemoveHighlight}
               />
             )}
 
@@ -533,6 +557,9 @@ export function PdfReader() {
                 onAskAI={() => {
                   patchSettings({ template: "ai-study" });
                 }}
+                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
+                onHighlight={handleHighlight}
+                onRemoveHighlight={handleRemoveHighlight}
               />
             )}
 

@@ -198,6 +198,93 @@
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
 }
 
+/* Marcadores Piloto (Text Highlighters) */
+.highlight-mark {
+  border-radius: 4px;
+  padding: 0.1em 0.25em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.highlight-yellow {
+  background-color: rgba(254, 240, 138, 0.75);
+  color: inherit;
+}
+.dark .highlight-yellow, [data-reading-theme="dark"] .highlight-yellow {
+  background-color: rgba(234, 179, 8, 0.38);
+  color: #fef9c3;
+}
+[data-reading-theme="sepia"] .highlight-yellow {
+  background-color: rgba(250, 204, 21, 0.5);
+  color: inherit;
+}
+
+.highlight-green {
+  background-color: rgba(187, 247, 208, 0.75);
+  color: inherit;
+}
+.dark .highlight-green, [data-reading-theme="dark"] .highlight-green {
+  background-color: rgba(34, 197, 94, 0.38);
+  color: #dcfce7;
+}
+[data-reading-theme="sepia"] .highlight-green {
+  background-color: rgba(134, 239, 172, 0.5);
+  color: inherit;
+}
+
+.highlight-blue {
+  background-color: rgba(191, 219, 254, 0.75);
+  color: inherit;
+}
+.dark .highlight-blue, [data-reading-theme="dark"] .highlight-blue {
+  background-color: rgba(59, 130, 246, 0.38);
+  color: #dbeafe;
+}
+[data-reading-theme="sepia"] .highlight-blue {
+  background-color: rgba(147, 197, 253, 0.5);
+  color: inherit;
+}
+
+.highlight-purple {
+  background-color: rgba(233, 213, 255, 0.75);
+  color: inherit;
+}
+.dark .highlight-purple, [data-reading-theme="dark"] .highlight-purple {
+  background-color: rgba(168, 85, 247, 0.38);
+  color: #f3e8ff;
+}
+[data-reading-theme="sepia"] .highlight-purple {
+  background-color: rgba(216, 180, 254, 0.5);
+  color: inherit;
+}
+
+.highlight-pink {
+  background-color: rgba(251, 207, 232, 0.75);
+  color: inherit;
+}
+.dark .highlight-pink, [data-reading-theme="dark"] .highlight-pink {
+  background-color: rgba(236, 72, 153, 0.38);
+  color: #fce7f3;
+}
+[data-reading-theme="sepia"] .highlight-pink {
+  background-color: rgba(244, 114, 182, 0.5);
+  color: inherit;
+}
+
+.highlight-orange {
+  background-color: rgba(254, 215, 170, 0.75);
+  color: inherit;
+}
+.dark .highlight-orange, [data-reading-theme="dark"] .highlight-orange {
+  background-color: rgba(249, 115, 22, 0.38);
+  color: #ffedd5;
+}
+[data-reading-theme="sepia"] .highlight-orange {
+  background-color: rgba(251, 146, 60, 0.5);
+  color: inherit;
+}
+
 /* Typography / Reading Fonts */
 .font-inter {
   font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
