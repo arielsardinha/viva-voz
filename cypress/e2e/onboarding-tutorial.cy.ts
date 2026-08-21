@@ -99,7 +99,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
 
     // Aguarda a aplicação carregar
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     // O modal não deve abrir automaticamente e o botão não fica fixo no topo
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");

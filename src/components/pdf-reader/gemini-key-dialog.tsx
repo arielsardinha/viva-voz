@@ -50,7 +50,7 @@ export function GeminiKeyDialog({
           title={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
           aria-label={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-2xl border text-xs font-semibold transition-all px-2.5 sm:px-3 py-1.5 shadow-xs cursor-pointer",
+            "inline-flex items-center gap-1.5 h-8 sm:h-9 rounded-2xl border text-xs font-semibold transition-all px-2.5 sm:px-3 shadow-xs cursor-pointer",
             apiKey
               ? "border-accent/40 bg-accent/10 text-accent hover:bg-accent/15"
               : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground"

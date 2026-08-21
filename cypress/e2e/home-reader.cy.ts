@@ -21,8 +21,8 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
   it("deve carregar a página inicial com cabeçalho, logotipo e área de upload", () => {
     cy.contains("VivaVoz").should("be.visible");
     cy.contains("AI Studio").should("be.visible");
-    cy.contains("Arraste seu PDF aqui ou selecione").should("be.visible");
-    cy.contains("Escolher arquivo PDF").should("be.visible");
+    cy.contains("Arraste seus documentos aqui ou selecione").should("be.visible");
+    cy.contains("Selecionar Arquivo").should("be.visible");
 
     // Valida os cards de recursos da home
     cy.contains("Narração Fluida").should("be.visible");
@@ -32,7 +32,7 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
 
   it("deve navegar entre o Leitor e a Biblioteca através do cabeçalho", () => {
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     cy.contains("a", "Biblioteca").click();
     cy.url().should("include", "/leituras");
@@ -40,12 +40,12 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
 
     cy.contains("a", "Leitor").click();
     cy.url().should("eq", `${Cypress.config().baseUrl}/`);
-    cy.contains("Arraste seu PDF aqui ou selecione").should("be.visible");
+    cy.contains("Arraste seus documentos aqui ou selecione").should("be.visible");
   });
 
   it("deve abrir e permitir configuração da chave do Gemini pelo modal", () => {
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     cy.get('[data-cy="gemini-key-trigger"]').should("be.visible").click();
 

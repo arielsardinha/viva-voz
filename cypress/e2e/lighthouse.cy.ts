@@ -22,7 +22,7 @@ describe("Auditoria de Qualidade com Google Lighthouse", () => {
   it("deve atender aos thresholds de qualidade na Página Inicial (Home)", () => {
     // Garante que a Home e a dropzone foram renderizadas
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     // Executa auditoria do Lighthouse no Leitor / Home
     cy.lighthouse(

@@ -136,17 +136,18 @@ export function AppHeader() {
                     ? "Papel Zen"
                     : "Clean"
                 }`}
-                className="flex size-8 sm:size-9 items-center justify-center rounded-2xl border border-border/80 bg-background/80 hover:bg-secondary text-foreground transition-colors shadow-xs"
+                className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-border/80 bg-background/80 hover:bg-secondary text-foreground text-xs font-semibold transition-all shadow-xs cursor-pointer"
               >
                 <ThemeIcon
                   className={cn(
-                    "size-3.5 sm:size-4 transition-transform",
+                    "size-3.5 shrink-0 transition-transform",
                     settings.theme === "dark" && "text-indigo-400",
                     settings.theme === "sepia" && "text-amber-600",
                     settings.theme === "light" && "text-amber-500"
                   )}
                   aria-hidden="true"
                 />
+                <span className="hidden sm:inline">Tema</span>
               </button>
             </DropdownMenuTrigger>
 

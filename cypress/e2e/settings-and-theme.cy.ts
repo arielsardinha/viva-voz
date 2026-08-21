@@ -20,7 +20,7 @@ describe("Temas e Configurações de Leitura", () => {
 
   it("deve alternar o tema entre Clean, Papel Zen e Escuro e refletir no atributo data-reading-theme", () => {
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     // Abre dropdown de temas
     cy.get('[data-cy="theme-dropdown-trigger"]').should("be.visible").click();
@@ -46,7 +46,7 @@ describe("Temas e Configurações de Leitura", () => {
 
   it("deve persistir a escolha do tema no localStorage após recarregar a página", () => {
     cy.contains("VivaVoz").should("be.visible");
-    cy.contains("Arraste seu PDF aqui").should("be.visible");
+    cy.contains("Arraste seus documentos aqui").should("be.visible");
 
     cy.get('[data-cy="theme-dropdown-trigger"]').should("be.visible").click();
     cy.get('[data-cy="theme-item-dark"]').should("be.visible").click();
