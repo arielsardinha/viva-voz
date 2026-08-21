@@ -42,7 +42,11 @@ import type { DocumentChapter, DocumentFormat } from "@/lib/domain/document.type
 import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 import { useMediaSession } from "@/hooks/use-media-session";
 import { useDocumentHighlights } from "@/hooks/use-document-highlights";
+import { useDocumentNotes } from "@/hooks/use-document-notes";
+import { NoteDialog } from "./ui/note-dialog";
+import { NotesDrawer } from "./ui/notes-drawer";
 import type { HighlightColor } from "@/lib/domain/document-highlight.types";
+import type { DocumentNote, NoteColor } from "@/lib/domain/document-note.types";
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -63,7 +67,18 @@ export function PdfReader() {
   const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
   const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
 
+  // Estados do Bloco de Notas
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [activeNoteDraft, setActiveNoteDraft] = useState<{
+    sentenceIndex: number;
+    selectedText: string;
+    page?: number;
+  } | null>(null);
+  const [editingNote, setEditingNote] = useState<DocumentNote | null>(null);
+  const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
+
   const docHighlights = useDocumentHighlights(readingId);
+  const docNotes = useDocumentNotes(readingId);
 
   const handleHighlight = useCallback(
     (color: HighlightColor, text: string, container?: HTMLElement | null) => {
@@ -77,6 +92,57 @@ export function PdfReader() {
       docHighlights.removeHighlightsForSelection(text, container, sentences);
     },
     [docHighlights, sentences]
+  );
+
+  const handleRequestAddNote = useCallback(
+    (text: string, sentenceIndex: number, page?: number) => {
+      setActiveNoteDraft({
+        sentenceIndex,
+        selectedText: text,
+        page,
+      });
+      setEditingNote(null);
+      setNoteDialogOpen(true);
+    },
+    []
+  );
+
+  const handleOpenNote = useCallback((note: DocumentNote) => {
+    setEditingNote(note);
+    setActiveNoteDraft(null);
+    setNoteDialogOpen(true);
+  }, []);
+
+  const handleSaveNote = useCallback(
+    (data: {
+      sentenceIndex: number;
+      selectedText: string;
+      content: string;
+      title?: string;
+      color: NoteColor;
+      page?: number;
+    }) => {
+      if (editingNote) {
+        docNotes.updateNote(editingNote.id, {
+          title: data.title,
+          content: data.content,
+          color: data.color,
+        });
+        toast.success("Anotação atualizada.");
+      } else {
+        docNotes.addNote(data);
+        toast.success("Anotação salva no Bloco de Notas.");
+      }
+    },
+    [editingNote, docNotes]
+  );
+
+  const handleDeleteNote = useCallback(
+    (noteId: string) => {
+      docNotes.deleteNote(noteId);
+      toast.success("Anotação excluída.");
+    },
+    [docNotes]
   );
 
   const facade = useMemo(() => DocumentProcessingFacade.getInstance(), []);
@@ -467,6 +533,8 @@ export function PdfReader() {
               onToggleFullscreen={toggleFullscreen}
               currentPage={currentPage}
               totalPages={totalPages}
+              notesCount={docNotes.notes.length}
+              onOpenNotesDrawer={() => setNotesDrawerOpen(true)}
             />
 
             {/* Renderização Condicional dos 3 Templates */}
@@ -499,6 +567,9 @@ export function PdfReader() {
                 getHighlightsForSentence={docHighlights.getHighlightsForSentence}
                 onHighlight={handleHighlight}
                 onRemoveHighlight={handleRemoveHighlight}
+                getNotesForSentence={docNotes.getNotesForSentence}
+                onAddNote={handleRequestAddNote}
+                onOpenNote={handleOpenNote}
               />
             )}
 
@@ -528,6 +599,9 @@ export function PdfReader() {
                 getHighlightsForSentence={docHighlights.getHighlightsForSentence}
                 onHighlight={handleHighlight}
                 onRemoveHighlight={handleRemoveHighlight}
+                getNotesForSentence={docNotes.getNotesForSentence}
+                onAddNote={handleRequestAddNote}
+                onOpenNote={handleOpenNote}
               />
             )}
 
@@ -560,6 +634,9 @@ export function PdfReader() {
                 getHighlightsForSentence={docHighlights.getHighlightsForSentence}
                 onHighlight={handleHighlight}
                 onRemoveHighlight={handleRemoveHighlight}
+                getNotesForSentence={docNotes.getNotesForSentence}
+                onAddNote={handleRequestAddNote}
+                onOpenNote={handleOpenNote}
               />
             )}
 
@@ -580,6 +657,28 @@ export function PdfReader() {
               open={geminiKeyDialogOpen}
               onOpenChange={setGeminiKeyDialogOpen}
               trigger={<span className="hidden" />}
+            />
+
+            {/* Diálogo para Criar / Editar Anotação no Bloco de Notas */}
+            <NoteDialog
+              open={noteDialogOpen}
+              onOpenChange={setNoteDialogOpen}
+              sentenceIndex={activeNoteDraft?.sentenceIndex ?? editingNote?.sentenceIndex ?? 0}
+              selectedText={activeNoteDraft?.selectedText ?? editingNote?.selectedText ?? ""}
+              page={activeNoteDraft?.page ?? editingNote?.page}
+              editingNote={editingNote}
+              onSave={handleSaveNote}
+              onDelete={handleDeleteNote}
+            />
+
+            {/* Drawer Lateral com Todas as Anotações do Documento */}
+            <NotesDrawer
+              open={notesDrawerOpen}
+              onOpenChange={setNotesDrawerOpen}
+              notes={docNotes.notes}
+              onSelectSentence={player.jumpTo}
+              onEditNote={handleOpenNote}
+              onDeleteNote={handleDeleteNote}
             />
           </>
         )}

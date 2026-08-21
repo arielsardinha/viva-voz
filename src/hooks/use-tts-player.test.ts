@@ -262,6 +262,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
+        expect(result.current.isBuffering).toBe(false);
       });
 
       const initialFetchCount = (global.fetch as jest.Mock).mock.calls.length;
@@ -273,6 +274,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(result.current.currentIndex).toBe(1);
+        expect(result.current.isBuffering).toBe(false);
       });
 
       const afterNextFetchCount = (global.fetch as jest.Mock).mock.calls.length;
@@ -284,6 +286,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(result.current.currentIndex).toBe(0);
+        expect(result.current.isBuffering).toBe(false);
       });
 
       // Não deve ter feito novas requisições para a frase 0, pois ela já está no cache com a mesma voz
@@ -315,6 +318,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
+        expect(result.current.isBuffering).toBe(false);
       });
 
       // Deve ter feito requisições para: Frase 0 (atual), Frase 1 (próxima) e Frase 2 (segunda próxima)
@@ -350,6 +354,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
+        expect(result.current.isBuffering).toBe(false);
       });
 
       const koreCalls = (global.fetch as jest.Mock).mock.calls.filter((call) => {
@@ -371,6 +376,7 @@ describe("useTtsPlayer Hook", () => {
           return body.voice === "Puck" && body.text === "Primeira frase para testar.";
         }).length;
         expect(puckCalls).toBe(1);
+        expect(result.current.isBuffering).toBe(false);
       });
 
       // Retorna para a voz "Kore" - deve reaproveitar o cache já gerado anteriormente sem nova requisição
@@ -378,6 +384,10 @@ describe("useTtsPlayer Hook", () => {
 
       act(() => {
         result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isBuffering).toBe(false);
       });
 
       const finalKoreCalls = (global.fetch as jest.Mock).mock.calls.filter((call) => {
@@ -417,6 +427,7 @@ describe("useTtsPlayer Hook", () => {
           "google",
           expect.stringContaining("Créditos esgotados")
         );
+        expect(result.current.isBuffering).toBe(false);
       });
     });
 
@@ -451,6 +462,7 @@ describe("useTtsPlayer Hook", () => {
           "google",
           expect.stringContaining("Cota de narração com IA esgotada")
         );
+        expect(result.current.isBuffering).toBe(false);
       });
     });
 
@@ -480,6 +492,7 @@ describe("useTtsPlayer Hook", () => {
 
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith(expect.stringContaining("Erro interno no servidor"));
+        expect(result.current.isBuffering).toBe(false);
       });
     });
   });

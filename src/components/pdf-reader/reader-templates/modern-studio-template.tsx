@@ -16,6 +16,7 @@ import { FloatingAudioDock } from "../ui/floating-audio-dock";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
 import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
+import type { DocumentNote } from "@/lib/domain/document-note.types";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
@@ -47,6 +48,9 @@ interface ModernStudioTemplateProps {
   getHighlightsForSentence?: (index: number) => TextHighlight[];
   onHighlight?: (color: HighlightColor, text: string, container?: HTMLElement | null) => void;
   onRemoveHighlight?: (text: string, container?: HTMLElement | null) => void;
+  getNotesForSentence?: (index: number) => DocumentNote[];
+  onAddNote?: (text: string, sentenceIndex: number, page?: number) => void;
+  onOpenNote?: (note: DocumentNote) => void;
 }
 
 export function ModernStudioTemplate({
@@ -75,6 +79,9 @@ export function ModernStudioTemplate({
   getHighlightsForSentence,
   onHighlight,
   onRemoveHighlight,
+  getNotesForSentence,
+  onAddNote,
+  onOpenNote,
 }: ModernStudioTemplateProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -132,6 +139,10 @@ export function ModernStudioTemplate({
         }}
         onHighlight={(color, text) => onHighlight?.(color, text, containerRef.current)}
         onRemoveHighlight={(text) => onRemoveHighlight?.(text, containerRef.current)}
+        onAddNote={(text) => {
+          const matched = sentences.find((s) => s.text.includes(text) || text.includes(s.text)) || sentences[currentIndex];
+          onAddNote?.(text, matched ? matched.index : currentIndex, matched?.page);
+        }}
       />
 
       {/* Barra de Ferramentas Superior do Leitor (Inspiração 01) */}
@@ -264,6 +275,8 @@ export function ModernStudioTemplate({
                     <HighlightedSentenceText
                       text={sentence.text}
                       highlights={getHighlightsForSentence?.(sentence.index) ?? []}
+                      notes={getNotesForSentence?.(sentence.index) ?? []}
+                      onOpenNote={onOpenNote}
                     />
                   </button>{" "}
                 </span>

@@ -54,6 +54,7 @@ describe("Chrome Built-in AI (Prompt API)", () => {
     });
 
     it("deve retornar 'no' caso ocorra um erro ao consultar capabilities", async () => {
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
       window.ai = {
         languageModel: {
           capabilities: jest.fn().mockRejectedValue(new Error("API desabilitada")),
@@ -63,6 +64,7 @@ describe("Chrome Built-in AI (Prompt API)", () => {
 
       const status = await checkChromeAiAvailability();
       expect(status).toBe("no");
+      warnSpy.mockRestore();
     });
   });
 

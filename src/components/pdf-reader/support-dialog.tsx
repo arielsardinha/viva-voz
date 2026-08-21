@@ -52,8 +52,10 @@ export function SupportDialog({ trigger, open, onOpenChange }: SupportDialogProp
   const pixConfig = VIVA_VOZ_DONATION_CONFIG;
   const pixPayload = pixConfig.payloadPix;
 
-  // Gerar SVG do QR Code de forma assíncrona
+  // Gerar SVG do QR Code de forma assíncrona apenas quando o diálogo estiver aberto
   useEffect(() => {
+    if (!open) return;
+    let isMounted = true;
     QRCode.toString(pixPayload, {
       type: "svg",
       margin: 1,
@@ -63,12 +65,20 @@ export function SupportDialog({ trigger, open, onOpenChange }: SupportDialogProp
       },
     })
       .then((svgString) => {
-        setQrCodeSvg(svgString);
+        if (isMounted) {
+          setQrCodeSvg(svgString);
+        }
       })
       .catch((err) => {
-        console.error("Erro ao gerar QR Code:", err);
+        if (isMounted) {
+          console.error("Erro ao gerar QR Code:", err);
+        }
       });
-  }, [pixPayload]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, pixPayload]);
 
   const handleCopyPayload = useCallback(async () => {
     if (payloadInputRef.current) {

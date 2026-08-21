@@ -93,6 +93,7 @@ describe("pwa-utils", () => {
 
   describe("registerServiceWorker", () => {
     it("deve registrar o service worker quando suportado pelo navegador", async () => {
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
       const mockRegister = jest.fn().mockResolvedValue({ scope: "/" });
       Object.defineProperty(window, "navigator", {
         value: {
@@ -107,6 +108,7 @@ describe("pwa-utils", () => {
       const reg = await registerServiceWorker();
       expect(mockRegister).toHaveBeenCalledWith("/sw.js", { scope: "/" });
       expect(reg).toEqual({ scope: "/" });
+      logSpy.mockRestore();
     });
   });
 });

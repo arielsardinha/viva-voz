@@ -43,6 +43,7 @@ describe("/api/tts Route Handler", () => {
   });
 
   it("deve repassar o erro upstream 429 quando a cota do Gemini for excedida", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -63,6 +64,7 @@ describe("/api/tts Route Handler", () => {
     expect(res.status).toBe(429);
     const data = await res.json();
     expect(data.error).toContain("Cota de narração com IA esgotada");
+    errorSpy.mockRestore();
   });
 
   it("deve converter o áudio base64 retornado pelo Gemini em arquivo WAV e retornar com status 200", async () => {

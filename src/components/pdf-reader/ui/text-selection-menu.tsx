@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Copy, Sparkles, Volume2, HelpCircle, Highlighter, Eraser, ChevronDown } from "lucide-react";
+import { Copy, Sparkles, Volume2, HelpCircle, Highlighter, Eraser, ChevronDown, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -16,6 +16,7 @@ interface TextSelectionMenuProps {
   onSpeakSelection?: (text: string) => void;
   onHighlight?: (color: HighlightColor, text: string) => void;
   onRemoveHighlight?: (text: string) => void;
+  onAddNote?: (text: string) => void;
 }
 
 export function TextSelectionMenu({
@@ -24,6 +25,7 @@ export function TextSelectionMenu({
   onSpeakSelection,
   onHighlight,
   onRemoveHighlight,
+  onAddNote,
 }: TextSelectionMenuProps) {
   const [selectedText, setSelectedText] = useState("");
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -137,6 +139,15 @@ export function TextSelectionMenu({
     setShowColorPalette(false);
   };
 
+  const handleAddNote = () => {
+    if (onAddNote) {
+      onAddNote(selectedText);
+    }
+    window.getSelection()?.removeAllRanges();
+    setPosition(null);
+    setShowColorPalette(false);
+  };
+
   return (
     <div
       ref={menuRef}
@@ -173,6 +184,20 @@ export function TextSelectionMenu({
             )}
           />
         </button>
+
+        {/* Opção Bloco de Notas */}
+        {onAddNote && (
+          <button
+            type="button"
+            onClick={handleAddNote}
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-amber-500/15 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg transition-colors cursor-pointer"
+            title="Adicionar anotação no Bloco de Notas"
+            aria-label="Bloco de notas"
+          >
+            <StickyNote className="size-3.5 text-amber-500" />
+            <span>Bloco de Notas</span>
+          </button>
+        )}
 
         <button
           type="button"

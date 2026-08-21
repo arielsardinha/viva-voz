@@ -11,6 +11,7 @@ import {
   Sun,
   Type,
   Volume2,
+  StickyNote,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,9 +41,10 @@ interface TemplateSwitcherProps {
   onChangeSettings: (patch: Partial<ReaderSettings>) => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
-
   currentPage?: number;
   totalPages?: number;
+  notesCount?: number;
+  onOpenNotesDrawer?: () => void;
 }
 
 export const TEMPLATES = [
@@ -76,6 +78,8 @@ export function TemplateSwitcher({
   onToggleFullscreen,
   currentPage,
   totalPages,
+  notesCount = 0,
+  onOpenNotesDrawer,
 }: TemplateSwitcherProps) {
   return (
     <div className="glass-panel flex flex-wrap items-center justify-between gap-2 rounded-2xl p-2 sm:px-3 sm:py-2 shadow-xs border border-border/80">
@@ -105,8 +109,27 @@ export function TemplateSwitcher({
         })}
       </div>
 
-      {/* Controles de Estilo / Tema / Áudio Ambiente */}
+      {/* Controles de Estilo / Tema / Áudio Ambiente / Bloco de Notas */}
       <div className="flex items-center gap-1.5 ml-auto">
+        {/* Botão de Atalho para o Bloco de Notas */}
+        {onOpenNotesDrawer && (
+          <button
+            type="button"
+            onClick={onOpenNotesDrawer}
+            title={notesCount > 0 ? `Ver ${notesCount} anotações do documento` : "Abrir Bloco de Notas"}
+            aria-label="Abrir Bloco de Notas"
+            className="flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs font-medium bg-background/80 hover:bg-secondary border border-border transition-colors text-foreground cursor-pointer"
+          >
+            <StickyNote className="size-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Notas</span>
+            {notesCount > 0 && (
+              <span className="flex size-4 items-center justify-center rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                {notesCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Sons Ambientes (Disponível em todos os modos) */}
         <AmbientSoundPlayer />
 

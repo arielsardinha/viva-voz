@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
 import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
+import type { DocumentNote } from "@/lib/domain/document-note.types";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
 import { ChromeAiBadge } from "../chrome-ai-badge";
@@ -70,6 +71,9 @@ interface AIStudyTemplateProps {
   getHighlightsForSentence?: (index: number) => TextHighlight[];
   onHighlight?: (color: HighlightColor, text: string, container?: HTMLElement | null) => void;
   onRemoveHighlight?: (text: string, container?: HTMLElement | null) => void;
+  getNotesForSentence?: (index: number) => DocumentNote[];
+  onAddNote?: (text: string, sentenceIndex: number, page?: number) => void;
+  onOpenNote?: (note: DocumentNote) => void;
 }
 
 export function AIStudyTemplate({
@@ -98,6 +102,9 @@ export function AIStudyTemplate({
   getHighlightsForSentence,
   onHighlight,
   onRemoveHighlight,
+  getNotesForSentence,
+  onAddNote,
+  onOpenNote,
 }: AIStudyTemplateProps) {
   const { apiKey: hookApiKey, updateApiKey: hookUpdateApiKey } = useGeminiApiKey();
   const apiKey = propApiKey !== undefined ? propApiKey : hookApiKey;
@@ -227,6 +234,10 @@ export function AIStudyTemplate({
         }}
         onHighlight={(color, text) => onHighlight?.(color, text, containerRef.current)}
         onRemoveHighlight={(text) => onRemoveHighlight?.(text, containerRef.current)}
+        onAddNote={(text) => {
+          const matched = sentences.find((s) => s.text.includes(text) || text.includes(s.text)) || sentences[currentIndex];
+          onAddNote?.(text, matched ? matched.index : currentIndex, matched?.page);
+        }}
       />
 
       {/* Seletor de Abas Mobile (< lg) */}
@@ -464,6 +475,8 @@ export function AIStudyTemplate({
                     <HighlightedSentenceText
                       text={sentence.text}
                       highlights={getHighlightsForSentence?.(sentence.index) ?? []}
+                      notes={getNotesForSentence?.(sentence.index) ?? []}
+                      onOpenNote={onOpenNote}
                     />
                   </button>{" "}
                 </span>

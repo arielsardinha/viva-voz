@@ -130,4 +130,28 @@ describe("TextSelectionMenu", () => {
 
     expect(onRemoveHighlightMock).toHaveBeenCalledWith("Texto para desmarcar");
   });
+
+  it("deve disparar onAddNote ao clicar no botão de Bloco de Notas", () => {
+    const onAddNoteMock = jest.fn();
+    setupSelection("Trecho para anotar");
+
+    render(
+      <TextSelectionMenu
+        containerRef={mockContainer}
+        onAddNote={onAddNoteMock}
+      />
+    );
+
+    act(() => {
+      fireEvent(document, new Event("selectionchange"));
+    });
+
+    const noteBtn = screen.getByText("Bloco de Notas");
+    act(() => {
+      fireEvent.click(noteBtn);
+    });
+
+    expect(onAddNoteMock).toHaveBeenCalledWith("Trecho para anotar");
+  });
 });
+
