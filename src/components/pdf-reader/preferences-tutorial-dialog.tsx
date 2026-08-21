@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Sparkles,
+  GraduationCap,
   X,
   Zap,
 } from "lucide-react";
@@ -258,7 +258,7 @@ export function PreferencesTutorialDialog({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
               <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-md shadow-accent/20">
-                <Sparkles className="size-3.5 sm:size-4" aria-hidden="true" />
+                <GraduationCap className="size-3.5 sm:size-4" aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-accent truncate block">

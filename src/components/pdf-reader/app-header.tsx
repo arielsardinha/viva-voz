@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   AudioLines,
   FolderArchive,
+  GraduationCap,
   Mic,
   Moon,
   Sparkles,
@@ -124,7 +125,7 @@ export function AppHeader() {
                 aria-label="Personalizar preferências e tutorial"
                 className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent transition-all text-xs font-bold shadow-xs hover:scale-[1.02] cursor-pointer"
               >
-                <Sparkles className="size-3.5" aria-hidden="true" />
+                <GraduationCap className="size-3.5" aria-hidden="true" />
                 <span className="hidden md:inline">Tutorial</span>
               </button>
             }

@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, Compass, Sparkles, Volume2 } from "lucide-react";
+import { AudioLines, Compass, GraduationCap, Palette, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface StepWelcomeProps {
@@ -37,7 +37,7 @@ export function StepWelcome({ onStart }: StepWelcomeProps) {
 
         <div className="p-2.5 sm:p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-0.5 sm:space-y-1">
           <div className="flex items-center gap-2 text-amber-500 font-semibold text-xs">
-            <Sparkles className="size-3.5" aria-hidden="true" />
+            <Palette className="size-3.5" aria-hidden="true" />
             <span>Temas Confortáveis</span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
@@ -65,7 +65,7 @@ export function StepWelcome({ onStart }: StepWelcomeProps) {
           onClick={onStart}
           className="w-full gap-2 rounded-2xl bg-accent text-accent-foreground hover:bg-accent/90 py-3.5 sm:py-5 text-xs sm:text-sm font-bold shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] cursor-pointer"
         >
-          <Sparkles className="size-4" aria-hidden="true" />
+          <GraduationCap className="size-4" aria-hidden="true" />
           <span>Fazer a Jornada (Personalizar)</span>
         </Button>
       </div>
