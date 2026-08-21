@@ -50,6 +50,9 @@ describe("AppHeader Component", () => {
       screen.getByRole("button", { name: /personalizar preferências e tutorial/i })
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("button", { name: /apoiar o desenvolvimento do vivavoz/i })
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: /alternar tema de leitura/i })
     ).toBeInTheDocument();
     expect(

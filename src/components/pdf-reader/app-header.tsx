@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
 import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
+import { SupportDialog } from "./support-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,6 +131,9 @@ export function AppHeader() {
               </button>
             }
           />
+
+          {/* Botão de Contribuição Voluntária Pix */}
+          <SupportDialog />
 
           {/* Alternador Rápido de Tema */}
           <DropdownMenu>

@@ -128,11 +128,11 @@ describe("Agent Accessibility & WebMCP Audits", () => {
       cy.get('header[data-hydrated="true"]').should("exist");
     });
 
-    it("deve mapear a ferramenta de upload de PDF com atributos WebMCP (uploadPdf)", () => {
-      cy.get("[data-webmcp-tool='uploadPdf']")
+    it("deve mapear a ferramenta de upload de PDF com atributos WebMCP (uploadDocument)", () => {
+      cy.get("[data-webmcp-tool='uploadDocument']")
         .should("exist")
         .and("have.attr", "data-webmcp-action", "extract-sentences")
-        .and("have.attr", "data-webmcp-schema", "application/pdf");
+        .and("have.attr", "data-webmcp-schema", "multipart/form-data");
 
       cy.get("#pdf-upload-input")
         .should("exist")
@@ -141,9 +141,22 @@ describe("Agent Accessibility & WebMCP Audits", () => {
         .and("have.attr", "aria-label");
     });
 
+    it("deve conter ferramenta WebMCP para contribuição voluntária (supportProject)", () => {
+      cy.get('[data-cy="support-project-btn"]').first().click();
+      cy.get("[data-webmcp-tool='supportProject']")
+        .should("exist")
+        .within(() => {
+          cy.get('input[aria-label="Chave Pix Aleatória"]').should(
+            "have.value",
+            "d1b12e3a-a8db-4164-a580-91b6a172e77a"
+          );
+        });
+      cy.contains("Voltar ao início").click();
+    });
+
     it("deve conter formulário WebMCP acessível para configuração da chave Gemini (configureGeminiApiKey)", () => {
       // Abre o diálogo da chave Gemini
-      cy.get("[data-cy='gemini-key-trigger']").should("be.visible").click();
+      cy.get("[data-cy='gemini-key-trigger']").first().should("be.visible").click();
 
       cy.get("form[data-webmcp-tool='configureGeminiApiKey']")
         .should("exist")

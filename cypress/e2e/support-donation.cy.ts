@@ -1,0 +1,62 @@
+describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
+  beforeEach(() => {
+    cy.visit("/", {
+      onBeforeLoad(win) {
+        win.localStorage.setItem(
+          "vivavoz-reader-settings",
+          JSON.stringify({
+            template: "modern",
+            theme: "light",
+            font: "inter",
+            fontSize: 16,
+            lineHeight: 1.8,
+            hasCompletedOnboarding: true,
+          })
+        );
+      },
+    });
+  });
+
+  it("deve abrir o modal de apoio a partir do AppHeader e exibir dados Pix, motivos e QR Code opcional", () => {
+    cy.get('[data-cy="support-project-btn"]').should("be.visible").click();
+
+    cy.get('[role="dialog"][data-webmcp-tool="supportProject"]').should("be.visible");
+    cy.get('input[aria-label="Chave Pix Aleatória"]').should(
+      "have.value",
+      "d1b12e3a-a8db-4164-a580-91b6a172e77a"
+    );
+    cy.contains("Ariel Sardinha Moraes Santiago").should("not.exist");
+    cy.contains("QR Code Pix para Contribuição Voluntária").should("not.exist");
+
+    // Valida botões de ação e ausência de botões removidos
+    cy.contains("Copiar Código Pix (Copia e Cola)").should("exist");
+    cy.contains("Compartilhar Dados Pix").should("not.exist");
+
+    // QR Code opcional expansível
+    cy.contains("Prefere escanear com a câmera? Ver QR Code").click({ force: true });
+    cy.get('[data-testid="pix-qrcode-container"]').should("exist");
+
+    // Fecha o modal pelo botão 'Voltar ao início'
+    cy.contains("Voltar ao início").click({ force: true });
+    cy.get('[role="dialog"]').should("not.exist");
+  });
+
+  it("deve carregar a página dedicada /apoiar com todas as informações e acessibilidade", () => {
+    cy.visit("/apoiar");
+    cy.get('main[data-webmcp-tool="supportProject"]').should("be.visible");
+    cy.get("h1").should("contain.text", "Apoie o VivaVoz");
+    cy.get('input[aria-label="Chave Pix Aleatória"]').should(
+      "have.value",
+      "d1b12e3a-a8db-4164-a580-91b6a172e77a"
+    );
+    cy.contains("Ariel Sardinha Moraes Santiago").should("not.exist");
+
+    // QR Code expansível na página
+    cy.contains("Prefere escanear com a câmera? Ver QR Code").click();
+    cy.get('[data-testid="pix-qrcode-container"]').should("be.visible");
+
+    // Valida link de retorno ao leitor
+    cy.contains("Voltar ao Leitor").should("be.visible").click();
+    cy.location("pathname").should("eq", "/");
+  });
+});
