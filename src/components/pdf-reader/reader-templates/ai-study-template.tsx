@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import {
   BotMessageSquare,
   ChevronLeft,
@@ -22,10 +21,13 @@ import { cn } from "@/lib/utils";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
+import { ChromeAiBadge } from "../chrome-ai-badge";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
+import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
+import { checkChromeAiAvailability, type ChromeAiAvailability } from "@/lib/client/chrome-ai";
 
 const STORAGE_KEY = "gemini-api-key";
 
@@ -74,15 +76,18 @@ export function AIStudyTemplate({
   onSpeedChange,
   initialPrompt,
 }: AIStudyTemplateProps) {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [chromeAiStatus, setChromeAiStatus] = useState<ChromeAiAvailability>("no");
+  const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
+  const [input, setInput] = useState("");
   const activeRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [input, setInput] = useState("");
+  const currentSentence = sentences[currentIndex];
+  const currentPage = currentSentence?.page ?? 1;
 
-  const currentPage = sentences[currentIndex]?.page ?? 1;
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
@@ -98,6 +103,7 @@ export function AIStudyTemplate({
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
+    checkChromeAiAvailability().then(setChromeAiStatus);
   }, []);
 
   const updateApiKey = useCallback((key: string | null) => {
@@ -117,9 +123,12 @@ export function AIStudyTemplate({
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
+      new HybridChatTransport({
         api: "/api/ask",
-        body: () => ({ context, fileName: title, userApiKey: apiKey }),
+        context,
+        fileName: title,
+        userApiKey: apiKey,
+        onEngineChange: setActiveEngine,
       }),
     [context, title, apiKey]
   );
@@ -344,7 +353,10 @@ export function AIStudyTemplate({
               <p className="text-[10px] text-muted-foreground">Pergunte e analise o documento</p>
             </div>
           </div>
-          <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
+          <div className="flex items-center gap-1.5">
+            <ChromeAiBadge hasCloudKey={Boolean(apiKey)} chromeAiStatus={chromeAiStatus} />
+            <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
+          </div>
         </div>
 
         {/* Histórico de Mensagens */}

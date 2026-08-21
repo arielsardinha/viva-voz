@@ -29,12 +29,12 @@ export class ParsedDocumentBuilder {
     return this;
   }
 
-  public setTitle(title: string): this {
+  public setTitle(title?: string): this {
     this.title = title;
     return this;
   }
 
-  public setAuthor(author: string): this {
+  public setAuthor(author?: string): this {
     this.author = author;
     return this;
   }

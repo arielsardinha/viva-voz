@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { BotMessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,10 +19,13 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
+import { ChromeAiBadge } from "./chrome-ai-badge";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import type { Sentence } from "@/lib/pdf-text";
+import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
+import { checkChromeAiAvailability, type ChromeAiAvailability } from "@/lib/client/chrome-ai";
 
 const STORAGE_KEY = "gemini-api-key";
 
@@ -34,6 +36,8 @@ interface ChatPanelProps {
 
 export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [chromeAiStatus, setChromeAiStatus] = useState<ChromeAiAvailability>("no");
+  const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -42,6 +46,7 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
+    checkChromeAiAvailability().then(setChromeAiStatus);
   }, []);
 
   const updateApiKey = useCallback((key: string | null) => {
@@ -57,9 +62,12 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
+      new HybridChatTransport({
         api: "/api/ask",
-        body: () => ({ context, fileName, userApiKey: apiKey }),
+        context,
+        fileName,
+        userApiKey: apiKey,
+        onEngineChange: setActiveEngine,
       }),
     [context, fileName, apiKey],
   );
@@ -89,7 +97,10 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
           <BotMessageSquare className="text-accent size-4" aria-hidden="true" />
           <h2 className="text-sm font-semibold">Perguntar sobre o PDF</h2>
         </div>
-        <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
+        <div className="flex items-center gap-1.5">
+          <ChromeAiBadge hasCloudKey={Boolean(apiKey)} chromeAiStatus={chromeAiStatus} />
+          <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} />
+        </div>
       </div>
 
       <Conversation className="min-h-0 flex-1">
@@ -144,7 +155,9 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
         <p className="text-muted-foreground mt-2 text-[11px]">
           {apiKey
             ? "Usando sua conta Gemini (chave própria conectada)."
-            : "Conecte sua conta do Google AI Studio para conversar com o documento."}
+            : chromeAiStatus === "readily"
+              ? "Usando Gemini Nano local no Chrome (100% grátis e offline)."
+              : "Conecte sua conta do Google AI Studio ou ative o Chrome AI para conversar."}
         </p>
       </div>
     </section>
