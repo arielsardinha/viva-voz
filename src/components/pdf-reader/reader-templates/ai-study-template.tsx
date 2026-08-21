@@ -6,8 +6,8 @@ import {
   BotMessageSquare,
   ChevronLeft,
   ChevronRight,
+  Gauge,
   Headphones,
-  Key,
   Mic,
   Pause,
   Play,
@@ -25,11 +25,21 @@ import { ChromeAiBadge } from "../chrome-ai-badge";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
-import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
+import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SPEEDS } from "../player-controls";
 import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
 import { useChromeAi } from "@/hooks/use-chrome-ai";
-
-const STORAGE_KEY = "gemini-api-key";
+import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 
 interface AIStudyTemplateProps {
   sentences: Sentence[];
@@ -43,6 +53,8 @@ interface AIStudyTemplateProps {
   engine: TtsEngine;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
+  apiKey?: string | null;
+  onApiKeyChange?: (key: string | null) => void;
   onEngineChange: (engine: TtsEngine) => void;
   onSelectSentence: (index: number) => void;
   onToggle: () => void;
@@ -66,6 +78,8 @@ export function AIStudyTemplate({
   engine,
   voices,
   disabledEngines,
+  apiKey: propApiKey,
+  onApiKeyChange: propOnApiKeyChange,
   onEngineChange,
   onSelectSentence,
   onToggle,
@@ -76,7 +90,11 @@ export function AIStudyTemplate({
   onSpeedChange,
   initialPrompt,
 }: AIStudyTemplateProps) {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const { apiKey: hookApiKey, updateApiKey: hookUpdateApiKey } = useGeminiApiKey();
+  const apiKey = propApiKey !== undefined ? propApiKey : hookApiKey;
+  const updateApiKey = propOnApiKeyChange || hookUpdateApiKey;
+
+  const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const { status: chromeAiStatus } = useChromeAi();
   const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
@@ -91,6 +109,11 @@ export function AIStudyTemplate({
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
 
+  const currentVoiceObj = voices.find((v) => v.id === voice);
+  const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
+  const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
+  const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
+
   // Group pages for chapter navigation
   const pageList = useMemo(() => {
     const pages = new Set<number>();
@@ -99,16 +122,6 @@ export function AIStudyTemplate({
   }, [sentences]);
 
   const [showPagesDrawer, setShowPagesDrawer] = useState(false);
-
-  useEffect(() => {
-    setApiKey(window.localStorage.getItem(STORAGE_KEY));
-  }, []);
-
-  const updateApiKey = useCallback((key: string | null) => {
-    setApiKey(key);
-    if (key) window.localStorage.setItem(STORAGE_KEY, key);
-    else window.localStorage.removeItem(STORAGE_KEY);
-  }, []);
 
   const context = useMemo(
     () => sentences.map((s) => `[p.${s.page}] ${s.text}`).join("\n"),
@@ -151,6 +164,15 @@ export function AIStudyTemplate({
     void sendMessage({ text: clean });
   };
 
+  const handleSelectEngine = (nextEngine: TtsEngine) => {
+    if (nextEngine === "google" && !hasApiKey) {
+      onEngineChange("system");
+      setGeminiDialogOpen(true);
+      return;
+    }
+    onEngineChange(nextEngine);
+  };
+
   // Quick Action Prompts
   const quickPrompts = [
     `Resumir página ${currentPage}`,
@@ -177,6 +199,15 @@ export function AIStudyTemplate({
       className={cn("flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-5 min-h-[calc(100vh-10rem)]", fontClass)}
       data-reading-theme={settings.theme}
     >
+      {/* Diálogo Centralizado de Chave Gemini */}
+      <GeminiKeyDialog
+        apiKey={apiKey}
+        onChange={updateApiKey}
+        open={geminiDialogOpen}
+        onOpenChange={setGeminiDialogOpen}
+        trigger={<span className="hidden" />}
+      />
+
       {/* Menu flutuante de seleção de texto */}
       <TextSelectionMenu
         containerRef={containerRef}
@@ -193,7 +224,7 @@ export function AIStudyTemplate({
           type="button"
           onClick={() => setMobileTab("doc")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all",
+            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
             mobileTab === "doc"
               ? "bg-card text-foreground shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
@@ -207,7 +238,7 @@ export function AIStudyTemplate({
           type="button"
           onClick={() => setMobileTab("chat")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all relative",
+            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all relative cursor-pointer",
             mobileTab === "chat"
               ? "bg-card text-accent shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
@@ -228,15 +259,16 @@ export function AIStudyTemplate({
           mobileTab !== "doc" && "hidden lg:flex"
         )}
       >
-        {/* Barra Compacta do Leitor */}
-        <div className="glass-panel flex items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
+        {/* Barra do Leitor com Controles de Áudio, Voz e Conexão de IA */}
+        <div className="glass-panel flex flex-wrap items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
+          {/* Navegação de Página */}
           <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/80 px-1.5 sm:px-2 py-1 rounded-xl">
             <button
               type="button"
               onClick={() => currentPage > 1 && jumpToPage(currentPage - 1)}
               disabled={currentPage <= 1}
               aria-label="Página anterior"
-              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
+              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30 cursor-pointer"
             >
               <ChevronLeft className="size-3.5 sm:size-4" />
             </button>
@@ -254,33 +286,118 @@ export function AIStudyTemplate({
               onClick={() => currentPage < totalPages && jumpToPage(currentPage + 1)}
               disabled={currentPage >= totalPages}
               aria-label="Próxima página"
-              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30"
+              className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30 cursor-pointer"
             >
               <ChevronRight className="size-3.5 sm:size-4" />
             </button>
           </div>
 
-          {/* Mini Player Control */}
+          {/* Mini Player Control & Conexão de Áudio IA */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={onRestart}
-              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               title="Reiniciar"
               aria-label="Reiniciar"
             >
               <RotateCcw className="size-3.5" />
             </button>
+
             <button
               type="button"
               onClick={onToggle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95 cursor-pointer"
             >
               {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
               <span>{isPlaying ? "Pausar" : "Ouvir"}</span>
             </button>
-            <div className="w-16 hidden sm:block">
-              <WaveformVisualizer isPlaying={isPlaying} barCount={12} className="h-6 px-0" />
+
+            {/* Seletor de Voz & Motor no Leitor */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title="Selecionar voz e motor"
+                  aria-label="Selecionar voz e motor"
+                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 max-w-[120px] truncate cursor-pointer"
+                >
+                  <Mic className="size-3 text-accent shrink-0" />
+                  <span className="truncate">{voiceLabel}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 max-h-72 overflow-y-auto glass-panel">
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+                  Motor ({engineLabel})
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={engine}
+                  onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
+                >
+                  {TTS_ENGINES.map((eng) => (
+                    <DropdownMenuRadioItem
+                      key={eng.id}
+                      value={eng.id}
+                      disabled={disabledEngines.includes(eng.id)}
+                      className="cursor-pointer text-xs"
+                    >
+                      <div className="flex flex-col">
+                        <span>{eng.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
+                      </div>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+
+                <DropdownMenuSeparator className="my-1.5" />
+                <DropdownMenuItem
+                  onClick={() => setGeminiDialogOpen(true)}
+                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1.5" />
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+                  Voz
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
+                  {voices.map((v) => (
+                    <DropdownMenuRadioItem key={v.id} value={v.id} className="cursor-pointer text-xs">
+                      {v.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Seletor de Velocidade */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title="Velocidade"
+                  className="hidden sm:flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-bold bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 cursor-pointer"
+                >
+                  <Gauge className="size-3 text-accent" />
+                  <span>{speed}x</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-panel">
+                <DropdownMenuLabel className="text-xs">Velocidade</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={speed} onValueChange={onSpeedChange}>
+                  {SPEEDS.map((s) => (
+                    <DropdownMenuRadioItem key={s} value={s} className="cursor-pointer text-xs">
+                      {s}x {s === "1" ? "(Normal)" : ""}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="w-14 hidden md:block">
+              <WaveformVisualizer isPlaying={isPlaying} barCount={10} className="h-6 px-0" />
             </div>
           </div>
         </div>
@@ -411,7 +528,7 @@ export function AIStudyTemplate({
               type="button"
               onClick={() => handleSendPrompt(q)}
               disabled={isLoadingAI}
-              className="text-[10px] sm:text-[11px] font-medium px-2.5 py-1 rounded-full bg-card hover:bg-accent/15 hover:text-accent border border-border text-foreground/80 transition-colors disabled:opacity-50 shrink-0"
+              className="text-[10px] sm:text-[11px] font-medium px-2.5 py-1 rounded-full bg-card hover:bg-accent/15 hover:text-accent border border-border text-foreground/80 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
             >
               ✨ {q}
             </button>

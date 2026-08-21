@@ -31,6 +31,8 @@ interface ModernStudioTemplateProps {
   engine: TtsEngine;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
+  apiKey?: string | null;
+  onApiKeyChange?: (key: string | null) => void;
   onEngineChange: (engine: TtsEngine) => void;
   onSelectSentence: (index: number) => void;
   onToggle: () => void;
@@ -54,6 +56,8 @@ export function ModernStudioTemplate({
   engine,
   voices,
   disabledEngines,
+  apiKey,
+  onApiKeyChange,
   onEngineChange,
   onSelectSentence,
   onToggle,
@@ -280,6 +284,8 @@ export function ModernStudioTemplate({
         engine={engine}
         voices={voices}
         disabledEngines={disabledEngines}
+        apiKey={apiKey}
+        onApiKeyChange={onApiKeyChange}
         onEngineChange={onEngineChange}
         onToggle={onToggle}
         onPrevious={onPrevious}

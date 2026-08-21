@@ -37,8 +37,7 @@ import { useTtsPlayer } from "@/hooks/use-tts-player";
 import { useDocumentUploader } from "@/hooks/use-document-uploader";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
 import type { DocumentChapter, DocumentFormat } from "@/lib/domain/document.types";
-
-const GEMINI_KEY_STORAGE = "gemini-api-key";
+import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -54,7 +53,7 @@ export function PdfReader() {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
-  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const { apiKey: userApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const facade = useMemo(() => DocumentProcessingFacade.getInstance(), []);
@@ -130,17 +129,22 @@ export function PdfReader() {
     [patchPrefs, patchSettings]
   );
   const setEngine = useCallback(
-    (next: TtsEngine) => patchPrefs({ engine: next }),
-    [patchPrefs]
+    (next: TtsEngine) => {
+      if (next === "google" && (!userApiKey || userApiKey.trim().length < 10)) {
+        patchPrefs({ engine: "system" });
+        return;
+      }
+      patchPrefs({ engine: next });
+    },
+    [patchPrefs, userApiKey]
   );
 
-  // Gemini API key
+  // Se o motor estiver configurado como Google mas não houver chave, volta para a seleção padrão gratuita (sistema)
   useEffect(() => {
-    const read = () => setUserApiKey(window.localStorage.getItem(GEMINI_KEY_STORAGE));
-    read();
-    window.addEventListener("storage", read);
-    return () => window.removeEventListener("storage", read);
-  }, []);
+    if (prefs.engine === "google" && (!userApiKey || userApiKey.trim().length < 10)) {
+      patchPrefs({ engine: "system" });
+    }
+  }, [prefs.engine, userApiKey, patchPrefs]);
 
   // System voices
   useEffect(() => {
@@ -410,6 +414,8 @@ export function PdfReader() {
                 engine={engine}
                 voices={voices}
                 disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                apiKey={userApiKey}
+                onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}
                 onSelectSentence={player.jumpTo}
                 onToggle={player.toggle}
@@ -437,6 +443,8 @@ export function PdfReader() {
                 engine={engine}
                 voices={voices}
                 disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                apiKey={userApiKey}
+                onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}
                 onSelectSentence={player.jumpTo}
                 onToggle={player.toggle}
@@ -461,6 +469,8 @@ export function PdfReader() {
                 engine={engine}
                 voices={voices}
                 disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                apiKey={userApiKey}
+                onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}
                 onSelectSentence={player.jumpTo}
                 onToggle={player.toggle}

@@ -57,6 +57,7 @@ const mockSettings: ReaderSettings = {
   fontSize: 18,
   lineHeight: 1.8,
   speed: 1,
+  hasCompletedOnboarding: true,
 };
 
 const defaultProps = {

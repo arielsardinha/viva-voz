@@ -7,19 +7,32 @@ import {
   ChevronLeft,
   ChevronRight,
   Highlighter,
+  Mic,
   Pause,
   Play,
-  RotateCcw,
-  Volume2,
+  SkipBack,
+  SkipForward,
+  Sparkles,
 } from "lucide-react";
 import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
-import { AmbientSoundPlayer } from "../ui/ambient-sound-player";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { PagesDrawer } from "../ui/pages-drawer";
+import { GeminiKeyDialog } from "../gemini-key-dialog";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
-import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
+import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 
 interface ZenFocusTemplateProps {
   sentences: Sentence[];
@@ -33,6 +46,8 @@ interface ZenFocusTemplateProps {
   engine: TtsEngine;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
+  apiKey?: string | null;
+  onApiKeyChange?: (key: string | null) => void;
   onEngineChange: (engine: TtsEngine) => void;
   onSelectSentence: (index: number) => void;
   onToggle: () => void;
@@ -56,6 +71,8 @@ export function ZenFocusTemplate({
   engine,
   voices,
   disabledEngines,
+  apiKey: propApiKey,
+  onApiKeyChange: propOnApiKeyChange,
   onEngineChange,
   onSelectSentence,
   onToggle,
@@ -66,6 +83,11 @@ export function ZenFocusTemplate({
   onSpeedChange,
   onAskAI,
 }: ZenFocusTemplateProps) {
+  const { apiKey: hookApiKey, updateApiKey: hookUpdateApiKey } = useGeminiApiKey();
+  const apiKey = propApiKey !== undefined ? propApiKey : hookApiKey;
+  const updateApiKey = propOnApiKeyChange || hookUpdateApiKey;
+
+  const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const activeRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -75,6 +97,11 @@ export function ZenFocusTemplate({
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
+
+  const currentVoiceObj = voices.find((v) => v.id === voice);
+  const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
+  const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
+  const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
 
   // Group pages for chapter navigation
   const pageList = useMemo(() => {
@@ -90,7 +117,9 @@ export function ZenFocusTemplate({
   const strokeDashoffset = 100 - progressRatio * 100;
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof activeRef.current?.scrollIntoView === "function") {
+      activeRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }, [currentIndex]);
 
   const jumpToPage = (pageNum: number) => {
@@ -98,6 +127,15 @@ export function ZenFocusTemplate({
     if (firstSentenceOfPage !== -1) {
       onSelectSentence(firstSentenceOfPage);
     }
+  };
+
+  const handleSelectEngine = (nextEngine: TtsEngine) => {
+    if (nextEngine === "google" && !hasApiKey) {
+      onEngineChange("system");
+      setGeminiDialogOpen(true);
+      return;
+    }
+    onEngineChange(nextEngine);
   };
 
   // Font class based on settings
@@ -114,6 +152,15 @@ export function ZenFocusTemplate({
       )}
       data-reading-theme={settings.theme === "light" ? "sepia" : settings.theme}
     >
+      {/* Diálogo de Chave Gemini para o Modo Zen */}
+      <GeminiKeyDialog
+        apiKey={apiKey}
+        onChange={updateApiKey}
+        open={geminiDialogOpen}
+        onOpenChange={setGeminiDialogOpen}
+        trigger={<span className="hidden" />}
+      />
+
       {/* Menu flutuante de seleção de texto */}
       <TextSelectionMenu
         containerRef={containerRef}
@@ -130,7 +177,7 @@ export function ZenFocusTemplate({
           {title ?? "Leitura Imersiva"}
         </h1>
         <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground italic font-sans">
-          Modo Focado & Som de Fundo • {totalPages} páginas
+          Modo Focado & Leitura Imersiva • {totalPages} páginas
         </p>
       </header>
 
@@ -226,7 +273,7 @@ export function ZenFocusTemplate({
             type="button"
             onClick={() => currentPage > 1 && jumpToPage(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-secondary/80 hover:bg-secondary text-foreground disabled:opacity-30 font-sans"
+            className="flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-secondary/80 hover:bg-secondary text-foreground disabled:opacity-30 font-sans cursor-pointer"
           >
             <ChevronLeft className="size-3.5" /> Anterior
           </button>
@@ -234,32 +281,34 @@ export function ZenFocusTemplate({
             type="button"
             onClick={() => currentPage < totalPages && jumpToPage(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-secondary/80 hover:bg-secondary text-foreground disabled:opacity-30 font-sans"
+            className="flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-secondary/80 hover:bg-secondary text-foreground disabled:opacity-30 font-sans cursor-pointer"
           >
             Próxima <ChevronRight className="size-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Pílula de Ações Flutuante Zen (Inspiração 04) */}
-      <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 glass-panel flex items-center gap-1 sm:gap-2 rounded-full p-1.5 sm:p-2 shadow-xl border border-border/80 font-sans max-w-[96vw]">
+      {/* Pílula de Ações Flutuante Zen (Sem som de foco, sem recomeçar, com avançar/voltar e ícone de som com IA) */}
+      <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 glass-panel flex items-center gap-1 sm:gap-1.5 rounded-full p-1.5 sm:p-2 shadow-2xl border border-border/80 font-sans max-w-[96vw]">
+        {/* Índice de Páginas */}
         <button
           type="button"
           onClick={() => setShowPagesDrawer(true)}
           title="Índice de Páginas"
           aria-label="Índice de Páginas"
-          className="flex size-8 sm:size-10 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors"
+          className="flex size-8 sm:size-9 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors cursor-pointer"
         >
           <BookOpen className="size-3.5 sm:size-4" />
         </button>
 
+        {/* Marcador */}
         <button
           type="button"
           onClick={() => setIsBookmarked(!isBookmarked)}
           title={isBookmarked ? "Marcado" : "Salvar marcador"}
           aria-label={isBookmarked ? "Marcado" : "Salvar marcador"}
           className={cn(
-            "flex size-8 sm:size-10 items-center justify-center rounded-full transition-colors",
+            "flex size-8 sm:size-9 items-center justify-center rounded-full transition-colors cursor-pointer",
             isBookmarked
               ? "bg-amber-500/20 text-amber-600 font-bold"
               : "hover:bg-secondary text-foreground/80"
@@ -268,13 +317,14 @@ export function ZenFocusTemplate({
           <Bookmark className="size-3.5 sm:size-4" />
         </button>
 
+        {/* Destaque de Texto */}
         <button
           type="button"
           onClick={() => setHighlightMode(!highlightMode)}
           title={highlightMode ? "Destaque de voz ativo" : "Destaque desligado"}
           aria-label={highlightMode ? "Destaque de voz ativo" : "Destaque desligado"}
           className={cn(
-            "flex size-8 sm:size-10 items-center justify-center rounded-full transition-colors",
+            "flex size-8 sm:size-9 items-center justify-center rounded-full transition-colors cursor-pointer",
             highlightMode
               ? "bg-accent/20 text-accent font-bold"
               : "hover:bg-secondary text-foreground/80"
@@ -283,29 +333,113 @@ export function ZenFocusTemplate({
           <Highlighter className="size-3.5 sm:size-4" />
         </button>
 
+        <div className="h-4 sm:h-5 w-px bg-border my-auto mx-0.5" />
+
+        {/* Botão VOLTAR trecho */}
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={currentIndex === 0}
+          title="Voltar trecho"
+          aria-label="Voltar trecho"
+          className="flex size-8 sm:size-9 items-center justify-center rounded-full hover:bg-secondary text-foreground transition-colors disabled:opacity-30 cursor-pointer"
+        >
+          <SkipBack className="size-4" />
+        </button>
+
+        {/* Botão Play/Pause */}
         <button
           type="button"
           onClick={onToggle}
           aria-label={isPlaying ? "Pausar Narração" : "Iniciar Narração"}
-          className="flex size-9 sm:size-11 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-md hover:scale-105 active:scale-95 transition-transform"
+          className="flex size-9 sm:size-10 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-md hover:scale-105 active:scale-95 transition-transform cursor-pointer"
         >
-          {isPlaying ? <Pause className="size-4 sm:size-5" /> : <Play className="size-4 sm:size-5 translate-x-0.5" />}
+          {isPlaying ? (
+            <Pause className="size-4 sm:size-4.5" />
+          ) : (
+            <Play className="size-4 sm:size-4.5 translate-x-0.5" />
+          )}
         </button>
 
+        {/* Botão AVANÇAR trecho */}
         <button
           type="button"
-          onClick={onRestart}
-          title="Reiniciar Narração"
-          aria-label="Reiniciar Narração"
-          className="flex size-8 sm:size-10 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors"
+          onClick={onNext}
+          disabled={currentIndex >= sentences.length - 1}
+          title="Avançar trecho"
+          aria-label="Avançar trecho"
+          className="flex size-8 sm:size-9 items-center justify-center rounded-full hover:bg-secondary text-foreground transition-colors disabled:opacity-30 cursor-pointer"
         >
-          <RotateCcw className="size-3.5 sm:size-4" />
+          <SkipForward className="size-4" />
         </button>
 
-        <div className="h-5 sm:h-6 w-px bg-border my-auto mx-0.5 sm:mx-1" />
+        <div className="h-4 sm:h-5 w-px bg-border my-auto mx-0.5" />
 
-        {/* Gerador de Som Ambiente */}
-        <AmbientSoundPlayer />
+        {/* Seletor de Voz / Motor */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title="Voz da narração"
+              aria-label="Voz da narração"
+              className="flex size-8 sm:size-9 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors cursor-pointer"
+            >
+              <Mic className="size-3.5 sm:size-4 text-accent" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-56 max-h-72 overflow-y-auto glass-panel">
+            <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+              Motor ({engineLabel})
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={engine}
+              onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
+            >
+              {TTS_ENGINES.map((eng) => (
+                <DropdownMenuRadioItem
+                  key={eng.id}
+                  value={eng.id}
+                  disabled={disabledEngines.includes(eng.id)}
+                  className="cursor-pointer text-xs"
+                >
+                  <div className="flex flex-col">
+                    <span>{eng.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
+                  </div>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+
+            <DropdownMenuSeparator className="my-1.5" />
+            <DropdownMenuItem
+              onClick={() => setGeminiDialogOpen(true)}
+              className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+            >
+              <Sparkles className="size-3.5" />
+              <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-1.5" />
+            <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
+              Voz
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
+              {voices.map((v) => (
+                <DropdownMenuRadioItem key={v.id} value={v.id} className="cursor-pointer text-xs">
+                  {v.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Ícone para incluir SOM com IA / Enviar Token (caso desconectada ou gerenciar) */}
+        <GeminiKeyDialog
+          apiKey={apiKey}
+          onChange={updateApiKey}
+          variant="icon"
+          className="size-8 sm:size-9"
+        />
       </div>
 
       {/* Drawer de Páginas Overlay */}

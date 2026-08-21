@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   AudioLines,
   FileText,
@@ -11,6 +12,7 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
+  Sparkles,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
 import { WaveformVisualizer } from "./waveform-visualizer";
+import { GeminiKeyDialog } from "../gemini-key-dialog";
 import { cn } from "@/lib/utils";
 import { SPEEDS } from "../player-controls";
 
@@ -41,6 +44,8 @@ interface FloatingAudioDockProps {
   engine: TtsEngine;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
+  apiKey?: string | null;
+  onApiKeyChange?: (key: string | null) => void;
   onEngineChange: (engine: TtsEngine) => void;
   onToggle: () => void;
   onPrevious: () => void;
@@ -63,6 +68,8 @@ export function FloatingAudioDock({
   engine,
   voices,
   disabledEngines,
+  apiKey = null,
+  onApiKeyChange = () => {},
   onEngineChange,
   onToggle,
   onPrevious,
@@ -72,10 +79,21 @@ export function FloatingAudioDock({
   onSpeedChange,
   className,
 }: FloatingAudioDockProps) {
+  const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const progressPercent = total > 0 ? Math.round(((currentIndex + 1) / total) * 100) : 0;
   const currentVoiceObj = voices.find((v) => v.id === voice);
   const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
   const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
+  const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
+
+  const handleSelectEngine = (nextEngine: TtsEngine) => {
+    if (nextEngine === "google" && !hasApiKey) {
+      onEngineChange("system");
+      setGeminiDialogOpen(true);
+      return;
+    }
+    onEngineChange(nextEngine);
+  };
 
   return (
     <div
@@ -84,6 +102,15 @@ export function FloatingAudioDock({
         className
       )}
     >
+      {/* Diálogo Centralizado de Chave Gemini */}
+      <GeminiKeyDialog
+        apiKey={apiKey}
+        onChange={onApiKeyChange}
+        open={geminiDialogOpen}
+        onOpenChange={setGeminiDialogOpen}
+        trigger={<span className="hidden" />}
+      />
+
       {/* Barra de Progresso Fina no Topo */}
       <div className="absolute top-0 left-4 right-4 sm:left-6 sm:right-6 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-secondary/80">
         <div
@@ -126,7 +153,7 @@ export function FloatingAudioDock({
             onClick={onRestart}
             title="Reiniciar leitura"
             aria-label="Reiniciar"
-            className="text-muted-foreground hover:bg-secondary hover:text-foreground flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground flex size-9 shrink-0 items-center justify-center rounded-full transition-colors cursor-pointer"
           >
             <RotateCcw className="size-4" />
           </button>
@@ -137,7 +164,7 @@ export function FloatingAudioDock({
             disabled={currentIndex === 0}
             title="Trecho anterior"
             aria-label="Trecho anterior"
-            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30 cursor-pointer"
           >
             <SkipBack className="size-5" />
           </button>
@@ -146,7 +173,7 @@ export function FloatingAudioDock({
             type="button"
             onClick={onToggle}
             aria-label={isPlaying ? "Pausar" : "Reproduzir"}
-            className="bg-accent text-accent-foreground flex size-12 shrink-0 items-center justify-center rounded-full shadow-lg shadow-accent/25 transition-all hover:scale-105 active:scale-95"
+            className="bg-accent text-accent-foreground flex size-12 shrink-0 items-center justify-center rounded-full shadow-lg shadow-accent/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           >
             {isBuffering ? (
               <Loader2 className="size-6 animate-spin" />
@@ -163,7 +190,7 @@ export function FloatingAudioDock({
             disabled={currentIndex >= total - 1}
             title="Próximo trecho"
             aria-label="Próximo trecho"
-            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30 cursor-pointer"
           >
             <SkipForward className="size-5" />
           </button>
@@ -174,14 +201,21 @@ export function FloatingAudioDock({
           </div>
         </div>
 
-        {/* Controles de Voz & Velocidade (Direita) */}
+        {/* Controles de Voz, IA & Velocidade (Direita) */}
         <div className="flex items-center gap-1.5 justify-end">
+          {/* Botão de Conectar/Gerenciar IA TTS */}
+          <GeminiKeyDialog
+            apiKey={apiKey}
+            onChange={onApiKeyChange}
+            variant="audio"
+          />
+
           {/* Seletor de Velocidade */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors"
+                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors cursor-pointer"
               >
                 <Gauge className="size-3 text-accent" />
                 <span>{speed}x</span>
@@ -204,19 +238,21 @@ export function FloatingAudioDock({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors max-w-[140px] truncate"
+                aria-label="Selecionar voz e motor"
+                data-cy="floating-voice-trigger"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 transition-colors max-w-[140px] truncate cursor-pointer"
               >
                 <Mic className="size-3 text-accent shrink-0" />
                 <span className="truncate">{voiceLabel}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-72 overflow-y-auto glass-panel">
+            <DropdownMenuContent align="end" className="w-60 max-h-80 overflow-y-auto glass-panel">
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
                 Motor ({engineLabel})
               </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={engine}
-                onValueChange={(val) => onEngineChange(val as TtsEngine)}
+                onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
               >
                 {TTS_ENGINES.map((eng) => (
                   <DropdownMenuRadioItem
@@ -225,14 +261,32 @@ export function FloatingAudioDock({
                     disabled={disabledEngines.includes(eng.id)}
                     className="cursor-pointer text-xs"
                   >
-                    {eng.label}
+                    <div className="flex flex-col">
+                      <span>{eng.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
+                    </div>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
 
+              {/* Ação rápida para conectar/gerenciar chave do Gemini */}
+              <DropdownMenuSeparator className="my-1.5" />
+              <DropdownMenuItem
+                onClick={() => setGeminiDialogOpen(true)}
+                className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium hover:bg-accent/10"
+              >
+                <Sparkles className="size-3.5" />
+                <span>
+                  {hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}
+                </span>
+                {hasApiKey && (
+                  <span className="size-1.5 rounded-full bg-emerald-500 ml-auto shrink-0" />
+                )}
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator className="my-1.5" />
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                Voz
+                Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
               </DropdownMenuLabel>
               <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                 {voices.map((v) => (
@@ -248,7 +302,7 @@ export function FloatingAudioDock({
 
       {/* Layout Mobile (< sm): 2 linhas ultra compactas e ergonômicas */}
       <div className="flex sm:hidden flex-col gap-2">
-        {/* Linha 1 Mobile: Info do PDF + Velocidade & Voz */}
+        {/* Linha 1 Mobile: Info do PDF + Botão IA + Velocidade & Voz */}
         <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
@@ -265,12 +319,19 @@ export function FloatingAudioDock({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
+            {/* Ícone de Conectar IA Mobile */}
+            <GeminiKeyDialog
+              apiKey={apiKey}
+              onChange={onApiKeyChange}
+              variant="icon"
+            />
+
             {/* Velocidade Mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-bold bg-secondary/90 text-foreground border border-border/60"
+                  className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-bold bg-secondary/90 text-foreground border border-border/60 cursor-pointer"
                 >
                   <Gauge className="size-3 text-accent" />
                   <span>{speed}x</span>
@@ -293,19 +354,20 @@ export function FloatingAudioDock({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium bg-secondary/90 text-foreground border border-border/60 max-w-[90px] truncate"
+                  aria-label="Selecionar voz e motor mobile"
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium bg-secondary/90 text-foreground border border-border/60 max-w-[85px] truncate cursor-pointer"
                 >
                   <Mic className="size-3 text-accent shrink-0" />
                   <span className="truncate">{voiceLabel}</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 max-h-64 overflow-y-auto glass-panel">
+              <DropdownMenuContent align="end" className="w-56 max-h-72 overflow-y-auto glass-panel">
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
                   Motor ({engineLabel})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={engine}
-                  onValueChange={(val) => onEngineChange(val as TtsEngine)}
+                  onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
                 >
                   {TTS_ENGINES.map((eng) => (
                     <DropdownMenuRadioItem
@@ -314,10 +376,22 @@ export function FloatingAudioDock({
                       disabled={disabledEngines.includes(eng.id)}
                       className="cursor-pointer text-xs"
                     >
-                      {eng.label}
+                      <div className="flex flex-col">
+                        <span>{eng.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
+                      </div>
                     </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
+
+                <DropdownMenuSeparator className="my-1.5" />
+                <DropdownMenuItem
+                  onClick={() => setGeminiDialogOpen(true)}
+                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini"}</span>
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
@@ -342,7 +416,7 @@ export function FloatingAudioDock({
             onClick={onRestart}
             title="Reiniciar leitura"
             aria-label="Reiniciar"
-            className="text-muted-foreground hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-secondary transition-colors"
+            className="text-muted-foreground hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-secondary transition-colors cursor-pointer"
           >
             <RotateCcw className="size-4" />
           </button>
@@ -353,7 +427,7 @@ export function FloatingAudioDock({
             disabled={currentIndex === 0}
             title="Trecho anterior"
             aria-label="Trecho anterior"
-            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30 cursor-pointer"
           >
             <SkipBack className="size-4.5" />
           </button>
@@ -362,7 +436,7 @@ export function FloatingAudioDock({
             type="button"
             onClick={onToggle}
             aria-label={isPlaying ? "Pausar" : "Reproduzir"}
-            className="bg-accent text-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full shadow-md shadow-accent/25 transition-transform active:scale-95"
+            className="bg-accent text-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full shadow-md shadow-accent/25 transition-transform active:scale-95 cursor-pointer"
           >
             {isBuffering ? (
               <Loader2 className="size-5 animate-spin" />
@@ -379,7 +453,7 @@ export function FloatingAudioDock({
             disabled={currentIndex >= total - 1}
             title="Próximo trecho"
             aria-label="Próximo trecho"
-            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+            className="text-foreground hover:bg-secondary flex size-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-30 cursor-pointer"
           >
             <SkipForward className="size-4.5" />
           </button>

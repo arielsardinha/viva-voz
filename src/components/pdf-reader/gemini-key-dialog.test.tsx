@@ -29,6 +29,33 @@ describe("GeminiKeyDialog Component", () => {
     expect(screen.getByRole("button", { name: /chave gemini conectada/i })).toBeInTheDocument();
   });
 
+  it("deve renderizar variante 'audio' quando desconectada e conectada", () => {
+    const onChangeMock = jest.fn();
+    const { rerender } = render(
+      <GeminiKeyDialog apiKey={null} onChange={onChangeMock} variant="audio" />
+    );
+
+    expect(
+      screen.getByRole("button", { name: /conectar som com ia/i })
+    ).toBeInTheDocument();
+
+    rerender(
+      <GeminiKeyDialog apiKey="AIzaSy1234567890" onChange={onChangeMock} variant="audio" />
+    );
+    expect(
+      screen.getByRole("button", { name: /voz ia .* conectada/i })
+    ).toBeInTheDocument();
+  });
+
+  it("deve renderizar variante 'icon'", () => {
+    const onChangeMock = jest.fn();
+    render(<GeminiKeyDialog apiKey={null} onChange={onChangeMock} variant="icon" />);
+
+    expect(
+      screen.getByRole("button", { name: /conectar chave gemini/i })
+    ).toBeInTheDocument();
+  });
+
   it("deve abrir o modal ao clicar no botão de conexão", () => {
     const onChangeMock = jest.fn();
     render(<GeminiKeyDialog apiKey={null} onChange={onChangeMock} />);

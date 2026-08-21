@@ -1,6 +1,18 @@
 "use client";
 
-import { AudioLines, Gauge, Loader2, Pause, Play, RotateCcw, SkipBack, SkipForward, Speech } from "lucide-react";
+import { useState } from "react";
+import {
+  AudioLines,
+  Gauge,
+  Loader2,
+  Pause,
+  Play,
+  RotateCcw,
+  SkipBack,
+  SkipForward,
+  Sparkles,
+  Speech,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,13 +23,15 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import { GeminiKeyDialog } from "./gemini-key-dialog";
 
 export const SPEEDS = ["0.8", "1", "1.25", "1.5"];
 
@@ -32,6 +46,8 @@ interface PlayerControlsProps {
   engine: TtsEngine;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
+  apiKey?: string | null;
+  onApiKeyChange?: (key: string | null) => void;
   onEngineChange: (engine: TtsEngine) => void;
   onToggle: () => void;
   onPrevious: () => void;
@@ -52,6 +68,8 @@ export function PlayerControls({
   engine,
   voices,
   disabledEngines,
+  apiKey = null,
+  onApiKeyChange = () => {},
   onEngineChange,
   onToggle,
   onPrevious,
@@ -60,15 +78,26 @@ export function PlayerControls({
   onVoiceChange,
   onSpeedChange,
 }: PlayerControlsProps) {
+  const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const progress = total > 0 ? ((currentIndex + 1) / total) * 100 : 0;
   const engineLabel = TTS_ENGINES.find((item) => item.id === engine)?.label ?? "Sistema";
+  const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
+
+  const handleSelectEngine = (nextEngine: TtsEngine) => {
+    if (nextEngine === "google" && !hasApiKey) {
+      onEngineChange("system");
+      setGeminiDialogOpen(true);
+      return;
+    }
+    onEngineChange(nextEngine);
+  };
 
   const engineMenu = (
     <>
       <DropdownMenuLabel>Motor de narração</DropdownMenuLabel>
       <DropdownMenuRadioGroup
         value={engine}
-        onValueChange={(value) => onEngineChange(value as TtsEngine)}
+        onValueChange={(value) => handleSelectEngine(value as TtsEngine)}
       >
         {TTS_ENGINES.map((item) => (
           <DropdownMenuRadioItem
@@ -76,11 +105,24 @@ export function PlayerControls({
             value={item.id}
             disabled={disabledEngines.includes(item.id)}
           >
-            {item.label}
+            <div className="flex flex-col">
+              <span>{item.label}</span>
+              <span className="text-[10px] text-muted-foreground">{item.hint}</span>
+            </div>
             {disabledEngines.includes(item.id) ? " — indisponível" : ""}
           </DropdownMenuRadioItem>
         ))}
       </DropdownMenuRadioGroup>
+
+      <DropdownMenuSeparator className="my-1.5" />
+      <DropdownMenuItem
+        onClick={() => setGeminiDialogOpen(true)}
+        className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+      >
+        <Sparkles className="size-3.5" />
+        <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
+        {hasApiKey && <span className="size-1.5 rounded-full bg-emerald-500 ml-auto" />}
+      </DropdownMenuItem>
     </>
   );
 
@@ -92,6 +134,14 @@ export function PlayerControls({
       data-webmcp-action="manageAudioPlayback"
       className="border-border bg-card min-w-0 rounded-2xl border p-3 sm:p-5"
     >
+      <GeminiKeyDialog
+        apiKey={apiKey}
+        onChange={onApiKeyChange}
+        open={geminiDialogOpen}
+        onOpenChange={setGeminiDialogOpen}
+        trigger={<span className="hidden" />}
+      />
+
       <div
         role="progressbar"
         aria-valuenow={Math.round(progress)}
@@ -158,6 +208,13 @@ export function PlayerControls({
 
           {/* Compactos (estilo YouTube) até lg */}
           <div className="ml-auto flex items-center gap-1 lg:hidden">
+            <GeminiKeyDialog
+              apiKey={apiKey}
+              onChange={onApiKeyChange}
+              variant="icon"
+              className="size-8 sm:size-9"
+            />
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -227,7 +284,13 @@ export function PlayerControls({
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Select value={engine} onValueChange={(value) => onEngineChange(value as TtsEngine)}>
+          <GeminiKeyDialog
+            apiKey={apiKey}
+            onChange={onApiKeyChange}
+            variant="audio"
+          />
+
+          <Select value={engine} onValueChange={(value) => handleSelectEngine(value as TtsEngine)}>
             <SelectTrigger className="w-[168px]" aria-label="Motor de narração">
               <SelectValue />
             </SelectTrigger>
@@ -272,4 +335,3 @@ export function PlayerControls({
     </div>
   );
 }
-
