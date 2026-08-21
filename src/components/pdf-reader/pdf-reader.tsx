@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, FileText, Pencil, X } from "lucide-react";
+import { Check, FileText, Pencil, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { PdfDropzone } from "./pdf-dropzone";
-import { PlayerControls } from "./player-controls";
-import { TranscriptView } from "./transcript-view";
-import { ChatPanel } from "./chat-panel";
+import {
+  TemplateSwitcher,
+  type ReaderSettings,
+} from "./ui/template-switcher";
+import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
+import { AIStudyTemplate } from "./reader-templates/ai-study-template";
+import { ZenFocusTemplate } from "./reader-templates/zen-focus-template";
 import { extractSentencesFromPdf, type Sentence } from "@/lib/pdf-text";
 import {
   createReadingId,
@@ -30,6 +34,15 @@ import {
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 
 const GEMINI_KEY_STORAGE = "gemini-api-key";
+const READER_SETTINGS_STORAGE = "vivavoz-reader-settings";
+
+const DEFAULT_READER_SETTINGS: ReaderSettings = {
+  template: "modern",
+  theme: "light",
+  font: "sans",
+  fontSize: 16,
+  lineHeight: 1.8,
+};
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -46,6 +59,10 @@ export function PdfReader() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Template & Display Settings
+  const [readerSettings, setReaderSettings] = useState<ReaderSettings>(DEFAULT_READER_SETTINGS);
 
   const engine = prefs.engine;
   const speed = prefs.speed;
@@ -55,6 +72,26 @@ export function PdfReader() {
   const patchPrefs = useCallback((patch: Partial<Preferences>) => {
     setPrefs((current) => ({ ...current, ...patch }));
     void savePreferences(patch);
+  }, []);
+
+  const patchSettings = useCallback((patch: Partial<ReaderSettings>) => {
+    setReaderSettings((curr) => {
+      const next = { ...curr, ...patch };
+      try {
+        localStorage.setItem(READER_SETTINGS_STORAGE, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Load saved visual settings
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(READER_SETTINGS_STORAGE);
+      if (saved) {
+        setReaderSettings((curr) => ({ ...curr, ...JSON.parse(saved) }));
+      }
+    } catch {}
   }, []);
 
   const handleError = useCallback((message: string) => toast.error(message), []);
@@ -72,7 +109,7 @@ export function PdfReader() {
         return next;
       });
     },
-    [],
+    []
   );
 
   const player = useTtsPlayer({
@@ -87,15 +124,15 @@ export function PdfReader() {
 
   const setVoice = useCallback(
     (next: string) => patchPrefs({ voice: { ...prefs.voice, [engine]: next } }),
-    [patchPrefs, prefs.voice, engine],
+    [patchPrefs, prefs.voice, engine]
   );
   const setSpeed = useCallback((next: string) => patchPrefs({ speed: next }), [patchPrefs]);
   const setEngine = useCallback(
     (next: TtsEngine) => patchPrefs({ engine: next }),
-    [patchPrefs],
+    [patchPrefs]
   );
 
-  // Chave própria do Gemini (compartilhada com o chat)
+  // Gemini API key
   useEffect(() => {
     const read = () => setUserApiKey(window.localStorage.getItem(GEMINI_KEY_STORAGE));
     read();
@@ -103,7 +140,7 @@ export function PdfReader() {
     return () => window.removeEventListener("storage", read);
   }, []);
 
-  // Vozes do navegador/sistema
+  // System voices
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
     const load = () => setSystemVoices(listSystemVoices());
@@ -112,7 +149,7 @@ export function PdfReader() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
 
-  // Preferências salvas
+  // Preferences
   useEffect(() => {
     void (async () => {
       setPrefs(await getPreferences());
@@ -121,11 +158,15 @@ export function PdfReader() {
   }, []);
 
   const currentPage = useMemo(
-    () => sentences[player.currentIndex]?.page ?? 0,
-    [sentences, player.currentIndex],
+    () => sentences[player.currentIndex]?.page ?? 1,
+    [sentences, player.currentIndex]
   );
 
-  // Retoma a última leitura ao reabrir o navegador
+  const totalPages = useMemo(() => {
+    return sentences.reduce((max, s) => Math.max(max, s.page), 1);
+  }, [sentences]);
+
+  // Resume last reading
   useEffect(() => {
     if (!prefsLoaded || docParam || readingId || !prefs.lastReadingId) return;
     void (async () => {
@@ -140,7 +181,7 @@ export function PdfReader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoaded]);
 
-  // Abre uma leitura já persistida (?doc=id)
+  // Open specific reading (?doc=id)
   useEffect(() => {
     const id = docParam;
     if (!id || id === readingId) return;
@@ -159,7 +200,7 @@ export function PdfReader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docParam]);
 
-  // Persiste a posição atual da leitura
+  // Persist current position
   useEffect(() => {
     if (!readingId) return;
     const timeout = setTimeout(() => {
@@ -177,11 +218,11 @@ export function PdfReader() {
     setProgress("Extraindo o texto…");
     try {
       const result = await extractSentencesFromPdf(file, (page, total) =>
-        setProgress(`Extraindo o texto… página ${page} de ${total}`),
+        setProgress(`Extraindo o texto… página ${page} de ${total}`)
       );
       if (result.sentences.length === 0) {
         toast.error(
-          "Nenhum texto encontrado. Este PDF parece ser digitalizado (apenas imagens), sem camada de texto.",
+          "Nenhum texto encontrado. Este PDF parece ser digitalizado (apenas imagens), sem camada de texto."
         );
         return;
       }
@@ -205,7 +246,7 @@ export function PdfReader() {
       setSentences(result.sentences);
       void savePreferences({ lastReadingId: id });
       toast.success(
-        `${result.sentences.length} trechos prontos e salvos nas suas leituras (${result.pageCount} página(s)).`,
+        `${result.sentences.length} trechos prontos e salvos nas suas leituras (${result.pageCount} página(s)).`
       );
     } catch (error) {
       console.error(error);
@@ -233,20 +274,36 @@ export function PdfReader() {
     void savePreferences({ lastReadingId: null });
   }, [player]);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      void document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      void document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
   return (
-    <div className="bg-background min-h-screen">
+    <div
+      className="bg-background min-h-screen transition-colors"
+      data-reading-theme={readerSettings.theme}
+    >
       <AppHeader />
 
-      <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:py-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8 space-y-5">
         {sentences.length === 0 ? (
           <PdfDropzone onFile={handleFile} isLoading={isLoading} progress={progress} />
         ) : (
           <>
-            <div className="border-border bg-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <FileText className="text-accent size-4 shrink-0" />
+            {/* Barra de Título & Ações Principais */}
+            <div className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3 sm:px-5 border border-border/80 shadow-xs">
+              <div className="flex min-w-0 items-center gap-2.5 flex-1">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+                  <FileText className="size-4" />
+                </div>
                 {isEditing ? (
-                  <div className="flex min-w-0 flex-1 items-center gap-1">
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5 max-w-md">
                     <input
                       autoFocus
                       value={draftTitle}
@@ -256,20 +313,22 @@ export function PdfReader() {
                         if (event.key === "Escape") setIsEditing(false);
                       }}
                       aria-label="Título da leitura"
-                      className="border-border bg-background min-w-0 flex-1 rounded-md border px-2 py-1 text-sm"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                     <button
                       type="button"
                       onClick={() => void saveTitle()}
                       aria-label="Salvar título"
-                      className="text-accent hover:bg-secondary inline-flex size-8 shrink-0 items-center justify-center rounded-md"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-xs hover:opacity-90"
                     >
                       <Check className="size-4" />
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <span className="truncate text-sm font-medium">{title}</span>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <h2 className="truncate text-sm sm:text-base font-bold text-foreground">
+                      {title}
+                    </h2>
                     <button
                       type="button"
                       onClick={() => {
@@ -277,54 +336,114 @@ export function PdfReader() {
                         setIsEditing(true);
                       }}
                       aria-label="Editar título"
-                      className="text-muted-foreground hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-md"
+                      className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={reset}
-                className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1 text-sm transition-colors"
-              >
-                <X className="size-4" />
-                <span className="hidden sm:inline">Trocar arquivo</span>
-              </button>
-            </div>
 
-            <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-              <div className="min-w-0 space-y-5">
-                <PlayerControls
-                  isPlaying={player.isPlaying}
-                  isBuffering={player.isBuffering}
-                  currentIndex={player.currentIndex}
-                  total={sentences.length}
-                  page={currentPage}
-                  voice={voice}
-                  speed={speed}
-                  engine={engine}
-                  voices={voices}
-                  disabledEngines={prefs.disabledEngines as TtsEngine[]}
-                  onEngineChange={setEngine}
-                  onToggle={player.toggle}
-                  onPrevious={player.previous}
-                  onNext={player.next}
-                  onRestart={player.restart}
-                  onVoiceChange={setVoice}
-                  onSpeedChange={setSpeed}
-                />
-
-                <TranscriptView
-                  sentences={sentences}
-                  currentIndex={player.currentIndex}
-                  onSelect={player.jumpTo}
-                />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                >
+                  <X className="size-3.5" />
+                  <span>Trocar PDF</span>
+                </button>
               </div>
-
-              <ChatPanel sentences={sentences} fileName={title} />
             </div>
+
+            {/* Seletor de Templates e Controles de Exibição */}
+            <TemplateSwitcher
+              settings={readerSettings}
+              onChangeSettings={patchSettings}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              currentPage={currentPage}
+              totalPages={totalPages}
+            />
+
+            {/* Renderização Condicional dos 3 Templates Inspirados */}
+            {readerSettings.template === "modern" && (
+              <ModernStudioTemplate
+                sentences={sentences}
+                currentIndex={player.currentIndex}
+                title={title}
+                settings={readerSettings}
+                isPlaying={player.isPlaying}
+                isBuffering={player.isBuffering}
+                voice={voice}
+                speed={speed}
+                engine={engine}
+                voices={voices}
+                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                onEngineChange={setEngine}
+                onSelectSentence={player.jumpTo}
+                onToggle={player.toggle}
+                onPrevious={player.previous}
+                onNext={player.next}
+                onRestart={player.restart}
+                onVoiceChange={setVoice}
+                onSpeedChange={setSpeed}
+                onAskAI={(prompt) => {
+                  patchSettings({ template: "ai-study" });
+                }}
+              />
+            )}
+
+            {readerSettings.template === "ai-study" && (
+              <AIStudyTemplate
+                sentences={sentences}
+                currentIndex={player.currentIndex}
+                title={title}
+                settings={readerSettings}
+                isPlaying={player.isPlaying}
+                isBuffering={player.isBuffering}
+                voice={voice}
+                speed={speed}
+                engine={engine}
+                voices={voices}
+                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                onEngineChange={setEngine}
+                onSelectSentence={player.jumpTo}
+                onToggle={player.toggle}
+                onPrevious={player.previous}
+                onNext={player.next}
+                onRestart={player.restart}
+                onVoiceChange={setVoice}
+                onSpeedChange={setSpeed}
+              />
+            )}
+
+            {readerSettings.template === "zen" && (
+              <ZenFocusTemplate
+                sentences={sentences}
+                currentIndex={player.currentIndex}
+                title={title}
+                settings={readerSettings}
+                isPlaying={player.isPlaying}
+                isBuffering={player.isBuffering}
+                voice={voice}
+                speed={speed}
+                engine={engine}
+                voices={voices}
+                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                onEngineChange={setEngine}
+                onSelectSentence={player.jumpTo}
+                onToggle={player.toggle}
+                onPrevious={player.previous}
+                onNext={player.next}
+                onRestart={player.restart}
+                onVoiceChange={setVoice}
+                onSpeedChange={setSpeed}
+                onAskAI={(prompt) => {
+                  patchSettings({ template: "ai-study" });
+                }}
+              />
+            )}
           </>
         )}
       </main>
