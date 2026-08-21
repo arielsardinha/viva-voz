@@ -116,26 +116,13 @@ export function AppHeader() {
             </Link>
           </nav>
 
-          {/* Botão de Reabrir Tutorial de Preferências integrado com DialogTrigger */}
-          <PreferencesTutorialDialog
-            trigger={
-              <button
-                type="button"
-                data-cy="open-tutorial-btn"
-                title="Personalizar preferências e tutorial"
-                aria-label="Personalizar preferências e tutorial"
-                className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent transition-all text-xs font-bold shadow-xs hover:scale-[1.02] cursor-pointer"
-              >
-                <GraduationCap className="size-3.5" aria-hidden="true" />
-                <span className="hidden md:inline">Tutorial</span>
-              </button>
-            }
-          />
+          {/* Diálogo do Tutorial de Preferências (abre automaticamente no primeiro acesso se ainda não definiu preferências) */}
+          <PreferencesTutorialDialog />
 
           {/* Botão de Contribuição Voluntária Pix */}
           <SupportDialog />
 
-          {/* Alternador Rápido de Tema */}
+          {/* Alternador Rápido de Tema & Ajustes */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -163,7 +150,7 @@ export function AppHeader() {
               </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-44 p-2 glass-panel">
+            <DropdownMenuContent align="end" className="w-52 p-2 glass-panel">
               <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Tema de Leitura
               </DropdownMenuLabel>
@@ -200,6 +187,16 @@ export function AppHeader() {
               >
                 <Moon className="size-4 text-indigo-400" aria-hidden="true" />
                 <span>Escuro (Midnight)</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                data-cy="reopen-tutorial-item"
+                onClick={() => openOnboarding()}
+                className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                <GraduationCap className="size-4 text-accent" aria-hidden="true" />
+                <span>Refazer Tutorial / Preferências</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

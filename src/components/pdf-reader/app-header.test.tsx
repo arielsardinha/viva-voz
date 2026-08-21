@@ -39,16 +39,19 @@ describe("AppHeader Component", () => {
     expect(screen.getByRole("link", { name: /biblioteca/i })).toBeInTheDocument();
   });
 
-  it("deve renderizar os botões de ação (tutorial, tema e chave Gemini)", () => {
+  it("deve renderizar os botões principais de ação (apoio Pix, tema e chave Gemini) e não exibir botão fixo de tutorial", () => {
     render(
       <ReaderSettingsProvider>
         <AppHeader />
       </ReaderSettingsProvider>
     );
 
+    // O botão de tutorial NÃO deve ficar fixo no menu superior
     expect(
-      screen.getByRole("button", { name: /personalizar preferências e tutorial/i })
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /personalizar preferências e tutorial/i })
+    ).not.toBeInTheDocument();
+
+    // Os outros botões principais devem estar presentes
     expect(
       screen.getByRole("button", { name: /apoiar o desenvolvimento do vivavoz/i })
     ).toBeInTheDocument();

@@ -28,6 +28,13 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
     cy.contains("Ariel Sardinha Moraes Santiago").should("not.exist");
     cy.contains("QR Code Pix para Contribuição Voluntária").should("not.exist");
 
+    // Valida exibição dos motivos da contribuição voluntária
+    cy.contains("Vozes Neurais de Estúdio").should("exist");
+    cy.contains("Consultas com IA").should("exist");
+    cy.contains("100% Grátis & Sem Anúncios").should("exist");
+    cy.contains("Servidores Rápidos").should("exist");
+    cy.contains("Apoio a Estudantes e Leitores").should("exist");
+
     // Valida botões de ação e ausência de botões removidos
     cy.contains("Copiar Código Pix (Copia e Cola)").should("exist");
     cy.contains("Compartilhar Dados Pix").should("not.exist");
@@ -50,6 +57,8 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
       "d1b12e3a-a8db-4164-a580-91b6a172e77a"
     );
     cy.contains("Ariel Sardinha Moraes Santiago").should("not.exist");
+    cy.contains("Consultas com IA").should("exist");
+    cy.contains("Vozes Neurais de Estúdio").should("exist");
 
     // QR Code expansível na página
     cy.contains("Prefere escanear com a câmera? Ver QR Code").click();

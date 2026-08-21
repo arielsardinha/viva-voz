@@ -16,6 +16,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -126,19 +127,23 @@ export function SupportView() {
           <div className="border-t border-emerald-500/20 pt-3 space-y-2 text-xs text-emerald-900/80 dark:text-emerald-200/80">
             <div className="flex items-start gap-2.5">
               <AudioLines className="size-4 text-[#32BCAD] shrink-0 mt-0.5" />
-              <span><strong>Vozes Neurais de Alta Fidelidade:</strong> Mantém cotas ativas de síntese natural de estúdio.</span>
+              <span><strong>Vozes Neurais de Estúdio:</strong> Cobre as cotas de áudio ultra-realista sem limites.</span>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Sparkles className="size-4 text-[#32BCAD] shrink-0 mt-0.5" />
+              <span><strong>Consultas com IA:</strong> Mantém o assistente inteligente ativo para responder perguntas e resumir documentos.</span>
             </div>
             <div className="flex items-start gap-2.5">
               <Zap className="size-4 text-[#32BCAD] shrink-0 mt-0.5" />
-              <span><strong>100% Grátis & Sem Propagandas:</strong> Leitura focada, limpa e acessível para todos.</span>
+              <span><strong>100% Grátis & Sem Anúncios:</strong> Experiência de leitura rápida, limpa e acessível.</span>
             </div>
             <div className="flex items-start gap-2.5">
               <Server className="size-4 text-[#32BCAD] shrink-0 mt-0.5" />
-              <span><strong>Servidores Rápidos:</strong> Infraestrutura otimizada para carregar seus documentos com velocidade.</span>
+              <span><strong>Servidores Rápidos:</strong> Hospedagem estável para carregar seus livros e notas instantaneamente.</span>
             </div>
             <div className="flex items-start gap-2.5">
               <BookOpen className="size-4 text-[#32BCAD] shrink-0 mt-0.5" />
-              <span><strong>Apoio a Estudantes e Leitores:</strong> Desenvolvimento contínuo de novas funcionalidades.</span>
+              <span><strong>Apoio a Estudantes e Leitores:</strong> Desenvolvimento contínuo de novas ferramentas.</span>
             </div>
           </div>
         </div>

@@ -204,7 +204,8 @@ describe("Agent Accessibility & WebMCP Audits", () => {
     });
 
     it("deve conter ferramenta WebMCP para configuração de preferências e tutorial (configureReaderPreferences)", () => {
-      cy.get("[data-cy='open-tutorial-btn']").should("be.visible").click();
+      cy.get("[data-cy='theme-dropdown-trigger']").first().should("be.visible").click();
+      cy.get("[data-cy='reopen-tutorial-item']").should("be.visible").click();
 
       cy.get("[data-webmcp-tool='configureReaderPreferences']")
         .should("exist")

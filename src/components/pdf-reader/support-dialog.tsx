@@ -14,6 +14,7 @@ import {
   Zap,
   BookOpen,
   Server,
+  Sparkles,
 } from "lucide-react";
 import {
   Dialog,
@@ -151,6 +152,10 @@ export function SupportDialog({ trigger, open, onOpenChange }: SupportDialogProp
               <div className="flex items-start gap-2">
                 <AudioLines className="size-3.5 text-[#32BCAD] shrink-0 mt-0.5" />
                 <span><strong>Vozes Neurais de Estúdio:</strong> Cobre as cotas de áudio ultra-realista sem limites.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Sparkles className="size-3.5 text-[#32BCAD] shrink-0 mt-0.5" />
+                <span><strong>Consultas com IA:</strong> Mantém o assistente inteligente ativo para responder perguntas e resumir documentos.</span>
               </div>
               <div className="flex items-start gap-2">
                 <Zap className="size-3.5 text-[#32BCAD] shrink-0 mt-0.5" />

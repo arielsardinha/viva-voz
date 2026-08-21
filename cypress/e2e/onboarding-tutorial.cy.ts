@@ -4,7 +4,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
     cy.clearLocalStorage();
   });
 
-  it("deve exibir o tutorial no primeiro acesso e permitir 'Pular tudo'", () => {
+  it("deve exibir o tutorial no primeiro acesso e não exibir botão fixo no cabeçalho após definir preferências", () => {
     cy.visit("/");
 
     // Modal de onboarding visível
@@ -16,9 +16,13 @@ describe("Tutorial e Onboarding de Preferências", () => {
     cy.get('[data-cy="skip-onboarding-top-btn"]').should("be.visible").click();
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
 
-    // Ao recarregar, não deve abrir novamente
+    // Como o usuário já definiu/pulou preferências, o botão de tutorial NÃO fica fixo no cabeçalho
+    cy.get('[data-cy="open-tutorial-btn"]').should("not.exist");
+
+    // Ao recarregar, o modal não abre e o cabeçalho continua limpo sem botão fixo de tutorial
     cy.reload();
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
+    cy.get('[data-cy="open-tutorial-btn"]').should("not.exist");
   });
 
   it("deve permitir fazer a jornada completa passo a passo e aplicar as preferências", () => {
@@ -72,9 +76,10 @@ describe("Tutorial e Onboarding de Preferências", () => {
       expect(saved.speed).to.eq(1.25);
     });
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
+    cy.get('[data-cy="open-tutorial-btn"]').should("not.exist");
   });
 
-  it("deve permitir reabrir o tutorial a qualquer momento pelo cabeçalho", () => {
+  it("deve permitir reabrir o tutorial de preferências a qualquer momento pelo menu de tema", () => {
     // Inicializa com onboarding já concluído
     cy.visit("/", {
       onBeforeLoad(win) {
@@ -96,11 +101,13 @@ describe("Tutorial e Onboarding de Preferências", () => {
     cy.contains("VivaVoz").should("be.visible");
     cy.contains("Arraste seu PDF aqui").should("be.visible");
 
-    // O modal não deve abrir automaticamente
+    // O modal não deve abrir automaticamente e o botão não fica fixo no topo
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
+    cy.get('[data-cy="open-tutorial-btn"]').should("not.exist");
 
-    // Clica no botão Tutorial do cabeçalho
-    cy.get('[data-cy="open-tutorial-btn"]').should("be.visible").click({ force: true });
+    // Abre o menu de tema e clica na opção de refazer tutorial
+    cy.get('[data-cy="theme-dropdown-trigger"]').click();
+    cy.get('[data-cy="reopen-tutorial-item"]').should("be.visible").click();
 
     // O modal abre com sucesso
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");

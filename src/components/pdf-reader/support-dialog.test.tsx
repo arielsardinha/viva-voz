@@ -38,6 +38,8 @@ describe("SupportDialog Component", () => {
     });
 
     expect(screen.getByRole("heading", { name: /apoie o vivavoz/i })).toBeInTheDocument();
+    expect(screen.getByText(/consultas com ia/i)).toBeInTheDocument();
+    expect(screen.getByText(/vozes neurais de estúdio/i)).toBeInTheDocument();
     expect(screen.queryByText("QR Code Pix para Contribuição Voluntária")).not.toBeInTheDocument();
     expect(screen.getByLabelText(/chave pix aleatória/i)).toHaveValue("d1b12e3a-a8db-4164-a580-91b6a172e77a");
     expect(screen.queryByText("Ariel Sardinha Moraes Santiago")).not.toBeInTheDocument();
