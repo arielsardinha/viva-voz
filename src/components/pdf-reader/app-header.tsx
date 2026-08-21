@@ -15,6 +15,7 @@ import {
 import { DeveloperContactDialog } from "./developer-contact-dialog";
 import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
 import { SupportDialog } from "./support-dialog";
+import { PwaInstallButton } from "@/components/pwa/pwa-install-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,6 +125,9 @@ export function AppHeader() {
             </Link>
           </nav>
 
+          {/* Botão de Instalação PWA */}
+          <PwaInstallButton variant="default" />
+
           {/* Diálogo do Tutorial de Preferências (abre automaticamente no primeiro acesso se ainda não definiu preferências) */}
           <PreferencesTutorialDialog />
 
@@ -162,7 +166,7 @@ export function AppHeader() {
               </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-52 p-2 glass-panel">
+            <DropdownMenuContent align="end" className="w-56 p-2 glass-panel">
               <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Tema de Leitura
               </DropdownMenuLabel>
@@ -210,6 +214,9 @@ export function AppHeader() {
                 <GraduationCap className="size-4 text-accent" aria-hidden="true" />
                 <span>Refazer Tutorial / Preferências</span>
               </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <PwaInstallButton variant="menu-item" showOnlyIfInstallable={false} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

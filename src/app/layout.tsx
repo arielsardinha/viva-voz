@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather, Lora, Roboto, Literata } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,10 +42,29 @@ const literata = Literata({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
 };
 
 export const metadata: Metadata = {
-  title: "VivaVoz | Leitor de PDF em Áudio & Narração Inteligente",
+  title: "VivaVoz — Leitor de Texto em Áudio & Narração Inteligente",
+  applicationName: "VivaVoz",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "VivaVoz",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "mobile-web-app-capable": "yes",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   description:
     "Envie seus PDFs e documentos, acompanhe o texto em tempo real e ouça narrações fluidas com IA, velocidade ajustável e modos de leitura imersivos.",
   icons: {
@@ -58,13 +78,15 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "VivaVoz | Leitor de PDF em Áudio",
+    title: "VivaVoz — Leitor de Texto em Áudio",
     description:
-      "Transcreva PDFs e ouça a narração com o trecho atual destacado na tela em português com IA.",
+      "Transcreva PDFs e documentos e ouça a narração com o trecho atual destacado na tela em português com IA.",
     type: "website",
+    siteName: "VivaVoz",
   },
   twitter: {
     card: "summary_large_image",
+    title: "VivaVoz — Leitor de Texto em Áudio",
   },
 };
 
@@ -102,6 +124,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
         <ReaderSettingsProvider>
+          <PwaRegister />
           {children}
           <Toaster />
         </ReaderSettingsProvider>

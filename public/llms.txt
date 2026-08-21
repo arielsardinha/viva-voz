@@ -23,3 +23,5 @@
 - **configureReaderPreferences** (`data-webmcp-tool="configureReaderPreferences"`): Ajusta temas de contraste (Clean, Papel Zen, Escuro), famílias tipográficas e modos de exibição.
 - **supportProject** (`data-webmcp-tool="supportProject"`): Disponibiliza dados e QR Code Pix para contribuição voluntária.
 - **contactDeveloper** (`data-webmcp-tool="contactDeveloper"`): Permite envio direto de sugestões de novos recursos, relatórios de bugs, feedback de usabilidade e contato direto com o desenvolvedor.
+- **installVivaVozPwa** (`data-webmcp-tool="installVivaVozPwa"`): Abre o diálogo de instalação e orientações de PWA para execução nativa e leitura offline do VivaVoz.
+

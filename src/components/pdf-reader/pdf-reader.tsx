@@ -40,6 +40,7 @@ import { useDocumentUploader } from "@/hooks/use-document-uploader";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
 import type { DocumentChapter, DocumentFormat } from "@/lib/domain/document.types";
 import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
+import { useMediaSession } from "@/hooks/use-media-session";
 
 export function PdfReader() {
   const searchParams = useSearchParams();
@@ -230,6 +231,21 @@ export function PdfReader() {
     const index = player.currentIndex;
     return chapters.find((c) => index >= c.startIndex && index <= c.endIndex);
   }, [chapters, player.currentIndex]);
+
+  // Integração com Media Session API para controles nativos na tela de bloqueio
+  useMediaSession({
+    title: title || "VivaVoz — Leitor de Texto em Áudio",
+    subtitle: currentChapter
+      ? currentChapter.title
+      : sentences.length > 0
+      ? `Trecho ${player.currentIndex + 1} de ${sentences.length}`
+      : "Narração Inteligente",
+    isPlaying: player.isPlaying,
+    onPlay: player.play,
+    onPause: player.pause,
+    onPrevious: player.previous,
+    onNext: player.next,
+  });
 
   // Retoma última leitura
   useEffect(() => {
