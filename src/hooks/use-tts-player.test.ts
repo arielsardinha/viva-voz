@@ -144,6 +144,68 @@ describe("useTtsPlayer Hook", () => {
 
       expect(window.speechSynthesis.speak).toHaveBeenCalled();
     });
+
+    it("deve aplicar a taxa (rate) correta de acordo com a propriedade speed", () => {
+      let createdUtterance: { text: string; rate?: number } | null = null;
+      const originalUtterance = globalThis.SpeechSynthesisUtterance;
+      globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
+        const obj = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
+        createdUtterance = obj;
+        return obj;
+      }) as unknown as typeof SpeechSynthesisUtterance;
+
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "system",
+          voice: "",
+          speed: 1.5,
+        })
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      expect(createdUtterance?.rate).toBe(1.5);
+      globalThis.SpeechSynthesisUtterance = originalUtterance;
+    });
+
+    it("deve atualizar dinamicamente a taxa (rate) quando a propriedade speed mudar", () => {
+      let createdUtterance: { text: string; rate?: number } | null = null;
+      const originalUtterance = globalThis.SpeechSynthesisUtterance;
+      globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
+        const obj = { text, rate: 1, voice: null, lang: "", onend: null, onerror: null };
+        createdUtterance = obj;
+        return obj;
+      }) as unknown as typeof SpeechSynthesisUtterance;
+
+      const { result, rerender } = renderHook(
+        ({ speed }) =>
+          useTtsPlayer({
+            sentences: mockSentences,
+            engine: "system",
+            voice: "",
+            speed,
+          }),
+        { initialProps: { speed: 1.0 } }
+      );
+
+      act(() => {
+        result.current.play();
+      });
+      expect(createdUtterance?.rate).toBe(1.0);
+
+      // Altera velocidade para 0.8x
+      rerender({ speed: 0.8 });
+      expect(createdUtterance?.rate).toBe(0.8);
+
+      // Altera velocidade para 1.5x
+      rerender({ speed: 1.5 });
+      expect(createdUtterance?.rate).toBe(1.5);
+
+      globalThis.SpeechSynthesisUtterance = originalUtterance;
+    });
   });
 
   describe("Motor de Narração por IA (Google)", () => {

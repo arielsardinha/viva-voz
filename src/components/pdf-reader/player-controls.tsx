@@ -19,7 +19,7 @@ import {
 
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
 
-export const SPEEDS = ["0.75", "1", "1.25", "1.5"];
+export const SPEEDS = ["0.8", "1", "1.25", "1.5"];
 
 interface PlayerControlsProps {
   isPlaying: boolean;

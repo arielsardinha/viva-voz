@@ -61,8 +61,16 @@ describe("Tutorial e Onboarding de Preferências", () => {
 
     // Valida persistência após reload
     cy.get("html").should("have.attr", "data-reading-theme", "sepia");
+    cy.window().then((win) => {
+      const saved = JSON.parse(win.localStorage.getItem("vivavoz-reader-settings") ?? "{}");
+      expect(saved.speed).to.eq(1.25);
+    });
     cy.reload();
     cy.get("html").should("have.attr", "data-reading-theme", "sepia");
+    cy.window().then((win) => {
+      const saved = JSON.parse(win.localStorage.getItem("vivavoz-reader-settings") ?? "{}");
+      expect(saved.speed).to.eq(1.25);
+    });
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
   });
 
@@ -135,5 +143,36 @@ describe("Tutorial e Onboarding de Preferências", () => {
     cy.get('[data-cy="finish-onboarding-btn"]').should("be.visible").click();
 
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
+  });
+
+  it("deve refletir dinamicamente a velocidade selecionada no áudio de demonstração e no resumo", () => {
+    cy.visit("/");
+    cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
+    cy.get('[data-cy="start-journey-btn"]').click();
+
+    // Avança até etapa 4
+    cy.get('[data-cy="next-step-btn"]').click();
+    cy.get('[data-cy="next-step-btn"]').click();
+    cy.get('[data-cy="next-step-btn"]').click();
+
+    // Etapa 4: Seleciona 1.5x
+    cy.get('[data-cy="speed-option-1.5x"]').click();
+    cy.contains("Ouvir demonstração (1.5x)").should("be.visible");
+    cy.get('[data-cy="voice-test-btn"]').click();
+
+    // Seleciona 0.8x
+    cy.get('[data-cy="speed-option-0.8x"]').click();
+    cy.contains("Ouvir demonstração (0.8x)").should("be.visible");
+
+    // Avança para o resumo (Etapa 5)
+    cy.get('[data-cy="next-step-btn"]').click();
+    cy.contains("0.8x").should("be.visible");
+
+    // Conclui
+    cy.get('[data-cy="finish-onboarding-btn"]').click();
+    cy.window().then((win) => {
+      const saved = JSON.parse(win.localStorage.getItem("vivavoz-reader-settings") ?? "{}");
+      expect(saved.speed).to.eq(0.8);
+    });
   });
 });

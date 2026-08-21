@@ -168,4 +168,43 @@ describe("PreferencesTutorialDialog Component", () => {
     fireEvent.click(screen.getByTestId("prev-step-btn"));
     expect(screen.getByText("Transforme qualquer PDF em áudio inteligente")).toBeInTheDocument();
   });
+
+  it("deve reproduzir a demonstração sonora na velocidade selecionada (0.8x, 1.5x)", () => {
+    let lastUtterance: { text: string; rate?: number } | null = null;
+    globalThis.SpeechSynthesisUtterance = jest.fn().mockImplementation((text: string) => {
+      const obj = { text, rate: 1, voice: null, lang: "pt-BR", onstart: null, onend: null, onerror: null };
+      lastUtterance = obj;
+      return obj;
+    }) as unknown as typeof SpeechSynthesisUtterance;
+
+    render(
+      <ReaderSettingsProvider>
+        <PreferencesTutorialDialog forceOpen={true} />
+      </ReaderSettingsProvider>
+    );
+
+    // Navega até a etapa 4 (Velocidade)
+    fireEvent.click(screen.getByTestId("start-journey-btn")); // Etapa 1
+    fireEvent.click(screen.getByTestId("next-step-btn")); // Etapa 2
+    fireEvent.click(screen.getByTestId("next-step-btn")); // Etapa 3
+    fireEvent.click(screen.getByTestId("next-step-btn")); // Etapa 4
+
+    // Clica em 1.5x
+    fireEvent.click(screen.getByTestId("speed-option-1.5x"));
+    expect(screen.getByText("Ouvir demonstração (1.5x)")).toBeInTheDocument();
+
+    // Dispara teste sonoro
+    fireEvent.click(screen.getByTestId("voice-test-btn"));
+    expect(lastUtterance?.rate).toBe(1.5);
+    expect(lastUtterance?.text).toContain("1.5x");
+
+    // Clica em 0.8x
+    fireEvent.click(screen.getByTestId("speed-option-0.8x"));
+    expect(screen.getByText("Ouvir demonstração (0.8x)")).toBeInTheDocument();
+
+    // Dispara teste sonoro
+    fireEvent.click(screen.getByTestId("voice-test-btn"));
+    expect(lastUtterance?.rate).toBe(0.8);
+    expect(lastUtterance?.text).toContain("0.8x");
+  });
 });

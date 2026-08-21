@@ -142,7 +142,6 @@ export function useTtsPlayer({
     const requestId = ++requestIdRef.current;
     synth.cancel();
     const utterance = new SpeechSynthesisUtterance(sentence.text);
-    utterance.rate = speed;
     const selected = synth.getVoices().find((item) => item.voiceURI === voice);
     if (selected) {
       utterance.voice = selected;
@@ -150,6 +149,8 @@ export function useTtsPlayer({
     } else {
       utterance.lang = "pt-BR";
     }
+    // Atribuição de rate OBRIGATORIAMENTE após a voz para evitar que o navegador resete para 1.0
+    utterance.rate = Number(speed) || 1.0;
     utterance.onend = () => {
       if (requestId !== requestIdRef.current) return;
       advance();
@@ -192,7 +193,12 @@ export function useTtsPlayer({
         const audio = audioRef.current ?? new Audio();
         audioRef.current = audio;
         audio.src = url;
-        audio.playbackRate = speed;
+        const numericSpeed = Math.max(0.5, Math.min(2.0, Number(speed) || 1.0));
+        audio.defaultPlaybackRate = numericSpeed;
+        audio.playbackRate = numericSpeed;
+        audio.onplay = () => {
+          if (audioRef.current) audioRef.current.playbackRate = numericSpeed;
+        };
         audio.onended = () => {
           if (requestId !== requestIdRef.current) return;
           advance();
@@ -236,7 +242,11 @@ export function useTtsPlayer({
 
   // Velocidade em tempo real no áudio já carregado
   useEffect(() => {
-    if (audioRef.current) audioRef.current.playbackRate = speed;
+    const numericSpeed = Math.max(0.5, Math.min(2.0, Number(speed) || 1.0));
+    if (audioRef.current) {
+      audioRef.current.defaultPlaybackRate = numericSpeed;
+      audioRef.current.playbackRate = numericSpeed;
+    }
   }, [speed]);
 
   const play = useCallback(() => {

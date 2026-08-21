@@ -99,7 +99,13 @@ export function PdfReader() {
     (next: string) => patchPrefs({ voice: { ...prefs.voice, [engine]: next } }),
     [patchPrefs, prefs.voice, engine]
   );
-  const setSpeed = useCallback((next: string) => patchPrefs({ speed: next }), [patchPrefs]);
+  const setSpeed = useCallback(
+    (next: string) => {
+      patchPrefs({ speed: next });
+      patchSettings({ speed: Number(next) });
+    },
+    [patchPrefs, patchSettings]
+  );
   const setEngine = useCallback(
     (next: TtsEngine) => patchPrefs({ engine: next }),
     [patchPrefs]
@@ -122,12 +128,31 @@ export function PdfReader() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
 
-  // Preferences
+  // Sincroniza velocidade quando alterada via ReaderSettings (ex: ao concluir o tutorial)
+  useEffect(() => {
+    if (readerSettings.speed !== undefined) {
+      const speedStr = String(readerSettings.speed);
+      setPrefs((current) => {
+        if (current.speed === speedStr) return current;
+        return { ...current, speed: speedStr };
+      });
+    }
+  }, [readerSettings.speed]);
+
+  // Preferences: carrega apenas no carregamento inicial
   useEffect(() => {
     void (async () => {
-      setPrefs(await getPreferences());
+      const loadedPrefs = await getPreferences();
+      setPrefs((current) => ({
+        ...loadedPrefs,
+        speed:
+          readerSettings.speed !== undefined
+            ? String(readerSettings.speed)
+            : loadedPrefs.speed || current.speed,
+      }));
       setPrefsLoaded(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentPage = useMemo(

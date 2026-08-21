@@ -241,27 +241,25 @@ export function PreferencesTutorialDialog({
     setIsPlayingTestVoice(false);
   }, []);
 
-  const handlePlayVoiceSample = useCallback((speedToPlay?: number) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const handlePlayVoiceSample = useCallback(
+    (speedToPlay?: number) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    const targetSpeed = speedToPlay ?? selectedSpeed;
+      const targetSpeed = speedToPlay ?? selectedSpeed;
 
-    // Se já estiver tocando e o usuário clicou no botão para pausar
-    if (isPlayingTestVoice && speedToPlay === undefined) {
-      stopVoiceSample();
-      return;
-    }
+      // Se já estiver tocando e o usuário clicou no botão para pausar
+      if (isPlayingTestVoice && speedToPlay === undefined) {
+        stopVoiceSample();
+        return;
+      }
 
-    window.speechSynthesis.cancel();
-    setIsPlayingTestVoice(false);
+      window.speechSynthesis.cancel();
+      setIsPlayingTestVoice(false);
 
-    // Timeout breve de 50ms para contornar race-condition do Chrome no cancel()
-    setTimeout(() => {
       try {
         const utterance = new SpeechSynthesisUtterance(
-          "VivaVoz configurado com sucesso! A sua leitura e narração em áudio começam agora."
+          `Demonstração em velocidade ${targetSpeed}x. VivaVoz pronto para ler e narrar seus documentos.`
         );
-        utterance.rate = Number(targetSpeed) || 1.0;
 
         const voices =
           availableVoices.length > 0
@@ -272,6 +270,7 @@ export function PreferencesTutorialDialog({
           voices.find(
             (v) =>
               v.lang === "pt-BR" ||
+              v.lang.toLowerCase().replace(/_/g, "-") === "pt-br" ||
               v.lang.toLowerCase().startsWith("pt-br") ||
               v.lang.toLowerCase().includes("portuguese") ||
               v.lang.toLowerCase().startsWith("pt")
@@ -283,6 +282,8 @@ export function PreferencesTutorialDialog({
         } else {
           utterance.lang = "pt-BR";
         }
+        // Atribuição de rate OBRIGATORIAMENTE após a voz para evitar reset de taxa pelo Chromium
+        utterance.rate = Number(targetSpeed) || 1.0;
 
         utterance.onstart = () => setIsPlayingTestVoice(true);
         utterance.onend = () => setIsPlayingTestVoice(false);
@@ -292,12 +293,14 @@ export function PreferencesTutorialDialog({
       } catch {
         setIsPlayingTestVoice(false);
       }
-    }, 50);
-  }, [availableVoices, isPlayingTestVoice, selectedSpeed, stopVoiceSample]);
+    },
+    [availableVoices, isPlayingTestVoice, selectedSpeed, stopVoiceSample]
+  );
 
   const handleSelectSpeed = (speedValue: number) => {
     setSelectedSpeed(speedValue);
     patchSettings({ speed: speedValue });
+    void savePreferences({ speed: String(speedValue) });
     // Se a demonstração estiver em execução, reinicia instantaneamente na velocidade nova
     if (isPlayingTestVoice) {
       handlePlayVoiceSample(speedValue);
