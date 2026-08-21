@@ -62,3 +62,13 @@ describe('Agent Accessibility & WebMCP Audits', () => {
       });
   });
 });
+```
+
+---
+
+## 4. Diagnóstico de Auditorias do Lighthouse (Agentic Web / WebMCP)
+Ao interpretar relatórios do Google Lighthouse (categoria *Navegação Agêntica*):
+- **Auditorias "Não aplicável" (Fora da pontuação):**
+  - O snapshot inicial do Lighthouse analisa apenas elementos `<form>` diretamente visíveis no DOM estático raiz no instante zero do carregamento.
+  - Em SPAs onde formulários residem dentro de Modais, Sheets ou Portals (ex: Radix Dialog), essas auditorias são classificadas como "Não aplicável" (Not Applicable) no carregamento inicial, o que é o comportamento esperado.
+  - As anotações `data-webmcp-*` devem ser mantidas em todos os formulários e pontos de interação, pois agentes interativos e testes E2E as consomem deterministicamente assim que as interfaces são abertas.
