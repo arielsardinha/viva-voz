@@ -19,6 +19,8 @@ import { useReaderSettings } from "@/context/reader-settings-context";
 import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
 import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { ZenFocusTemplate } from "./reader-templates/zen-focus-template";
+import { ZenQuotaDialog } from "./ui/zen-quota-dialog";
+import { GeminiKeyDialog } from "./gemini-key-dialog";
 import type { Sentence } from "@/lib/pdf-text";
 import {
   DEFAULT_PREFERENCES,
@@ -55,6 +57,8 @@ export function PdfReader() {
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const { apiKey: userApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
+  const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
 
   const facade = useMemo(() => DocumentProcessingFacade.getInstance(), []);
 
@@ -75,18 +79,24 @@ export function PdfReader() {
 
   const handleEngineUnavailable = useCallback(
     (failed: TtsEngine, message: string) => {
-      toast.error(`${message} Voltando para as vozes do sistema.`);
-      setPrefs((current) => {
-        const next: Preferences = {
-          ...current,
-          engine: "system",
-          disabledEngines: Array.from(new Set([...current.disabledEngines, failed])),
-        };
-        void savePreferences({ engine: next.engine, disabledEngines: next.disabledEngines });
-        return next;
-      });
+      if (readerSettings.template === "zen") {
+        setZenQuotaDialogOpen(true);
+      } else {
+        toast.info(
+          `${message} Alternando automaticamente para as vozes gratuitas do sistema.`
+        );
+        setPrefs((current) => {
+          const next: Preferences = {
+            ...current,
+            engine: "system",
+            disabledEngines: Array.from(new Set([...current.disabledEngines, failed])),
+          };
+          void savePreferences({ engine: next.engine, disabledEngines: next.disabledEngines });
+          return next;
+        });
+      }
     },
-    []
+    [readerSettings.template]
   );
 
   const player = useTtsPlayer({
@@ -99,6 +109,30 @@ export function PdfReader() {
     onError: handleError,
     onEngineUnavailable: handleEngineUnavailable,
   });
+
+  const handleContinueZenWithFreeVoice = useCallback(
+    (selectedVoice: string) => {
+      setPrefs((current) => {
+        const next: Preferences = {
+          ...current,
+          engine: "system",
+          voice: {
+            ...current.voice,
+            system: selectedVoice,
+          },
+        };
+        void savePreferences({
+          engine: next.engine,
+          voice: next.voice,
+        });
+        return next;
+      });
+      setTimeout(() => {
+        player.play();
+      }, 50);
+    },
+    [player]
+  );
 
   const uploaderVM = useDocumentUploader({
     facade,
@@ -485,6 +519,25 @@ export function PdfReader() {
                 }}
               />
             )}
+
+            {/* Diálogo de Fallback de Tokens/Cota para o Modo Zen */}
+            <ZenQuotaDialog
+              open={zenQuotaDialogOpen}
+              onOpenChange={setZenQuotaDialogOpen}
+              systemVoices={systemVoices}
+              currentVoice={prefs.voice["system"] || DEFAULT_VOICE["system"]}
+              onContinueWithFree={handleContinueZenWithFreeVoice}
+              onOpenGeminiKey={() => setGeminiKeyDialogOpen(true)}
+            />
+
+            {/* Diálogo auxiliar de Chave Gemini */}
+            <GeminiKeyDialog
+              apiKey={userApiKey}
+              onChange={setUserApiKey}
+              open={geminiKeyDialogOpen}
+              onOpenChange={setGeminiKeyDialogOpen}
+              trigger={<span className="hidden" />}
+            />
           </>
         )}
       </main>

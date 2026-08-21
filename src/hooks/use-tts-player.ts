@@ -192,13 +192,13 @@ export function useTtsPlayer({
   // Motor/voz/conta mudaram: pausa a narração atual mantendo cache disponível para reutilização futura
   useEffect(() => {
     const prev = settingsRef.current;
-    if (prev.engine === engine && prev.voice === voice && prev.userApiKey === userApiKey) return;
-    settingsRef.current = { engine, voice, userApiKey };
+    if (prev.engine === engine && prev.voice === voice && prev.userApiKey === userApiKey && prev.documentId === documentId) return;
+    settingsRef.current = { engine, voice, userApiKey, documentId };
     setIsPlaying(false);
     setIsBuffering(false);
     stopAll();
     if (audioRef.current) audioRef.current.removeAttribute("src");
-  }, [engine, voice, userApiKey, stopAll]);
+  }, [engine, voice, userApiKey, documentId, stopAll]);
 
   useEffect(() => {
     return () => {
@@ -330,7 +330,7 @@ export function useTtsPlayer({
         setIsPlaying(false);
         const message =
           error instanceof Error ? error.message : "Não foi possível narrar este trecho.";
-        if (error instanceof TtsHttpError && [402, 403, 404].includes(error.status)) {
+        if (error instanceof TtsHttpError && [402, 403, 404, 429].includes(error.status)) {
           onEngineUnavailable?.(engine, message);
         } else {
           onError?.(message);

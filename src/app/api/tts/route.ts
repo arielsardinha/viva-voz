@@ -52,7 +52,8 @@ function geminiBody(model: string, text: string, voice: string) {
 }
 
 function errorMessage(status: number) {
-  if (status === 429) return "Muitas requisições de narração. Aguarde alguns segundos.";
+  if (status === 429)
+    return "Cota de narração com IA esgotada ou limite de requisições atingido. Alterne para as vozes gratuitas do sistema ou aguarde alguns instantes.";
   if (status === 401 || status === 403)
     return "Chave do Google AI Studio inválida ou sem permissão para narração.";
   if (status === 402)

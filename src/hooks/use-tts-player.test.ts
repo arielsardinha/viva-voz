@@ -420,6 +420,40 @@ describe("useTtsPlayer Hook", () => {
       });
     });
 
+    it("deve disparar onEngineUnavailable quando a API retornar 429 (cota/rate limit atingido)", async () => {
+      const onEngineUnavailable = jest.fn();
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: jest.fn().mockResolvedValue({
+          error: "Cota de narração com IA esgotada ou limite de requisições atingido.",
+        }),
+      });
+
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "google",
+          voice: "Kore",
+          speed: 1,
+          userApiKey: "fake-key",
+          onEngineUnavailable,
+        })
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(onEngineUnavailable).toHaveBeenCalledWith(
+          "google",
+          expect.stringContaining("Cota de narração com IA esgotada")
+        );
+      });
+    });
+
     it("deve disparar onError quando houver falha de rede na geração do áudio", async () => {
       const onError = jest.fn();
 

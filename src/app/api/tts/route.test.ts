@@ -62,7 +62,7 @@ describe("/api/tts Route Handler", () => {
     const res = await POST(req);
     expect(res.status).toBe(429);
     const data = await res.json();
-    expect(data.error).toContain("Muitas requisições de narração");
+    expect(data.error).toContain("Cota de narração com IA esgotada");
   });
 
   it("deve converter o áudio base64 retornado pelo Gemini em arquivo WAV e retornar com status 200", async () => {
