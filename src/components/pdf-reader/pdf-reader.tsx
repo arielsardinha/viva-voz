@@ -2,27 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, FileText, Pencil, Sparkles, X } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  FileText,
+  Pencil,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { PdfDropzone } from "./pdf-dropzone";
 import {
   TemplateSwitcher,
-  type ReaderSettings,
 } from "./ui/template-switcher";
 import { useReaderSettings } from "@/context/reader-settings-context";
 import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
 import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { ZenFocusTemplate } from "./reader-templates/zen-focus-template";
-import { extractSentencesFromPdf, type Sentence } from "@/lib/pdf-text";
+import type { Sentence } from "@/lib/pdf-text";
 import {
-  createReadingId,
   DEFAULT_PREFERENCES,
   getPreferences,
-  getReading,
   savePreferences,
-  saveReading,
-  updateReading,
   type Preferences,
 } from "@/lib/library-db";
 import {
@@ -33,6 +35,9 @@ import {
   type VoiceOption,
 } from "@/lib/tts-engines";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
+import { useDocumentUploader } from "@/hooks/use-document-uploader";
+import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
+import type { DocumentChapter, DocumentFormat } from "@/lib/domain/document.types";
 
 const GEMINI_KEY_STORAGE = "gemini-api-key";
 
@@ -45,13 +50,15 @@ export function PdfReader() {
   const [draftTitle, setDraftTitle] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [sentences, setSentences] = useState<Sentence[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
+  const [chapters, setChapters] = useState<DocumentChapter[]>([]);
+  const [docFormat, setDocFormat] = useState<DocumentFormat>("pdf");
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const facade = useMemo(() => DocumentProcessingFacade.getInstance(), []);
 
   // Template & Display Settings vindos do contexto global
   const { settings: readerSettings, patchSettings } = useReaderSettings();
@@ -65,7 +72,6 @@ export function PdfReader() {
     setPrefs((current) => ({ ...current, ...patch }));
     void savePreferences(patch);
   }, []);
-
 
   const handleError = useCallback((message: string) => toast.error(message), []);
 
@@ -93,6 +99,24 @@ export function PdfReader() {
     userApiKey,
     onError: handleError,
     onEngineUnavailable: handleEngineUnavailable,
+  });
+
+  const uploaderVM = useDocumentUploader({
+    facade,
+    onSuccess: (doc) => {
+      setReadingId(doc.id);
+      setTitle(doc.metadata.title);
+      setSentences(doc.sentences);
+      setChapters(doc.chapters);
+      setDocFormat(doc.metadata.format);
+      void savePreferences({ lastReadingId: doc.id });
+      toast.success(
+        `${doc.sentences.length} trechos prontos (${doc.metadata.wordCount} palavras) no formato ${doc.metadata.format.toUpperCase()}.`
+      );
+    },
+    onError: (err) => {
+      toast.error(err.message || "Não foi possível processar o documento.");
+    },
   });
 
   const setVoice = useCallback(
@@ -128,7 +152,7 @@ export function PdfReader() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
 
-  // Sincroniza velocidade quando alterada via ReaderSettings (ex: ao concluir o tutorial)
+  // Sincroniza velocidade quando alterada via ReaderSettings
   useEffect(() => {
     if (readerSettings.speed !== undefined) {
       const speedStr = String(readerSettings.speed);
@@ -139,7 +163,7 @@ export function PdfReader() {
     }
   }, [readerSettings.speed]);
 
-  // Preferences: carrega apenas no carregamento inicial
+  // Preferences: carrega no início
   useEffect(() => {
     void (async () => {
       const loadedPrefs = await getPreferences();
@@ -152,7 +176,6 @@ export function PdfReader() {
       }));
       setPrefsLoaded(true);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentPage = useMemo(
@@ -164,109 +187,84 @@ export function PdfReader() {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
 
-  // Resume last reading
+  // Identifica o capítulo atual com base na sentença ativa
+  const currentChapter = useMemo(() => {
+    const index = player.currentIndex;
+    return chapters.find((c) => index >= c.startIndex && index <= c.endIndex);
+  }, [chapters, player.currentIndex]);
+
+  // Retoma última leitura
   useEffect(() => {
     if (!prefsLoaded || docParam || readingId || !prefs.lastReadingId) return;
     void (async () => {
-      const reading = await getReading(prefs.lastReadingId!);
-      if (!reading) return;
-      setReadingId(reading.id);
-      setTitle(reading.title);
-      setSentences(reading.sentences);
-      if (reading.lastIndex > 0) player.seekTo(reading.lastIndex);
-      toast.info(`Retomando “${reading.title}” de onde você parou.`);
+      const doc = await facade.getRepository().getById(prefs.lastReadingId!);
+      if (!doc) return;
+      setReadingId(doc.id);
+      setTitle(doc.metadata.title);
+      setSentences(doc.sentences);
+      setChapters(doc.chapters);
+      setDocFormat(doc.metadata.format);
+      if (doc.lastSentenceIndex > 0) player.seekTo(doc.lastSentenceIndex);
+      toast.info(`Retomando “${doc.metadata.title}” de onde você parou.`);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoaded]);
 
-  // Open specific reading (?doc=id)
+  // Abre leitura específica via query (?doc=id)
   useEffect(() => {
     const id = docParam;
     if (!id || id === readingId) return;
     void (async () => {
-      const reading = await getReading(id);
-      if (!reading) {
+      const doc = await facade.getRepository().getById(id);
+      if (!doc) {
         toast.error("Leitura não encontrada no armazenamento do navegador.");
         return;
       }
-      setReadingId(reading.id);
-      setTitle(reading.title);
-      setSentences(reading.sentences);
-      if (reading.lastIndex > 0) player.seekTo(reading.lastIndex);
-      void savePreferences({ lastReadingId: reading.id });
+      setReadingId(doc.id);
+      setTitle(doc.metadata.title);
+      setSentences(doc.sentences);
+      setChapters(doc.chapters);
+      setDocFormat(doc.metadata.format);
+      if (doc.lastSentenceIndex > 0) player.seekTo(doc.lastSentenceIndex);
+      void savePreferences({ lastReadingId: doc.id });
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docParam]);
 
-  // Persist current position
+  // Persiste a posição atual de leitura
   useEffect(() => {
     if (!readingId) return;
     const timeout = setTimeout(() => {
-      void updateReading(readingId, { lastIndex: player.currentIndex });
+      void facade.saveReadingProgress(readingId, player.currentIndex);
     }, 800);
     return () => clearTimeout(timeout);
-  }, [readingId, player.currentIndex]);
+  }, [readingId, player.currentIndex, facade]);
 
-  const handleFile = useCallback(async (file: File) => {
-    if (!file.type.includes("pdf") && !file.name.toLowerCase().endsWith(".pdf")) {
-      toast.error("Envie um arquivo no formato PDF.");
-      return;
-    }
-    setIsLoading(true);
-    setProgress("Extraindo o texto…");
-    try {
-      const result = await extractSentencesFromPdf(file, (page, total) =>
-        setProgress(`Extraindo o texto… página ${page} de ${total}`)
-      );
-      if (result.sentences.length === 0) {
-        toast.error(
-          "Nenhum texto encontrado. Este PDF parece ser digitalizado (apenas imagens), sem camada de texto."
-        );
-        return;
-      }
-      const now = Date.now();
-      const id = createReadingId();
-      const readingTitle = file.name.replace(/\.pdf$/i, "");
-      await saveReading({
-        id,
-        title: readingTitle,
-        fileName: file.name,
-        size: file.size,
-        pageCount: result.pageCount,
-        sentences: result.sentences,
-        file,
-        createdAt: now,
-        updatedAt: now,
-        lastIndex: 0,
-      });
-      setReadingId(id);
-      setTitle(readingTitle);
-      setSentences(result.sentences);
-      void savePreferences({ lastReadingId: id });
-      toast.success(
-        `${result.sentences.length} trechos prontos e salvos nas suas leituras (${result.pageCount} página(s)).`
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error("Não foi possível ler este PDF. Verifique se o arquivo não está protegido.");
-    } finally {
-      setIsLoading(false);
-      setProgress(null);
-    }
-  }, []);
+  const handleFilesUpload = useCallback(
+    (files: FileList | File[]) => {
+      void uploaderVM.uploadFiles(files);
+    },
+    [uploaderVM]
+  );
+
+  const handleQuickPaste = useCallback(
+    async (pastedTitle: string, pastedText: string) => {
+      await uploaderVM.uploadRawText(pastedTitle, pastedText);
+    },
+    [uploaderVM]
+  );
 
   const saveTitle = useCallback(async () => {
     const next = draftTitle.trim();
     setIsEditing(false);
     if (!next || !readingId || next === title) return;
     setTitle(next);
-    await updateReading(readingId, { title: next });
+    await facade.renameDocument(readingId, next);
     toast.success("Título atualizado.");
-  }, [draftTitle, readingId, title]);
+  }, [draftTitle, readingId, title, facade]);
 
   const reset = useCallback(() => {
     player.pause();
     setSentences([]);
+    setChapters([]);
     setTitle(null);
     setReadingId(null);
     void savePreferences({ lastReadingId: null });
@@ -284,21 +282,26 @@ export function PdfReader() {
 
   return (
     <div
-      className="bg-background min-h-screen transition-colors"
+      className="bg-background min-h-screen transition-colors pb-10"
       data-reading-theme={readerSettings.theme}
     >
       <AppHeader />
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8 space-y-3 sm:space-y-5">
         {sentences.length === 0 ? (
-          <PdfDropzone onFile={handleFile} isLoading={isLoading} progress={progress} />
+          <PdfDropzone
+            onFiles={handleFilesUpload}
+            onQuickPaste={handleQuickPaste}
+            isLoading={uploaderVM.isUploading}
+            progress={uploaderVM.currentProgress}
+          />
         ) : (
           <>
-            {/* Barra de Título & Ações Principais */}
+            {/* Barra de Título, Formato & Ações Principais */}
             <div className="glass-panel flex items-center justify-between gap-2 sm:gap-3 rounded-2xl p-2.5 sm:px-5 sm:py-3 border border-border/80 shadow-xs">
               <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 flex-1">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
-                  <FileText className="size-4" />
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent font-mono text-xs font-bold uppercase">
+                  {docFormat}
                 </div>
                 {isEditing ? (
                   <div className="flex min-w-0 flex-1 items-center gap-1.5 max-w-md">
@@ -323,10 +326,17 @@ export function PdfReader() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <h2 className="truncate text-xs sm:text-base font-bold text-foreground max-w-[180px] xs:max-w-[260px] sm:max-w-md">
-                      {title}
-                    </h2>
+                  <div className="flex min-w-0 items-center gap-1.5 flex-1">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="truncate text-xs sm:text-base font-bold text-foreground max-w-[180px] xs:max-w-[260px] sm:max-w-md">
+                        {title}
+                      </h2>
+                      {currentChapter && (
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                          {currentChapter.title}
+                        </p>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -342,15 +352,36 @@ export function PdfReader() {
                 )}
               </div>
 
+              {/* Se houver múltiplos capítulos, dropdown para pular */}
+              {chapters.length > 1 && (
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <select
+                    aria-label="Selecionar capítulo"
+                    value={currentChapter?.id || ""}
+                    onChange={(e) => {
+                      const selected = chapters.find((c) => c.id === e.target.value);
+                      if (selected) player.jumpTo(selected.startIndex);
+                    }}
+                    className="text-xs bg-secondary/80 border border-border rounded-xl px-2.5 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer max-w-[160px] truncate"
+                  >
+                    {chapters.map((chap) => (
+                      <option key={chap.id} value={chap.id}>
+                        {chap.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={reset}
-                  title="Trocar arquivo PDF"
+                  title="Trocar de documento"
                   className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border bg-card/80 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                 >
                   <X className="size-3.5" />
-                  <span className="hidden xs:inline">Trocar PDF</span>
+                  <span className="hidden xs:inline">Trocar Documento</span>
                   <span className="inline xs:hidden">Trocar</span>
                 </button>
               </div>
@@ -366,7 +397,7 @@ export function PdfReader() {
               totalPages={totalPages}
             />
 
-            {/* Renderização Condicional dos 3 Templates Inspirados */}
+            {/* Renderização Condicional dos 3 Templates */}
             {readerSettings.template === "modern" && (
               <ModernStudioTemplate
                 sentences={sentences}
@@ -388,7 +419,7 @@ export function PdfReader() {
                 onRestart={player.restart}
                 onVoiceChange={setVoice}
                 onSpeedChange={setSpeed}
-                onAskAI={(prompt) => {
+                onAskAI={() => {
                   patchSettings({ template: "ai-study" });
                 }}
               />
@@ -439,7 +470,7 @@ export function PdfReader() {
                 onRestart={player.restart}
                 onVoiceChange={setVoice}
                 onSpeedChange={setSpeed}
-                onAskAI={(prompt) => {
+                onAskAI={() => {
                   patchSettings({ template: "ai-study" });
                 }}
               />

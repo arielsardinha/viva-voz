@@ -7,8 +7,8 @@ describe("PdfDropzone Component", () => {
     const onFileMock = jest.fn();
     render(<PdfDropzone onFile={onFileMock} isLoading={false} progress={null} />);
 
-    expect(screen.getByText("Arraste seu PDF aqui ou selecione")).toBeInTheDocument();
-    expect(screen.getByText("Escolher arquivo PDF")).toBeInTheDocument();
+    expect(screen.getByText(/arraste seus documentos aqui ou selecione/i)).toBeInTheDocument();
+    expect(screen.getByText("Selecionar Arquivo")).toBeInTheDocument();
     expect(screen.getByText("Narração Fluida")).toBeInTheDocument();
     expect(screen.getByText("Assistente de Estudos")).toBeInTheDocument();
     expect(screen.getByText("100% Local & Seguro")).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe("PdfDropzone Component", () => {
       type: "application/pdf",
     });
 
-    const dropArea = screen.getByText("Arraste seu PDF aqui ou selecione").closest("div");
+    const dropArea = screen.getByText(/arraste seus documentos aqui ou selecione/i).closest("div");
     expect(dropArea).toBeInTheDocument();
 
     fireEvent.dragOver(dropArea!);
@@ -63,7 +63,7 @@ describe("PdfDropzone Component", () => {
     expect(screen.getByText("Processando e preparando narração…")).toBeInTheDocument();
     expect(screen.getByText("Extraindo o texto… página 2 de 5")).toBeInTheDocument();
 
-    const button = screen.getByRole("button", { name: /escolher arquivo pdf/i });
+    const button = screen.getByRole("button", { name: /selecionar arquivo/i });
     expect(button).toBeDisabled();
   });
 });

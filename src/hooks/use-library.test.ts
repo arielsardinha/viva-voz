@@ -1,0 +1,95 @@
+import "fake-indexeddb/auto";
+import { act, renderHook } from "@testing-library/react";
+import { ParsedDocumentBuilder } from "@/lib/domain/document-builder";
+import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
+import { useLibrary } from "./use-library";
+
+describe("useLibrary (ViewModel MVVM)", () => {
+  let facade: DocumentProcessingFacade;
+
+  beforeEach(async () => {
+    facade = new DocumentProcessingFacade();
+    // Inserir documentos para o teste
+    const doc1 = new ParsedDocumentBuilder()
+      .setId("lib-1")
+      .setTitle("Livro de Filosofia")
+      .setAuthor("Platão")
+      .setFormat("epub")
+      .addSentence("Texto de filosofia.")
+      .build();
+
+    const doc2 = new ParsedDocumentBuilder()
+      .setId("lib-2")
+      .setTitle("Artigo de Tecnologia")
+      .setAuthor("Ada Lovelace")
+      .setFormat("pdf")
+      .addSentence("Texto de tecnologia.")
+      .build();
+
+    await facade.getRepository().save(doc1);
+    await facade.getRepository().save(doc2);
+  });
+
+  it("deve carregar lista de documentos e calcular bytes totais", async () => {
+    const { result } = renderHook(() => useLibrary(facade));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.documents.length).toBe(2);
+    expect(result.current.filteredDocuments.length).toBe(2);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("deve filtrar por busca de texto (título ou autor)", async () => {
+    const { result } = renderHook(() => useLibrary(facade));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    act(() => {
+      result.current.setSearchQuery("Platão");
+    });
+
+    expect(result.current.filteredDocuments.length).toBe(1);
+    expect(result.current.filteredDocuments[0].title).toBe("Livro de Filosofia");
+  });
+
+  it("deve filtrar por formato (ex: EPUB)", async () => {
+    const { result } = renderHook(() => useLibrary(facade));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    act(() => {
+      result.current.setActiveFormat("EPUB");
+    });
+
+    expect(result.current.filteredDocuments.length).toBe(1);
+    expect(result.current.filteredDocuments[0].format).toBe("epub");
+  });
+
+  it("deve favoritar e desfavoritar documentos", async () => {
+    const { result } = renderHook(() => useLibrary(facade));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    act(() => {
+      result.current.toggleFavorite("lib-1");
+    });
+
+    expect(result.current.favorites).toContain("lib-1");
+
+    act(() => {
+      result.current.setActiveTab("favorites");
+    });
+
+    expect(result.current.filteredDocuments.length).toBe(1);
+    expect(result.current.filteredDocuments[0].id).toBe("lib-1");
+  });
+});
