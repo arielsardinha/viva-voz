@@ -52,9 +52,11 @@ export function WaveformVisualizer({
               height: isPlaying
                 ? `${Math.max(15, Math.min(100, (baseHeight * 80) + (Math.sin(i * 0.8) * 15)))}%`
                 : `${Math.max(12, baseHeight * 35)}%`,
-              animation: isPlaying
-                ? `soundWave ${animationDuration} ease-in-out infinite alternate`
-                : undefined,
+              animationName: isPlaying ? "soundWave" : "none",
+              animationDuration: isPlaying ? animationDuration : undefined,
+              animationTimingFunction: isPlaying ? "ease-in-out" : undefined,
+              animationIterationCount: isPlaying ? "infinite" : undefined,
+              animationDirection: isPlaying ? "alternate" : undefined,
               animationDelay,
             }}
           />
