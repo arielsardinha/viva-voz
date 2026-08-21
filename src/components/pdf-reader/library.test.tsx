@@ -37,6 +37,17 @@ describe("Library Component", () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    localStorage.setItem(
+      "vivavoz-reader-settings",
+      JSON.stringify({
+        template: "modern",
+        theme: "light",
+        font: "inter",
+        fontSize: 16,
+        lineHeight: 1.8,
+        hasCompletedOnboarding: true,
+      })
+    );
     const existing = await listReadings();
     for (const r of existing) {
       await deleteReading(r.id);

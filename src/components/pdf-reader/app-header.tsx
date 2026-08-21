@@ -12,6 +12,7 @@ import {
   Sun,
 } from "lucide-react";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
+import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +32,7 @@ export function AppHeader() {
   const isLibrary = pathname === "/leituras";
 
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const { settings, setTheme } = useReaderSettings();
+  const { settings, setTheme, openOnboarding, isInitialized } = useReaderSettings();
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
@@ -51,7 +52,10 @@ export function AppHeader() {
       : Sun;
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-border/80 shadow-xs">
+    <header
+      data-hydrated={isInitialized ? "true" : "false"}
+      className="sticky top-0 z-50 glass-panel border-b border-border/80 shadow-xs"
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3">
         {/* Logo Branding */}
         <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -103,11 +107,28 @@ export function AppHeader() {
             </Link>
           </nav>
 
+          {/* Botão de Reabrir Tutorial de Preferências integrado com DialogTrigger */}
+          <PreferencesTutorialDialog
+            trigger={
+              <button
+                type="button"
+                data-cy="open-tutorial-btn"
+                title="Personalizar preferências e tutorial"
+                aria-label="Personalizar preferências e tutorial"
+                className="flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent transition-all text-xs font-bold shadow-xs hover:scale-[1.02] cursor-pointer"
+              >
+                <Sparkles className="size-3.5" />
+                <span className="hidden md:inline">Tutorial</span>
+              </button>
+            }
+          />
+
           {/* Alternador Rápido de Tema */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
+                data-cy="theme-dropdown-trigger"
                 aria-label="Alternar tema de leitura"
                 title={`Tema atual: ${
                   settings.theme === "dark"
@@ -135,6 +156,7 @@ export function AppHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                data-cy="theme-item-light"
                 onClick={() => setTheme("light")}
                 className={cn(
                   "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",
@@ -145,6 +167,7 @@ export function AppHeader() {
                 <span>Clean (Claro)</span>
               </DropdownMenuItem>
               <DropdownMenuItem
+                data-cy="theme-item-sepia"
                 onClick={() => setTheme("sepia")}
                 className={cn(
                   "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",
@@ -155,6 +178,7 @@ export function AppHeader() {
                 <span>Papel Zen (Sépia)</span>
               </DropdownMenuItem>
               <DropdownMenuItem
+                data-cy="theme-item-dark"
                 onClick={() => setTheme("dark")}
                 className={cn(
                   "flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium",

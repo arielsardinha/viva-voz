@@ -86,10 +86,11 @@ export default function RootLayout({
       className={`${inter.variable} ${merriweather.variable} ${lora.variable} ${roboto.variable} ${literata.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
-      <body className="antialiased bg-background text-foreground transition-colors">
+      <body className="antialiased bg-background text-foreground transition-colors" suppressHydrationWarning>
+        <script
+          id="vivavoz-theme-init"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <ReaderSettingsProvider>
           {children}
           <Toaster />

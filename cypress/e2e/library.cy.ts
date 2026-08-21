@@ -1,6 +1,20 @@
 describe("Biblioteca de Leituras (/leituras)", () => {
   beforeEach(() => {
-    cy.visit("/leituras");
+    cy.visit("/leituras", {
+      onBeforeLoad(win) {
+        win.localStorage.setItem(
+          "vivavoz-reader-settings",
+          JSON.stringify({
+            template: "modern",
+            theme: "light",
+            font: "inter",
+            fontSize: 16,
+            lineHeight: 1.8,
+            hasCompletedOnboarding: true,
+          })
+        );
+      },
+    });
   });
 
   it("deve carregar a página da biblioteca exibindo navegação e armazenamento", () => {

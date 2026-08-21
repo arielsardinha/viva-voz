@@ -13,6 +13,17 @@ describe("AppHeader Component", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/");
     localStorage.clear();
+    localStorage.setItem(
+      "vivavoz-reader-settings",
+      JSON.stringify({
+        template: "modern",
+        theme: "light",
+        font: "inter",
+        fontSize: 16,
+        lineHeight: 1.8,
+        hasCompletedOnboarding: true,
+      })
+    );
   });
 
   it("deve renderizar o logotipo VivaVoz e os links de navegação", () => {
@@ -28,13 +39,16 @@ describe("AppHeader Component", () => {
     expect(screen.getByRole("link", { name: /biblioteca/i })).toBeInTheDocument();
   });
 
-  it("deve renderizar os botões de ação (tema e chave Gemini)", () => {
+  it("deve renderizar os botões de ação (tutorial, tema e chave Gemini)", () => {
     render(
       <ReaderSettingsProvider>
         <AppHeader />
       </ReaderSettingsProvider>
     );
 
+    expect(
+      screen.getByRole("button", { name: /personalizar preferências e tutorial/i })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /alternar tema de leitura/i })
     ).toBeInTheDocument();

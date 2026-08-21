@@ -46,10 +46,11 @@ export function GeminiKeyDialog({
       <DialogTrigger asChild>
         <button
           type="button"
+          data-cy="gemini-key-trigger"
           title={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
           aria-label={apiKey ? "Chave Gemini conectada" : "Conectar chave Gemini"}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-2xl border text-xs font-semibold transition-all px-2.5 sm:px-3 py-1.5 shadow-xs",
+            "inline-flex items-center gap-1.5 rounded-2xl border text-xs font-semibold transition-all px-2.5 sm:px-3 py-1.5 shadow-xs cursor-pointer",
             apiKey
               ? "border-accent/40 bg-accent/10 text-accent hover:bg-accent/15"
               : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -73,40 +74,42 @@ export function GeminiKeyDialog({
         </DialogHeader>
 
         <ol className="text-muted-foreground space-y-3 text-sm">
-          <li className="flex gap-2">
-            <span className="bg-accent/15 text-accent flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+          <li className="flex items-start gap-2">
+            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
               1
             </span>
-            <span className="min-w-0">
-              Entre com sua conta Google no Google AI Studio (mesma conta do plano pago).
+            <span>
+              Acesse o{" "}
               <a
-                href="https://aistudio.google.com/apikey"
+                href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noreferrer"
-                className="text-accent mt-2 inline-flex items-center gap-1.5 rounded-lg border border-current px-3 py-1.5 text-xs font-semibold"
+                className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
               >
-                <ExternalLink className="size-3.5" /> Entrar com o Google e abrir o AI Studio
-              </a>
+                Google AI Studio
+                <ExternalLink className="size-3 inline" />
+              </a>{" "}
+              e faça login com sua conta Google.
             </span>
           </li>
-          <li className="flex gap-2">
-            <span className="bg-accent/15 text-accent flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+          <li className="flex items-start gap-2">
+            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
               2
             </span>
-            <span className="min-w-0">
-              Clique em <strong>Create API key</strong> e copie a chave gerada (começa com
-              “AIza…”).
+            <span>
+              Clique em <strong className="text-foreground">Get API key</strong> e crie uma nova chave.
             </span>
           </li>
-          <li className="flex gap-2">
-            <span className="bg-accent/15 text-accent flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+          <li className="flex items-start gap-2">
+            <span className="bg-muted text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
               3
             </span>
-            <span className="min-w-0">Cole a chave no campo abaixo e salve.</span>
+            <span>Cole a chave gerada abaixo e clique em Salvar:</span>
           </li>
         </ol>
 
         <Input
+          data-cy="gemini-key-input"
           type="password"
           placeholder="AIza..."
           value={value}
@@ -128,7 +131,7 @@ export function GeminiKeyDialog({
           ) : (
             <span />
           )}
-          <Button onClick={save}>Salvar chave</Button>
+          <Button data-cy="gemini-key-save-btn" onClick={save}>Salvar chave</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

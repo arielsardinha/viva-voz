@@ -8,7 +8,14 @@ import {
 } from "./reader-settings-context";
 
 function TestConsumer() {
-  const { settings, patchSettings, setTheme } = useReaderSettings();
+  const {
+    settings,
+    patchSettings,
+    setTheme,
+    isOnboardingOpen,
+    openOnboarding,
+    closeOnboarding,
+  } = useReaderSettings();
   return (
     <div>
       <span data-testid="template">{settings.template}</span>
@@ -16,12 +23,20 @@ function TestConsumer() {
       <span data-testid="font">{settings.font}</span>
       <span data-testid="fontSize">{settings.fontSize}</span>
       <span data-testid="lineHeight">{settings.lineHeight}</span>
+      <span data-testid="hasCompletedOnboarding">
+        {settings.hasCompletedOnboarding ? "true" : "false"}
+      </span>
+      <span data-testid="isOnboardingOpen">
+        {isOnboardingOpen ? "open" : "closed"}
+      </span>
 
       <button onClick={() => setTheme("sepia")}>Mudar para Sepia</button>
       <button onClick={() => setTheme("dark")}>Mudar para Dark</button>
       <button onClick={() => patchSettings({ fontSize: 20, font: "merriweather" })}>
         Aumentar Fonte
       </button>
+      <button onClick={openOnboarding}>Abrir Onboarding</button>
+      <button onClick={() => closeOnboarding(true)}>Fechar Onboarding</button>
     </div>
   );
 }
@@ -133,6 +148,27 @@ describe("ReaderSettingsContext", () => {
     expect(screen.getByTestId("theme")).toHaveTextContent("dark");
     expect(screen.getByTestId("template")).toHaveTextContent("ai-study");
     expect(document.documentElement.getAttribute("data-reading-theme")).toBe("dark");
+  });
+
+  it("deve abrir o onboarding para usuário novo e permitir fechamento persistente", () => {
+    render(
+      <ReaderSettingsProvider>
+        <TestConsumer />
+      </ReaderSettingsProvider>
+    );
+
+    // Novo usuário inicia com onboarding aberto
+    expect(screen.getByTestId("isOnboardingOpen")).toHaveTextContent("open");
+    expect(screen.getByTestId("hasCompletedOnboarding")).toHaveTextContent("false");
+
+    // Fecha o onboarding
+    fireEvent.click(screen.getByText("Fechar Onboarding"));
+    expect(screen.getByTestId("isOnboardingOpen")).toHaveTextContent("closed");
+    expect(screen.getByTestId("hasCompletedOnboarding")).toHaveTextContent("true");
+
+    // Reabre manualmente
+    fireEvent.click(screen.getByText("Abrir Onboarding"));
+    expect(screen.getByTestId("isOnboardingOpen")).toHaveTextContent("open");
   });
 });
 

@@ -86,6 +86,7 @@ export interface ReaderSettings {
   font: ReadingFont;
   fontSize: number; // in px: 13 to 26
   lineHeight: number; // 1.6, 1.8, 2.0
+  hasCompletedOnboarding: boolean;
 }
 
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
@@ -94,12 +95,17 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   font: "inter",
   fontSize: 16,
   lineHeight: 1.8,
+  hasCompletedOnboarding: false,
 };
 
 export const READER_SETTINGS_STORAGE = "vivavoz-reader-settings";
 
 interface ReaderSettingsContextType {
   settings: ReaderSettings;
+  isOnboardingOpen: boolean;
+  isInitialized: boolean;
+  openOnboarding: () => void;
+  closeOnboarding: (markCompleted?: boolean) => void;
   patchSettings: (patch: Partial<ReaderSettings>) => void;
   setTheme: (theme: ReadingTheme) => void;
 }
@@ -119,6 +125,7 @@ function applyThemeToDocument(theme: ReadingTheme) {
 
 export function ReaderSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<ReaderSettings>(DEFAULT_READER_SETTINGS);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Carrega configurações salvas do localStorage e sincroniza no DOM
@@ -130,8 +137,13 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
         const merged: ReaderSettings = { ...DEFAULT_READER_SETTINGS, ...parsed };
         setSettings(merged);
         applyThemeToDocument(merged.theme);
+        if (!merged.hasCompletedOnboarding) {
+          setIsOnboardingOpen(true);
+        }
       } else {
         applyThemeToDocument(DEFAULT_READER_SETTINGS.theme);
+        // Primeiro acesso do usuário
+        setIsOnboardingOpen(true);
       }
     } catch {
       applyThemeToDocument(DEFAULT_READER_SETTINGS.theme);
@@ -160,6 +172,20 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
     [patchSettings]
   );
 
+  const openOnboarding = useCallback(() => {
+    setIsOnboardingOpen(true);
+  }, []);
+
+  const closeOnboarding = useCallback(
+    (markCompleted: boolean = true) => {
+      setIsOnboardingOpen(false);
+      if (markCompleted) {
+        patchSettings({ hasCompletedOnboarding: true });
+      }
+    },
+    [patchSettings]
+  );
+
   // Escuta alterações no localStorage em outras abas
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
@@ -182,7 +208,17 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
   }, []);
 
   return (
-    <ReaderSettingsContext.Provider value={{ settings, patchSettings, setTheme }}>
+    <ReaderSettingsContext.Provider
+      value={{
+        settings,
+        isOnboardingOpen,
+        isInitialized,
+        openOnboarding,
+        closeOnboarding,
+        patchSettings,
+        setTheme,
+      }}
+    >
       {children}
     </ReaderSettingsContext.Provider>
   );

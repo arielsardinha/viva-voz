@@ -22,6 +22,11 @@ declare global {
        * Intercepta chamadas do assistente de IA (/api/ask).
        */
       mockAskSuccess(responseMessage?: string): Chainable<void>;
+
+      /**
+       * Define as configurações de leitura e marca onboarding como concluído.
+       */
+      setupPreferences(patch?: Record<string, unknown>): Chainable<void>;
     }
   }
 }
@@ -35,6 +40,21 @@ Cypress.Commands.add("setGeminiKey", (key = "AIzaSyFakeKeyForCypressAutomatedTes
 Cypress.Commands.add("clearGeminiKey", () => {
   cy.window().then((win) => {
     win.localStorage.removeItem("gemini-api-key");
+  });
+});
+
+Cypress.Commands.add("setupPreferences", (patch = {}) => {
+  cy.window().then((win) => {
+    const current = {
+      template: "modern",
+      theme: "light",
+      font: "inter",
+      fontSize: 16,
+      lineHeight: 1.8,
+      hasCompletedOnboarding: true,
+      ...patch,
+    };
+    win.localStorage.setItem("vivavoz-reader-settings", JSON.stringify(current));
   });
 });
 
