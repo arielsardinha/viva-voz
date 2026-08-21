@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
+import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
@@ -85,6 +86,15 @@ export function AIStudyTemplate({
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
+
+  // Group pages for chapter navigation
+  const pageList = useMemo(() => {
+    const pages = new Set<number>();
+    sentences.forEach((s) => pages.add(s.page));
+    return Array.from(pages).sort((a, b) => a - b);
+  }, [sentences]);
+
+  const [showPagesDrawer, setShowPagesDrawer] = useState(false);
 
   useEffect(() => {
     setApiKey(window.localStorage.getItem(STORAGE_KEY));
@@ -227,9 +237,15 @@ export function AIStudyTemplate({
             >
               <ChevronLeft className="size-3.5 sm:size-4" />
             </button>
-            <span className="px-1.5 sm:px-2 text-xs font-semibold text-foreground whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => setShowPagesDrawer(true)}
+              title="Abrir índice de páginas"
+              aria-label="Abrir índice de páginas"
+              className="px-1.5 sm:px-2 text-xs font-semibold text-foreground whitespace-nowrap hover:text-accent cursor-pointer transition-colors rounded hover:bg-card/50"
+            >
               Pág. {currentPage} / {totalPages}
-            </span>
+            </button>
             <button
               type="button"
               onClick={() => currentPage < totalPages && jumpToPage(currentPage + 1)}
@@ -434,6 +450,18 @@ export function AIStudyTemplate({
           </p>
         </div>
       </div>
+
+      {/* Drawer de Páginas Overlay */}
+      <PagesDrawer
+        open={showPagesDrawer}
+        onOpenChange={setShowPagesDrawer}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageList={pageList}
+        onSelectPage={jumpToPage}
+        sentences={sentences}
+        title={title}
+      />
     </div>
   );
 }

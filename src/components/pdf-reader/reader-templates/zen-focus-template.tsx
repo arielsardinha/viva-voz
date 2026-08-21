@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import {
   Bookmark,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Highlighter,
@@ -15,6 +16,7 @@ import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import { AmbientSoundPlayer } from "../ui/ambient-sound-player";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
+import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
@@ -73,6 +75,15 @@ export function ZenFocusTemplate({
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
+
+  // Group pages for chapter navigation
+  const pageList = useMemo(() => {
+    const pages = new Set<number>();
+    sentences.forEach((s) => pages.add(s.page));
+    return Array.from(pages).sort((a, b) => a - b);
+  }, [sentences]);
+
+  const [showPagesDrawer, setShowPagesDrawer] = useState(false);
 
   // Overall reading progress
   const progressRatio = totalPages > 0 ? currentPage / totalPages : 0;
@@ -142,9 +153,14 @@ export function ZenFocusTemplate({
               <span key={sentence.index}>
                 {showPageMark && (
                   <div className="my-8 sm:my-10 text-center select-none font-sans">
-                    <span className="inline-block px-3 sm:px-4 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold tracking-widest text-muted-foreground uppercase bg-secondary/50">
+                    <button
+                      type="button"
+                      onClick={() => setShowPagesDrawer(true)}
+                      title="Abrir índice de páginas"
+                      className="inline-block px-3 sm:px-4 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold tracking-widest text-muted-foreground hover:text-accent uppercase bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                    >
                       Capítulo / Página {sentence.page}
-                    </span>
+                    </button>
                   </div>
                 )}
                 <button
@@ -168,7 +184,12 @@ export function ZenFocusTemplate({
 
       {/* Indicador Circular de Progresso da Página (Inspiração 04) */}
       <div className="mt-12 sm:mt-16 flex flex-col items-center justify-center gap-2 select-none">
-        <div className="relative flex size-16 sm:size-20 items-center justify-center">
+        <button
+          type="button"
+          onClick={() => setShowPagesDrawer(true)}
+          title="Ver índice de páginas"
+          className="relative flex size-16 sm:size-20 items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+        >
           <svg className="size-full -rotate-90" viewBox="0 0 36 36">
             {/* Background Circle */}
             <path
@@ -191,10 +212,14 @@ export function ZenFocusTemplate({
           <div className="absolute flex flex-col items-center">
             <span className="text-xs font-bold text-foreground">{Math.round(progressRatio * 100)}%</span>
           </div>
-        </div>
-        <p className="text-xs font-medium text-muted-foreground font-sans">
-          Página {currentPage} de {totalPages}
-        </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowPagesDrawer(true)}
+          className="text-xs font-medium text-muted-foreground hover:text-accent font-sans transition-colors cursor-pointer"
+        >
+          Página {currentPage} de {totalPages} • <span className="underline decoration-dotted">Ver todas</span>
+        </button>
 
         <div className="flex items-center gap-2 mt-1 sm:mt-2">
           <button
@@ -218,6 +243,16 @@ export function ZenFocusTemplate({
 
       {/* Pílula de Ações Flutuante Zen (Inspiração 04) */}
       <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 glass-panel flex items-center gap-1 sm:gap-2 rounded-full p-1.5 sm:p-2 shadow-xl border border-border/80 font-sans max-w-[96vw]">
+        <button
+          type="button"
+          onClick={() => setShowPagesDrawer(true)}
+          title="Índice de Páginas"
+          aria-label="Índice de Páginas"
+          className="flex size-8 sm:size-10 items-center justify-center rounded-full hover:bg-secondary text-foreground/80 transition-colors"
+        >
+          <BookOpen className="size-3.5 sm:size-4" />
+        </button>
+
         <button
           type="button"
           onClick={() => setIsBookmarked(!isBookmarked)}
@@ -272,6 +307,18 @@ export function ZenFocusTemplate({
         {/* Gerador de Som Ambiente */}
         <AmbientSoundPlayer />
       </div>
+
+      {/* Drawer de Páginas Overlay */}
+      <PagesDrawer
+        open={showPagesDrawer}
+        onOpenChange={setShowPagesDrawer}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageList={pageList}
+        onSelectPage={jumpToPage}
+        sentences={sentences}
+        title={title}
+      />
     </div>
   );
 }

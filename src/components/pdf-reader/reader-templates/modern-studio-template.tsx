@@ -14,6 +14,7 @@ import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import { FloatingAudioDock } from "../ui/floating-audio-dock";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
+import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
@@ -191,18 +192,18 @@ export function ModernStudioTemplate({
 
           <button
             type="button"
-            onClick={() => setShowChapters((prev) => !prev)}
+            onClick={() => setShowChapters(true)}
             title="Índice de Páginas"
             aria-label="Índice de Páginas"
             className={cn(
-              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-xl border transition-colors",
+              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-xl border transition-colors cursor-pointer",
               showChapters
                 ? "bg-accent text-accent-foreground border-accent"
                 : "bg-background/80 text-foreground hover:bg-secondary border-border"
             )}
           >
             <List className="size-3.5" />
-            <span className="hidden sm:inline">Páginas</span>
+            <span>Páginas</span>
           </button>
         </div>
       </div>
@@ -210,7 +211,7 @@ export function ModernStudioTemplate({
       {/* Layout de Leitura Principal com Gaveta de Páginas Opcional */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
         {/* Folha do Documento Clean */}
-        <div className="glass-panel min-w-0 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xs border border-border/80">
+        <div className="glass-panel min-w-0 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xs border border-border/80 w-full">
           <div
             style={{
               fontSize: `${(settings.fontSize * (zoomLevel / 100)).toFixed(1)}px`,
@@ -258,43 +259,19 @@ export function ModernStudioTemplate({
             })}
           </div>
         </div>
-
-        {/* Sidebar / Miniatura de Páginas (Estilo Inspiração 01) */}
-        {showChapters && (
-          <aside className="glass-panel w-full lg:w-56 max-h-[50vh] lg:h-[70vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-border/80 animate-in slide-in-from-right-4 duration-200">
-            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-border">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <BookOpen className="size-3.5 text-accent" />
-                Páginas
-              </h3>
-              <span className="text-xs font-semibold text-muted-foreground">
-                {totalPages} total
-              </span>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2">
-              {pageList.map((p) => {
-                const isCurrent = p === currentPage;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => jumpToPage(p)}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-2xl text-xs font-semibold transition-all border",
-                      isCurrent
-                        ? "bg-accent text-accent-foreground border-accent shadow-sm scale-105"
-                        : "bg-background/60 hover:bg-secondary border-border text-foreground"
-                    )}
-                  >
-                    <span>Pág.</span>
-                    <span className="text-sm font-bold">{p}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
-        )}
       </div>
+
+      {/* Drawer de Páginas Overlay (Mobile & Desktop) */}
+      <PagesDrawer
+        open={showChapters}
+        onOpenChange={setShowChapters}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageList={pageList}
+        onSelectPage={jumpToPage}
+        sentences={sentences}
+        title={title}
+      />
 
       {/* Player Flutuante Dock na Parte Inferior */}
       <FloatingAudioDock
