@@ -6,14 +6,7 @@ export const GEMINI_KEY_STORAGE = "gemini-api-key";
 export const GEMINI_KEY_EVENT = "gemini-key-changed";
 
 export function useGeminiApiKey() {
-  const [apiKey, setApiKey] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return window.localStorage.getItem(GEMINI_KEY_STORAGE);
-    } catch {
-      return null;
-    }
-  });
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
   const syncKey = useCallback(() => {
     if (typeof window === "undefined") return;

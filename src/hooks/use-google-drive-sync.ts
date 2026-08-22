@@ -65,14 +65,8 @@ export interface UseGoogleDriveSyncReturn {
 
 export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   const isMountedRef = useRef(true);
-  const [status, setStatus] = useState<DriveAuthStatus>(() => {
-    const cached = getCachedDriveAuthStatus();
-    return cached ?? { isConnected: false };
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(() => {
-    const cached = getCachedDriveAuthStatus();
-    return cached === null;
-  });
+  const [status, setStatus] = useState<DriveAuthStatus>({ isConnected: false });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncPhase, setSyncPhase] = useState<SyncPhase>("idle");
   const [progress, setProgress] = useState(0);
@@ -335,9 +329,13 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         }
       }
 
-      // 2. Se não foi redirecionamento OAuth, apenas verifica se não houver cache no sessionStorage
+      // 2. Se não foi redirecionamento OAuth, sincroniza a partir do cache ou consulta status via API
       if (isMounted) {
-        if (getCachedDriveAuthStatus() === null) {
+        const cached = getCachedDriveAuthStatus();
+        if (cached !== null) {
+          safeSetStatus(cached);
+          safeSetIsLoading(false);
+        } else {
           await checkStatus(false);
         }
       }
