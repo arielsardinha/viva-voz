@@ -361,17 +361,28 @@ describe("useGoogleDriveSync Hook", () => {
     expect(saved.email).toBe("forcado@teste.com");
   });
 
-  it("deve atualizar o sessionStorage para desconectado ao executar disconnect()", async () => {
-    window.sessionStorage.setItem(
-      "vivavoz_gdrive_auth_status",
-      JSON.stringify({ isConnected: true, email: "user@teste.com" })
-    );
+  it("deve disparar evento gemini-key-changed quando a API Key for restaurada do Drive", async () => {
+    const eventListener = jest.fn();
+    window.addEventListener("gemini-key-changed", eventListener);
 
     global.fetch = jest.fn().mockImplementation(async (url: string) => {
-      if (url.includes("/api/auth/google/disconnect")) {
+      if (url.includes("/api/auth/google/status")) {
         return {
           ok: true,
-          json: async () => ({ success: true }),
+          json: async () => ({ isConnected: true }),
+        };
+      }
+      if (url.includes("/api/sync/restore")) {
+        return {
+          ok: true,
+          json: async () => ({
+            manifest: {
+              meta: { version: "1.0.0", appVersion: "0.1.0", createdAt: Date.now(), deviceId: "d1" },
+              preferences: { engine: "system", voice: {}, speed: "1", lastReadingId: null, disabledEngines: [] },
+              readings: [],
+            },
+            apiKeyRestored: true,
+          }),
         };
       }
       return { ok: false, status: 404 };
@@ -380,12 +391,16 @@ describe("useGoogleDriveSync Hook", () => {
     const { result } = renderHook(() => useGoogleDriveSync());
 
     await act(async () => {
-      await result.current.disconnect();
+      await result.current.checkStatus();
     });
 
-    expect(result.current.status.isConnected).toBe(false);
-    const saved = JSON.parse(window.sessionStorage.getItem("vivavoz_gdrive_auth_status") || "{}");
-    expect(saved.isConnected).toBe(false);
+    await act(async () => {
+      await result.current.restoreNow();
+    });
+
+    expect(eventListener).toHaveBeenCalled();
+    window.removeEventListener("gemini-key-changed", eventListener);
   });
 });
+
 

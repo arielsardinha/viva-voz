@@ -31,6 +31,14 @@ metadata:
 5. **Sincronização Modular (Metadados + Áudios Resumíveis):**
    - Manifesto estruturado (`vivavoz_manifest.json`) validado com **Zod** e sincronizado via upload multipart rápido.
    - Cache de áudios TTS (`vivavoz_audio_<docId>.bin`) transferido via Google Drive Resumable Upload com feedback de progresso na UI.
+6. **Áudios Exclusivamente Cloud (Zero IndexedDB):**
+   - Blobs de áudio TTS NUNCA são persistidos no IndexedDB. A tabela local é reservada exclusivamente para documentos (offline-first).
+   - Áudios só existem no Google Drive `appDataFolder` e são gerados sob demanda quando offline.
+7. **API Key Sincronizada no Manifesto:**
+   - O campo `userApiKey` faz parte do manifesto `vivavoz_manifest.json`.
+   - Toda sincronização (backup/restore) DEVE incluir o estado atual da API Key.
+   - Na restauração cross-device, a API Key é configurada via cookie `HttpOnly` pelo BFF (mesmo fluxo da inserção manual).
+   - Remoção local da API Key DEVE propagar para o manifesto na nuvem.
 
 ---
 
@@ -44,7 +52,7 @@ metadata:
 
 ### 2.2. Endpoints de Sincronização (`/api/sync/`)
 - `POST /api/sync/backup`: Recebe o manifesto JSON de dados do cliente, valida com Zod e faz upload para a `appDataFolder`.
-- `GET /api/sync/restore`: Baixa o último manifesto JSON do Google Drive e entrega ao cliente para merge no IndexedDB.
+- `GET /api/sync/restore`: Baixa o último manifesto JSON do Google Drive e entrega ao cliente para merge no IndexedDB. Se o manifesto contiver `userApiKey`, o BFF configura o cookie `HttpOnly` correspondente (mesmo mecanismo da inserção manual).
 - `POST /api/sync/audio/resumable`: Inicia sessão de upload resumível para pacote de áudio TTS de um documento específico.
 - `GET /api/sync/audio/:documentId`: Baixa o pacote binário de áudio correspondente a um documento.
 
@@ -97,3 +105,7 @@ export async function getDriveSession(): Promise<DriveSessionData | null> {
 - [ ] IA Generativa operando unicamente via `userApiKey`.
 - [ ] Manipulação de áudios TTS usando fluxo resumível com tracking de progresso.
 - [ ] Zero logs de erro ou warnings no console durante os testes (`npm run test`).
+- [ ] Áudios TTS NÃO armazenados no IndexedDB local.
+- [ ] Documentos recentes no IndexedDB com eviction LRU automática.
+- [ ] `userApiKey` incluída/removida no manifesto de sync.
+- [ ] Restauração cross-device da API Key via cookie server-side.

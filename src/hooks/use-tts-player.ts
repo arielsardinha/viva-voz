@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Sentence } from "@/lib/pdf-text";
 import type { TtsEngine } from "@/lib/tts-engines";
-import {
-  getCachedAudioBlob,
-  saveCachedAudio,
-  buildAudioCacheKey,
-} from "@/lib/tts-audio-cache";
 
 interface UseTtsPlayerOptions {
   sentences: Sentence[];
@@ -101,7 +96,7 @@ export function useTtsPlayer({
 
       const cacheKey = getCacheKey(targetEngine, targetVoice, sentence.text);
 
-      // 1. Nível 1: Cache em Memória RAM (0ms de latência)
+      // 1. Cache em Memória RAM (0ms de latência)
       const cached = cacheRef.current.get(cacheKey);
       if (cached) return cached;
 
@@ -111,43 +106,10 @@ export function useTtsPlayer({
 
       const promise = (async () => {
         try {
-          // 3. Nível 2: Cache Persistente no IndexedDB (se for IA)
-          if (targetEngine !== "system") {
-            const persistedBlob = await getCachedAudioBlob(
-              documentId,
-              targetEngine,
-              targetVoice,
-              sentence.text,
-            );
-            if (persistedBlob) {
-              const url = URL.createObjectURL(persistedBlob);
-              cacheRef.current.set(cacheKey, url);
-              return url;
-            }
-          }
-
-          // 4. Se não estiver em cache, faz a requisição na API
+          // 3. Requisição direta na API (áudios não são cacheados localmente no IndexedDB)
           const blob = await fetchAudioBlob(sentence.text, targetEngine, targetVoice, userApiKey);
           const url = URL.createObjectURL(blob);
           cacheRef.current.set(cacheKey, url);
-
-          // 5. Salva no IndexedDB em background com fallback transparente
-          if (targetEngine !== "system") {
-            const trackKey = buildAudioCacheKey(documentId, targetEngine, targetVoice, sentence.text);
-            void saveCachedAudio({
-              id: trackKey,
-              documentId: documentId && documentId.trim().length > 0 ? documentId.trim() : "general",
-              engine: targetEngine,
-              voice: targetVoice,
-              sentenceIndex: index,
-              text: sentence.text,
-              audioBlob: blob,
-              sizeBytes: blob.size,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            }).catch(() => undefined);
-          }
-
           return url;
         } finally {
           inFlightRef.current.delete(cacheKey);
@@ -157,7 +119,7 @@ export function useTtsPlayer({
       inFlightRef.current.set(cacheKey, promise);
       return promise;
     },
-    [sentences, engine, voice, userApiKey, documentId],
+    [sentences, engine, voice, userApiKey],
   );
 
   /** Pré-carrega SOMENTE os dois próximos textos na fila para garantir reprodução fluida */

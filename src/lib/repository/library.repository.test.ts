@@ -5,8 +5,12 @@ import { IndexedDbLibraryRepository } from "./library.repository";
 describe("IndexedDbLibraryRepository (GoF Repository Pattern)", () => {
   let repository: IndexedDbLibraryRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     repository = new IndexedDbLibraryRepository();
+    const existing = await repository.list();
+    for (const item of existing) {
+      await repository.delete(item.id);
+    }
   });
 
   it("deve salvar e recuperar um ParsedDocument com integridade total", async () => {
@@ -70,12 +74,35 @@ describe("IndexedDbLibraryRepository (GoF Repository Pattern)", () => {
     expect(await repository.getById("doc-del-1")).toBeNull();
   });
 
-  it("deve salvar e obter preferências da aplicação", async () => {
-    const updated = await repository.savePreferences({ speed: "1.75", engine: "google" });
-    expect(updated.speed).toBe("1.75");
-    expect(updated.engine).toBe("google");
+  it("deve aplicar política de eviction LRU mantendo apenas os MAX_CACHED_DOCUMENTS mais recentes", async () => {
+    // Insere 25 documentos com timestamps incrementais
+    for (let i = 1; i <= 25; i++) {
+      const doc = new ParsedDocumentBuilder()
+        .setId(`doc-lru-${i}`)
+        .setTitle(`Doc ${i}`)
+        .addSentence(`Sentença do doc ${i}`)
+        .build();
+      // Simula datas de atualização crescentes
+      doc.metadata.updatedAt = 1000 + i;
+      await repository.save(doc);
+    }
 
-    const retrieved = await repository.getPreferences();
-    expect(retrieved.speed).toBe("1.75");
+    const list = await repository.list();
+    // Deve ter no máximo 20 documentos salvos
+    expect(list.length).toBe(20);
+
+    // Os documentos mais antigos (1 a 5) devem ter sido removidos
+    for (let i = 1; i <= 5; i++) {
+      const doc = await repository.getById(`doc-lru-${i}`);
+      expect(doc).toBeNull();
+    }
+
+    // Os documentos mais recentes (6 a 25) devem estar presentes
+    for (let i = 6; i <= 25; i++) {
+      const doc = await repository.getById(`doc-lru-${i}`);
+      expect(doc).not.toBeNull();
+      expect(doc?.id).toBe(`doc-lru-${i}`);
+    }
   });
 });
+

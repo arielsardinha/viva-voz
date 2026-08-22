@@ -52,6 +52,13 @@ export interface ILibraryRepository {
   savePreferences(patch: Partial<Preferences>): Promise<Preferences>;
 }
 
+/**
+ * Número máximo de documentos mantidos no IndexedDB (offline-first LRU).
+ * Quando excedido, os mais antigos (por updatedAt) são removidos automaticamente.
+ * @see armazenamento-dados-local-cloud.md
+ */
+export const MAX_CACHED_DOCUMENTS = 20;
+
 export class IndexedDbLibraryRepository implements ILibraryRepository {
   private static instance: IndexedDbLibraryRepository;
 
@@ -121,7 +128,38 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
 
     await this.tx("readwrite", (store) => store.put(entity));
     notifyLibraryChanged("save_document");
+
+    // Eviction LRU: remove documentos mais antigos se exceder o limite
+    await this.evictOldDocuments();
+
     return doc;
+  }
+
+  /**
+   * Remove os documentos mais antigos (por updatedAt) quando o IndexedDB excede MAX_CACHED_DOCUMENTS.
+   * Operação transparente — não impacta a experiência do usuário.
+   * Documentos removidos permanecem acessíveis na nuvem (se sincronizados).
+   */
+  private async evictOldDocuments(): Promise<void> {
+    try {
+      const all = await this.tx<StoredReadingEntity[]>("readonly", (store) => store.getAll());
+      if (all.length <= MAX_CACHED_DOCUMENTS) return;
+
+      // Ordena por updatedAt ASC (mais antigo primeiro)
+      const sorted = [...all].sort((a, b) => a.updatedAt - b.updatedAt);
+      const toRemove = sorted.slice(0, all.length - MAX_CACHED_DOCUMENTS);
+
+      for (const entity of toRemove) {
+        await this.tx("readwrite", (store) => store.delete(entity.id));
+        void deleteAudioCacheByDocument(entity.id);
+      }
+
+      if (toRemove.length > 0) {
+        notifyLibraryChanged("evict_old_documents");
+      }
+    } catch {
+      // Silencioso — eviction não deve impactar a operação principal
+    }
   }
 
   public async getById(id: string): Promise<ParsedDocument | null> {

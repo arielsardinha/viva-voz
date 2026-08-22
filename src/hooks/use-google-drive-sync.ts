@@ -158,7 +158,15 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       if (restoreRes.ok) {
         safeSetSyncPhase("downloading");
         safeSetProgress(20);
-        const { manifest } = (await restoreRes.json()) as { manifest: SyncManifest };
+        const { manifest, apiKeyRestored } = (await restoreRes.json()) as {
+          manifest: SyncManifest;
+          apiKeyRestored?: boolean;
+        };
+
+        // Notifica a UI se a API Key foi restaurada do Drive (cross-device)
+        if (apiKeyRestored && typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("gemini-key-changed"));
+        }
 
         // 2. Mescla no IndexedDB local
         safeSetSyncPhase("merging");
@@ -497,7 +505,15 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         throw new Error(err.error || "Nenhum backup encontrado no Google Drive.");
       }
 
-      const { manifest } = (await restoreRes.json()) as { manifest: SyncManifest };
+      const { manifest, apiKeyRestored } = (await restoreRes.json()) as {
+        manifest: SyncManifest;
+        apiKeyRestored?: boolean;
+      };
+
+      // Notifica a UI se a API Key foi restaurada do Drive (cross-device)
+      if (apiKeyRestored && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("gemini-key-changed"));
+      }
       safeSetProgress(45);
 
       // 2. Mescla no IndexedDB

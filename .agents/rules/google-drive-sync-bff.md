@@ -42,6 +42,9 @@ trigger: always_on
 7. **IA Generativa 100% BYOK (Bring Your Own Key):**
    - Toda funcionalidade de IA (narração TTS e chat com documento) utiliza estritamente o `userApiKey` fornecido pelo usuário no cliente e transmitido por requisição.
    - É proibido armazenar chaves de IA em variáveis de ambiente do servidor.
+   - A `userApiKey` DEVE ser incluída no manifesto de sincronização com o Google Drive (`vivavoz_manifest.json`) para permitir recuperação cross-device.
+   - Ao restaurar de outro dispositivo, a API Key é configurada via cookie `HttpOnly` server-side (mesmo fluxo da inserção manual).
+   - A remoção da API Key localmente DEVE ser propagada para o Google Drive.
 
 ---
 
@@ -65,7 +68,10 @@ trigger: always_on
 1. **Backup Modular e Incremental:**
    - Metadados, leituras e preferências: `vivavoz_manifest.json` (upload rápido).
    - Blobs de áudio sintetizado: pacotes por documento (`vivavoz_audio_<docId>.bin`).
-2. **Resumable Upload para Áudios:**
+2. **Áudios Exclusivamente na Nuvem (Zero Cache Local):**
+   - Áudios TTS NUNCA são armazenados no IndexedDB local. A tabela é limitada e reservada para documentos.
+   - Áudios só são persistidos no Google Drive `appDataFolder`. Se o usuário não estiver conectado à nuvem, áudios são efêmeros (gerados sob demanda e descartados).
+3. **Resumable Upload para Áudios:**
    - Pacotes de áudio utilizam o protocolo de Resumable Upload da Google Drive API v3 para suportar oscilações de rede e arquivos maiores que 5MB.
    - O ViewModel expõe progresso granular (0% a 100%) para a interface de usuário.
 
@@ -82,3 +88,8 @@ trigger: always_on
 - [ ] Validação estrita de schemas de payload com Zod antes de operações de I/O.
 - [ ] IA Generativa operando estritamente com `userApiKey` fornecido pelo usuário.
 - [ ] Interface acessível e responsiva (≥ 370px) em conformidade com as regras do VivaVoz.
+- [ ] Áudios TTS NÃO são armazenados no IndexedDB (zero blobs de áudio no cache local).
+- [ ] Documentos recentes mantidos no IndexedDB com política de eviction LRU.
+- [ ] API Key (`userApiKey`) incluída no manifesto de sync com o Google Drive.
+- [ ] Remoção de API Key propagada para o Google Drive.
+- [ ] Restauração cross-device da API Key via cookie `HttpOnly` server-side.

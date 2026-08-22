@@ -64,6 +64,8 @@ export const SyncManifestSchema = z.object({
   meta: ManifestMetadataSchema,
   preferences: ManifestPreferencesSchema,
   readings: z.array(ManifestReadingItemSchema),
+  /** Chave de IA do usuário (BYOK) — sincronizada para restauração cross-device */
+  userApiKey: z.string().optional(),
 });
 
 export type ManifestMetadata = z.infer<typeof ManifestMetadataSchema>;

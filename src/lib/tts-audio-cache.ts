@@ -114,51 +114,27 @@ async function audioTx<T>(
 }
 
 /**
- * Salva uma faixa de áudio de IA no IndexedDB.
- * Em caso de falha (ex: QuotaExceededError), não interrompe a execução (fallback transparente).
+ * [NOOP] Áudios TTS NUNCA são persistidos no IndexedDB.
+ * A tabela local é limitada e reservada exclusivamente para documentos (offline-first).
+ * Áudios são armazenados apenas na nuvem (Google Drive appDataFolder).
+ * @see armazenamento-dados-local-cloud.md
  */
-export async function saveCachedAudio(track: CachedAudioTrack): Promise<boolean> {
-  // Apenas áudios gerados por IA devem ser cacheados
-  if (track.engine === "system") return false;
-
-  try {
-    await audioTx("readwrite", (store) => store.put(track));
-    return true;
-  } catch (error) {
-    console.warn("Aviso: Falha ao persistir áudio no IndexedDB (usando fallback em memória):", error);
-    return false;
-  }
+export async function saveCachedAudio(_track: CachedAudioTrack): Promise<boolean> {
+  return false;
 }
 
 /**
- * Obtém o Blob de áudio em cache para o trecho correspondente.
+ * [NOOP] Áudios TTS não são mais armazenados localmente.
+ * Retorna sempre null — o áudio será gerado sob demanda via API.
+ * @see armazenamento-dados-local-cloud.md
  */
 export async function getCachedAudioBlob(
-  documentId: string | null | undefined,
-  engine: TtsEngine,
-  voice: string,
-  text: string,
+  _documentId: string | null | undefined,
+  _engine: TtsEngine,
+  _voice: string,
+  _text: string,
 ): Promise<Blob | null> {
-  if (engine === "system") return null;
-
-  try {
-    const key = buildAudioCacheKey(documentId, engine, voice, text);
-    const item = await audioTx<CachedAudioTrack | undefined>("readonly", (store) => store.get(key));
-    if (!item || !item.audioBlob) return null;
-
-    // Atualiza updatedAt de forma assíncrona
-    void audioTx("readwrite", (store) => {
-      item.updatedAt = Date.now();
-      return store.put(item);
-    }).catch(() => undefined);
-
-    if (item.audioBlob instanceof Blob) {
-      return item.audioBlob;
-    }
-    return new Blob([item.audioBlob as BlobPart], { type: "audio/wav" });
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
