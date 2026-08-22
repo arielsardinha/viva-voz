@@ -1,6 +1,6 @@
 # SDD 02: Tier 2 — Web Reader e Apresentações (URLs, .pptx, .odt)
 
-> **Status:** Proposto  
+> **Status:** Implementado ✅ — todos os artefatos concluídos e testados (322 testes passando)  
 > **Prioridade:** P1 (Fase 2)  
 > **Padrões Aplicados:** MVVM, Facade, Adapters, Builder & SOLID  
 > **Componentes Afetados:** `src/app/api/extract-url/`, `src/lib/parsers/`, `src/components/pdf-reader/`  

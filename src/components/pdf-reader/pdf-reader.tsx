@@ -407,6 +407,21 @@ export function PdfReader() {
     [uploaderVM]
   );
 
+  const handleWebUrl = useCallback(
+    (doc: import("@/lib/domain/document.types").ParsedDocument) => {
+      setReadingId(doc.id);
+      setTitle(doc.metadata.title);
+      setSentences(doc.sentences);
+      setChapters(doc.chapters);
+      setDocFormat(doc.metadata.format);
+      void savePreferences({ lastReadingId: doc.id });
+      toast.success(
+        `Artigo "${doc.metadata.title}" pronto — ${doc.metadata.wordCount} palavras para ouvir.`
+      );
+    },
+    []
+  );
+
   const saveTitle = useCallback(async () => {
     const next = draftTitle.trim();
     setIsEditing(false);
@@ -447,9 +462,11 @@ export function PdfReader() {
           <PdfDropzone
             onFiles={handleFilesUpload}
             onQuickPaste={handleQuickPaste}
+            onWebUrl={handleWebUrl}
             isLoading={uploaderVM.isUploading}
             progress={uploaderVM.currentProgress}
           />
+
         ) : (
           <>
             {/* Barra de Título, Formato & Ações Principais */}

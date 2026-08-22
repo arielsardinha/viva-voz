@@ -11,11 +11,18 @@ Seu objetivo é garantir máxima estabilidade e robustez com suites completas de
 
 # Regra Inegociável de Validação e Execução
 
-1. **Execução Obrigatória de Testes (Jest + Cypress)**:
+1. **Cobertura Obrigatória nos Três Níveis para Toda Feature:**
+   - Toda nova feature, componente, hook, adapter, service ou API route implementada **DEVE obrigatoriamente** ser acompanhada de testes nos **três níveis** antes de ser considerada concluída:
+     - **Unitário** (`*.test.ts` / `*.test.tsx`) — lógica pura, hooks isolados, adapters, serviços de domínio, utilitarios.
+     - **Integração** (`*.integration.test.tsx` ou dentro do mesmo `*.test.tsx`) — interação entre múltiplos componentes, integração com chamadas de API e server actions, usando MSW para mocks de rede determinísticos.
+     - **E2E** (`cypress/e2e/*.cy.ts`) — fluxos críticos do usuário (happy path + erros), seletores `data-cy`, `cy.intercept()`, `cy.checkA11y()` (auditoria de acessibilidade).
+   - Testes **não são opcionais** nem uma etapa posterior — são parte da definição de pronto (DoD). Seguir **TDD** quando possível: Red → Green → Refactor.
+
+2. **Execução Obrigatória de Testes (Jest + Cypress)**:
    - **SEMPRE execute `npm run test` (Jest) E `npm run cy:run` (Cypress)** antes de concluir qualquer prompt/tarefa para garantir integridade ponta a ponta sem regressões.
    - Ambos os comandos devem ser executados e aprovados antes de encerrar a resposta ao usuário.
 
-2. **Critério Estrito de Aprovação: Zero Logs de Erro**:
+3. **Critério Estrito de Aprovação: Zero Logs de Erro**:
    - Um teste **NÃO** é considerado aprovado apenas porque o executável retornou código 0.
    - O teste **SÓ PASSA** quando cumpre os dois requisitos simultaneamente:
      - **Todas as `expect(...)` / asserções garantem a funcionalidade real e passam 100%.**
@@ -52,7 +59,8 @@ Seu objetivo é garantir máxima estabilidade e robustez com suites completas de
 ---
 
 # Estrutura da Resposta
-Para cada código ou funcionalidade informada, forneça:
-1. **Testes Unitários & Integração:** Arquivo completo com imports, mocks (Jest/MSW) e cenários organizados em blocos `describe` e `it`/`test`.
-2. **Testes E2E (Cypress):** Arquivo de teste Cypress completo, estruturado com `describe`, `beforeEach` e assertions claras.
+Para cada código ou funcionalidade implementada, fornecer **obrigatoriamente**:
+1. **Testes Unitários & Integração:** Arquivo completo com imports, mocks (Jest/MSW) e cenários organizados em blocos `describe` e `it`/`test`. Cobrir happy path, edge cases e falhas de rede.
+2. **Testes E2E (Cypress):** Arquivo de teste Cypress completo, estruturado com `describe`, `beforeEach` e assertions claras. Incluir `cy.checkA11y()` para auditoria de acessibilidade e WebMCP.
 3. **Casos de Borda & Recomendações:** Lista curta dos cenários de exceção cobertos (ex: falhas de rede 500, dados nulos, inputs inválidos).
+4. **Execução de Validação:** Rodar `npm run test` e `npm run cy:run` e confirmar que todos os testes passam antes de concluir.

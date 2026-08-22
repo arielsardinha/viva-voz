@@ -324,6 +324,7 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       expect(extensions).toContain(".epub");
       expect(extensions).toContain(".docx");
       expect(extensions).toContain(".odt");
+      expect(extensions).toContain(".pptx");
       expect(extensions).toContain(".txt");
       expect(extensions).toContain(".md");
 
@@ -332,7 +333,214 @@ Aqui temos a segunda parte da história. Tudo funcionando perfeitamente!
       expect(accept).toContain(".epub");
       expect(accept).toContain(".docx");
       expect(accept).toContain(".odt");
+      expect(accept).toContain(".pptx");
       expect(accept).toContain("application/vnd.oasis.opendocument.text");
+      expect(accept).toContain("application/vnd.openxmlformats-officedocument.presentationml.presentation");
     });
   });
 });
+
+/* ──────────────────────────────────────────────────────────────
+   Tier 2 — PptxDocumentAdapter & WebArticleAdapter
+   ────────────────────────────────────────────────────────────── */
+
+import { PptxDocumentAdapter } from "./pptx.adapter";
+import { WebArticleAdapter } from "./web-article.adapter";
+
+/**
+ * Helper para gerar um PPTX mínimo válido com N slides via JSZip
+ */
+async function buildMinimalPptx(slides: Array<{ title: string; texts: string[]; notes?: string[] }>): Promise<Blob> {
+  const zip = new JSZip();
+
+  // Estrutura mínima exigida pelo PPTX
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/></Types>`);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
+
+  slides.forEach((slide, i) => {
+    const slideNum = i + 1;
+    const textNodes = slide.texts.map((t) => `<a:t>${t}</a:t>`).join("");
+    const slideXml = `<?xml version="1.0" encoding="UTF-8"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:cSld>
+    <p:spTree>
+      <p:sp>
+        <p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>
+        <p:txBody><a:p><a:r><a:t>${slide.title}</a:t></a:r></a:p></p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:txBody><a:p><a:r>${textNodes}</a:r></a:p></p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>`;
+    zip.file(`ppt/slides/slide${slideNum}.xml`, slideXml);
+
+    if (slide.notes?.length) {
+      const notesText = slide.notes.map((n) => `<a:t>${n}</a:t>`).join("");
+      const notesXml = `<?xml version="1.0" encoding="UTF-8"?>
+<p:notes xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/">
+  <p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>${notesText}</a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld>
+</p:notes>`;
+      zip.file(`ppt/notesSlides/notesSlide${slideNum}.xml`, notesXml);
+    }
+  });
+
+  const buffer = await zip.generateAsync({ type: "arraybuffer" });
+  return new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  });
+}
+
+describe("Adapters — Tier 2 (GoF Adapter Pattern)", () => {
+  describe("PptxDocumentAdapter", () => {
+    let adapter: PptxDocumentAdapter;
+
+    beforeEach(() => {
+      adapter = new PptxDocumentAdapter();
+    });
+
+    it("deve reconhecer arquivos .pptx por extensão e MIME type", () => {
+      const byExt = new File([""], "aula.pptx");
+      const byMime = new File([""], "apresentacao.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      });
+      const unknown = new File([""], "relatorio.pdf", { type: "application/pdf" });
+
+      expect(adapter.canHandle(byExt)).toBe(true);
+      expect(adapter.canHandle(byMime)).toBe(true);
+      expect(adapter.canHandle(unknown)).toBe(false);
+    });
+
+    it("deve extrair textos e criar um capítulo por slide", async () => {
+      const pptxBlob = await buildMinimalPptx([
+        { title: "Introdução", texts: ["Bem-vindo ao curso de TypeScript."] },
+        { title: "Módulo 1", texts: ["Aprenda sobre tipos genéricos e inferência."] },
+      ]);
+      const file = new File([pptxBlob], "curso.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      });
+
+      const parsed = await adapter.parse(file);
+
+      expect(parsed.metadata.format).toBe("pptx");
+      expect(parsed.metadata.title).toBe("curso");
+      expect(parsed.chapters.length).toBe(2);
+      expect(parsed.chapters[0].title).toContain("Introdução");
+      expect(parsed.chapters[1].title).toContain("Módulo 1");
+      expect(parsed.sentences.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("deve incluir notas do apresentador quando presentes", async () => {
+      const pptxBlob = await buildMinimalPptx([
+        {
+          title: "Slide com Notas",
+          texts: ["Conteúdo principal do slide."],
+          notes: ["Esta é a nota do apresentador para este slide."],
+        },
+      ]);
+      const file = new File([pptxBlob], "palestra.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      });
+
+      const parsed = await adapter.parse(file);
+
+      expect(parsed.chapters.length).toBe(1);
+      const allText = parsed.sentences.map((s) => s.text).join(" ");
+      expect(allText).toContain("nota do apresentador");
+    });
+
+    it("deve lançar erro para arquivo que não contém slides", async () => {
+      const zip = new JSZip();
+      zip.file("dummy.xml", "<root/>");
+      const buffer = await zip.generateAsync({ type: "arraybuffer" });
+      const file = new File([buffer], "vazio.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      });
+
+      await expect(adapter.parse(file)).rejects.toThrow(/nenhum slide/i);
+    });
+
+    it("deve relatar progresso durante o parsing", async () => {
+      const pptxBlob = await buildMinimalPptx([
+        { title: "Slide 1", texts: ["Texto de teste para verificar progresso."] },
+      ]);
+      const file = new File([pptxBlob], "progresso.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      });
+
+      const progressValues: number[] = [];
+      await adapter.parse(file, ({ current }) => progressValues.push(current));
+
+      expect(progressValues.length).toBeGreaterThan(0);
+      expect(progressValues[0]).toBe(0);
+      expect(progressValues[progressValues.length - 1]).toBe(100);
+    });
+  });
+
+  describe("WebArticleAdapter", () => {
+    let adapter: WebArticleAdapter;
+
+    beforeEach(() => {
+      adapter = new WebArticleAdapter();
+    });
+
+    it("não deve capturar arquivos File no canHandle (CORS bypass é via Route Handler)", () => {
+      const file = new File([""], "artigo.html", { type: "text/html" });
+      expect(adapter.canHandle(file)).toBe(false);
+    });
+
+    it("deve lançar erro descritivo ao chamar parse() diretamente", async () => {
+      const file = new File([""], "dummy.html");
+      await expect(adapter.parse(file)).rejects.toThrow(/fetchFromUrl/i);
+    });
+
+    it("deve lançar erro com mensagem do servidor em caso de falha 422", async () => {
+      const fetchMock = jest.spyOn(global, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Conteúdo não extraível." }), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+      await expect(
+        adapter.fetchFromUrl("https://exemplo.com/artigo")
+      ).rejects.toThrow("Conteúdo não extraível.");
+
+      fetchMock.mockRestore();
+    });
+
+    it("deve retornar ParsedDocument em caso de sucesso", async () => {
+      const mockDocument = {
+        id: "doc_123",
+        metadata: {
+          id: "doc_123",
+          title: "Artigo Teste",
+          format: "web",
+          sizeBytes: 1000,
+          wordCount: 200,
+          estimatedReadingMinutes: 1,
+          chapterCount: 1,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        chapters: [{ id: "chap_1", title: "Início", startIndex: 0, endIndex: 5 }],
+        sentences: [],
+        lastSentenceIndex: 0,
+      };
+
+      const fetchMock = jest.spyOn(global, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify({ document: mockDocument }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+      const result = await adapter.fetchFromUrl("https://exemplo.com/artigo");
+      expect(result).toEqual(mockDocument);
+
+      fetchMock.mockRestore();
+    });
+  });
+});
+
