@@ -15,7 +15,7 @@ import {
 } from "firebase/ai";
 import { SYSTEM_INSTRUCTION_PT_BR, buildDocumentSystemPrompt } from "./system-instructions";
 
-export { InferenceMode };
+export { InferenceMode, type GenerativeModel };
 
 export interface HybridModelOptions {
   apiKey?: string | null;
@@ -78,9 +78,6 @@ export function createHybridGenerativeModel(options: HybridModelOptions = {}): G
     mode,
     inCloudParams: {
       model: inCloudModel,
-      systemInstruction,
-    },
-    onDeviceParams: {
       systemInstruction,
     },
   });

@@ -169,7 +169,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
   const sendMessage = useCallback(
     async function* (
       prompt: string,
-      msgOptions?: { context?: string; fileName?: string },
+      msgOptions?: { context?: string; fileName?: string | null },
     ): AsyncIterable<string> {
       setIsLoading(true);
       setError(null);

@@ -114,7 +114,7 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
           />
           <PromptInputFooter className="justify-end">
             <PromptInputSubmit
-              status={status}
+              status={status === "idle" ? undefined : status}
               disabled={!input.trim() || isLoading}
               aria-label="Enviar pergunta para o assistente IA"
             />
