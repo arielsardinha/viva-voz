@@ -1,12 +1,9 @@
 "use client";
 
 import { useId, useRef } from "react";
-import { Globe, Link, Loader2, CheckCircle2, AlertCircle, X, Clock, BookOpen, ExternalLink } from "lucide-react";
+import { Globe, Link, Loader2, AlertCircle, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  useWebArticleExtractor,
-  type WebArticlePreview,
-} from "@/hooks/use-web-article-extractor";
+import { useWebArticleExtractor } from "@/hooks/use-web-article-extractor";
 import type { ParsedDocument } from "@/lib/domain/document.types";
 
 interface WebUrlDialogProps {
@@ -22,11 +19,9 @@ export function WebUrlDialog({ isOpen, onClose, onSubmit }: WebUrlDialogProps) {
     setUrl,
     isUrlValid,
     state,
-    preview,
     error,
     progress,
     handleExtract,
-    handleConfirm,
     reset,
   } = useWebArticleExtractor();
 
@@ -38,19 +33,18 @@ export function WebUrlDialog({ isOpen, onClose, onSubmit }: WebUrlDialogProps) {
     onClose();
   };
 
-  const handleConfirmAndSubmit = () => {
-    const doc = handleConfirm();
-    if (doc) {
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!isUrlValid || isLoading) return;
+
+    void handleExtract((doc) => {
       onSubmit(doc);
       handleClose();
-    }
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") handleClose();
-    if (e.key === "Enter" && isUrlValid && state === "idle") {
-      handleExtract();
-    }
   };
 
   if (!isOpen) return null;
@@ -62,7 +56,7 @@ export function WebUrlDialog({ isOpen, onClose, onSubmit }: WebUrlDialogProps) {
       aria-modal="true"
       aria-labelledby="web-url-dialog-title"
       data-webmcp-tool="extractWebArticle"
-      data-webmcp-action="extract-article-from-url"
+      data-webmcp-action="extract-and-read-article-from-url"
       onKeyDown={handleKeyDown}
     >
       {/* Backdrop */}
@@ -97,14 +91,18 @@ export function WebUrlDialog({ isOpen, onClose, onSubmit }: WebUrlDialogProps) {
 
         {/* Body */}
         <div className="web-url-dialog-body">
+          <p className="web-url-dialog-description">
+            Cole o link de uma notícia, artigo ou post para extrair o conteúdo principal e iniciar a narração automaticamente.
+          </p>
+
           {/* URL Form */}
           <form
             className="web-url-dialog-form"
-            onSubmit={(e) => { e.preventDefault(); handleExtract(); }}
+            onSubmit={handleSubmit}
             data-webmcp-schema='{"url":"string"}'
           >
             <label htmlFor={urlInputId} className="web-url-dialog-label">
-              Endereço do artigo
+              Endereço do artigo (URL)
             </label>
             <div className="web-url-dialog-input-wrapper">
               <Link size={16} className="web-url-dialog-input-icon" aria-hidden="true" />
@@ -169,89 +167,31 @@ export function WebUrlDialog({ isOpen, onClose, onSubmit }: WebUrlDialogProps) {
               </div>
             )}
 
-            {/* Extract button */}
-            {state !== "preview" && (
-              <button
-                type="submit"
-                className="web-url-dialog-extract-btn"
-                disabled={!isUrlValid || isLoading}
-                aria-label="Extrair conteúdo do artigo"
-                data-cy="web-url-extract-btn"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 size={16} className="spin" aria-hidden="true" />
-                    Extraindo conteúdo...
-                  </>
-                ) : (
-                  <>
-                    <Globe size={16} aria-hidden="true" />
-                    Extrair Conteúdo
-                  </>
-                )}
-              </button>
-            )}
+            {/* Submit button */}
+            <button
+              type="submit"
+              className="web-url-dialog-extract-btn"
+              disabled={!isUrlValid || isLoading}
+              aria-label="Extrair e iniciar leitura do artigo"
+              data-cy="web-url-extract-btn"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="spin" aria-hidden="true" />
+                  <span>Extraindo e iniciando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} aria-hidden="true" />
+                  <span>Ouvir Artigo</span>
+                </>
+              )}
+            </button>
           </form>
-
-          {/* Preview Card */}
-          {state === "preview" && preview && (
-            <ArticlePreviewCard preview={preview} />
-          )}
         </div>
-
-        {/* Footer */}
-        {state === "preview" && preview && (
-          <footer className="web-url-dialog-footer">
-            <button
-              type="button"
-              className="web-url-dialog-btn-secondary"
-              onClick={() => { reset(); }}
-              data-cy="web-url-change-btn"
-            >
-              Alterar URL
-            </button>
-            <button
-              type="button"
-              className="web-url-dialog-btn-primary"
-              onClick={handleConfirmAndSubmit}
-              aria-label="Iniciar leitura do artigo extraído"
-              data-cy="web-url-confirm-btn"
-            >
-              <CheckCircle2 size={16} aria-hidden="true" />
-              Iniciar Leitura
-            </button>
-          </footer>
-        )}
       </div>
 
       <style>{styles}</style>
-    </div>
-  );
-}
-
-/* ─── Preview Card ─────────────────────────────────────────── */
-
-function ArticlePreviewCard({ preview }: { preview: WebArticlePreview }) {
-  return (
-    <div className="article-preview-card" data-cy="article-preview-card">
-      <div className="article-preview-site">
-        <ExternalLink size={13} aria-hidden="true" />
-        <span>{preview.siteUrl}</span>
-      </div>
-      <h3 className="article-preview-title">{preview.title}</h3>
-      {preview.byline && (
-        <p className="article-preview-byline">{preview.byline}</p>
-      )}
-      <div className="article-preview-stats">
-        <span className="article-preview-stat">
-          <BookOpen size={13} aria-hidden="true" />
-          {preview.wordCount.toLocaleString("pt-BR")} palavras
-        </span>
-        <span className="article-preview-stat">
-          <Clock size={13} aria-hidden="true" />
-          ~{preview.estimatedMinutes} min de leitura
-        </span>
-      </div>
     </div>
   );
 }
@@ -281,7 +221,7 @@ const styles = `
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 520px;
+    max-width: 500px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     border: 1px solid rgba(100, 149, 237, 0.25);
     border-radius: 16px;
@@ -298,8 +238,6 @@ const styles = `
     justify-content: space-between;
     padding: 1.125rem 1.25rem;
     border-bottom: 1px solid rgba(100, 149, 237, 0.15);
-    background: rgba(255, 255, 255, 0.03);
-    flex-shrink: 0;
   }
 
   .web-url-dialog-header-title {
@@ -315,44 +253,51 @@ const styles = `
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    flex-shrink: 0;
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
   }
 
   .web-url-dialog-title {
+    margin: 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #e8eaf6;
-    margin: 0;
+    color: #f1f5f9;
   }
 
   .web-url-dialog-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: none;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    color: #9099b7;
+    background: transparent;
+    color: #94a3b8;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
   }
 
   .web-url-dialog-close:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #e8eaf6;
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .web-url-dialog-body {
     padding: 1.25rem;
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     overflow-y: auto;
-    max-height: 75dvh;
+    max-height: 80dvh;
     padding-bottom: 1.5rem;
+  }
+
+  .web-url-dialog-description {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #94a3b8;
   }
 
   .web-url-dialog-form {
@@ -362,10 +307,11 @@ const styles = `
   }
 
   .web-url-dialog-label {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: #9099b7;
-    letter-spacing: 0.02em;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .web-url-dialog-input-wrapper {
@@ -377,57 +323,54 @@ const styles = `
   .web-url-dialog-input-icon {
     position: absolute;
     left: 0.875rem;
-    color: #6272a4;
+    color: #64748b;
     pointer-events: none;
-    z-index: 1;
+  }
+
+  .web-url-dialog-input {
+    width: 100%;
+    padding: 0.6875rem 2.25rem 0.6875rem 2.375rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(100, 149, 237, 0.2);
+    border-radius: 10px;
+    color: #f8fafc;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .web-url-dialog-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  }
+
+  .web-url-dialog-input--error {
+    border-color: #f87171 !important;
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important;
+  }
+
+  .web-url-dialog-input--valid {
+    border-color: rgba(52, 211, 153, 0.5);
   }
 
   .web-url-dialog-input-spinner {
     position: absolute;
     right: 0.875rem;
-    color: #667eea;
+    color: #38bdf8;
     animation: spin 1s linear infinite;
   }
 
-  .web-url-dialog-input {
-    width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 2.375rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 149, 237, 0.2);
-    border-radius: 10px;
-    color: #e8eaf6;
-    font-size: 0.9rem;
-    font-family: 'JetBrains Mono', 'Courier New', monospace;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    outline: none;
-    box-sizing: border-box;
-  }
-
-  .web-url-dialog-input::placeholder { color: #4a5278; }
-
-  .web-url-dialog-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
-  }
-
-  .web-url-dialog-input--error { border-color: #f87171 !important; }
-  .web-url-dialog-input--valid { border-color: rgba(74, 222, 128, 0.4); }
-
-  .web-url-dialog-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
   .web-url-dialog-progress {
+    width: 100%;
     height: 4px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .web-url-dialog-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
     border-radius: 2px;
     transition: width 0.3s ease;
   }
@@ -436,16 +379,14 @@ const styles = `
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.25);
+    padding: 0.625rem 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: 8px;
     color: #fca5a5;
     font-size: 0.8125rem;
     line-height: 1.4;
   }
-
-  .web-url-dialog-error svg { flex-shrink: 0; margin-top: 1px; }
 
   .web-url-dialog-extract-btn {
     display: flex;
@@ -453,144 +394,36 @@ const styles = `
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1.25rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
     border: none;
     border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
     min-height: 44px;
   }
 
   .web-url-dialog-extract-btn:hover:not(:disabled) {
-    opacity: 0.9;
+    opacity: 0.92;
     transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+  }
+
+  .web-url-dialog-extract-btn:active:not(:disabled) {
+    transform: translateY(0);
   }
 
   .web-url-dialog-extract-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
-    transform: none;
+    box-shadow: none;
   }
 
-  /* Article Preview Card */
-  .article-preview-card {
-    margin-top: 0.75rem;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(100, 149, 237, 0.18);
-    border-radius: 12px;
-    animation: previewFadeIn 0.3s ease;
-  }
-
-  .article-preview-site {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-    color: #667eea;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  .article-preview-title {
-    font-size: 0.9625rem;
-    font-weight: 600;
-    color: #e8eaf6;
-    margin: 0 0 0.375rem;
-    line-height: 1.4;
-  }
-
-  .article-preview-byline {
-    font-size: 0.8125rem;
-    color: #9099b7;
-    margin: 0 0 0.75rem;
-  }
-
-  .article-preview-stats {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .article-preview-stat {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.775rem;
-    color: #6272a4;
-  }
-
-  /* Footer */
-  .web-url-dialog-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.625rem;
-    padding: 0.875rem 1.25rem;
-    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid rgba(100, 149, 237, 0.12);
-    background: rgba(255, 255, 255, 0.02);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-
-  .web-url-dialog-btn-secondary {
-    padding: 0.625rem 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #9099b7;
-    font-size: 0.8625rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    min-height: 44px;
-  }
-
-  .web-url-dialog-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e8eaf6;
-  }
-
-  .web-url-dialog-btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.125rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 0.8625rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s;
-    min-height: 44px;
-  }
-
-  .web-url-dialog-btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  /* Animations */
-  @keyframes backdropFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes panelSlideIn {
-    from { opacity: 0; transform: scale(0.94) translateY(12px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-
-  @keyframes previewFadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+  .spin {
+    animation: spin 1s linear infinite;
   }
 
   @keyframes spin {
@@ -598,23 +431,29 @@ const styles = `
     to { transform: rotate(360deg); }
   }
 
-  .spin { animation: spin 1s linear infinite; }
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
-  /* Mobile 370px */
+  @keyframes panelSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
   @media (max-width: 480px) {
-    .web-url-dialog-overlay { padding: 0.5rem; align-items: flex-end; }
     .web-url-dialog-panel {
-      border-radius: 16px 16px 0 0;
+      border-radius: 12px;
       max-width: 100%;
-      max-height: 92dvh;
     }
-    .web-url-dialog-footer {
-      justify-content: stretch;
-    }
-    .web-url-dialog-btn-secondary,
-    .web-url-dialog-btn-primary {
-      flex: 1;
-      justify-content: center;
+    .web-url-dialog-body {
+      padding: 1rem;
     }
   }
 `;

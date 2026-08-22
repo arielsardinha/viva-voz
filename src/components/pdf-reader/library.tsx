@@ -11,6 +11,7 @@ import {
   FileText,
   FileUp,
   FolderArchive,
+  Globe,
   HardDrive,
   Loader2,
   Mic,
@@ -25,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { QuickPasteDialog } from "./quick-paste-dialog";
+import { WebUrlDialog } from "./web-url-dialog";
 import { GoogleDriveSyncButton } from "@/components/sync/google-drive-sync-button";
 import { DeleteConfirmDialog } from "./ui/delete-confirm-dialog";
 import { useReaderSettings } from "@/context/reader-settings-context";
@@ -115,6 +117,7 @@ export function Library() {
   const { settings } = useReaderSettings();
   const [isPasteOpen, setIsPasteOpen] = useState(false);
   const [isOver, setIsOver] = useState(false);
+  const [isWebUrlOpen, setIsWebUrlOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
@@ -248,11 +251,18 @@ export function Library() {
     });
   };
 
-  const handleQuickPasteSubmit = async (title: string, text: string) => {
-    const doc = await uploaderVM.uploadRawText(title, text);
-    if (doc) {
-      toast.success("Nota de texto criada com sucesso!");
-      void refresh();
+  const handleQuickPasteSubmit = async (pastedTitle: string, pastedText: string) => {
+    await uploaderVM.uploadRawText(pastedTitle, pastedText);
+    await libraryVM.refresh();
+  };
+
+  const handleWebUrlSubmit = async (doc: import("@/lib/domain/document.types").ParsedDocument) => {
+    try {
+      await DocumentProcessingFacade.getInstance().saveParsedDocument(doc);
+      toast.success(`Artigo "${doc.metadata.title}" adicionado à biblioteca com sucesso!`);
+      await libraryVM.refresh();
+    } catch {
+      toast.error("Erro ao salvar artigo na biblioteca.");
     }
   };
 
@@ -463,6 +473,18 @@ export function Library() {
                   >
                     <Type className="size-3.5 sm:size-4 text-accent" aria-hidden="true" />
                     <span>Colar Texto</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-cy="library-web-url-btn"
+                    disabled={uploaderVM.isUploading}
+                    onClick={() => setIsWebUrlOpen(true)}
+                    aria-label="Ler artigo da web a partir de uma URL"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/80 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-foreground hover:bg-secondary transition-all hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer"
+                  >
+                    <Globe className="size-3.5 sm:size-4 text-sky-500" aria-hidden="true" />
+                    <span>Ler Artigo da Web</span>
                   </button>
                 </div>
               </div>
@@ -714,6 +736,13 @@ export function Library() {
         onClose={() => setIsPasteOpen(false)}
         onSubmit={handleQuickPasteSubmit}
         isLoading={uploaderVM.isUploading}
+      />
+
+      {/* Diálogo de Extrair Artigo da Web */}
+      <WebUrlDialog
+        isOpen={isWebUrlOpen}
+        onClose={() => setIsWebUrlOpen(false)}
+        onSubmit={handleWebUrlSubmit}
       />
     </div>
   );

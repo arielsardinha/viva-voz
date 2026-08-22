@@ -171,7 +171,7 @@ describe("Library Component", () => {
     });
   });
 
-  it("deve renderizar o botão Selecionar Arquivo e Colar Texto na dropzone", async () => {
+  it("deve renderizar o botão Selecionar Arquivo, Colar Texto e Ler Artigo da Web na dropzone", async () => {
     render(
       <ReaderSettingsProvider>
         <Library />
@@ -184,8 +184,19 @@ describe("Library Component", () => {
     const pasteTextButton = screen.getByRole("button", { name: /colar texto/i });
     expect(pasteTextButton).toBeInTheDocument();
 
+    const webUrlButton = screen.getByRole("button", { name: /ler artigo da web/i });
+    expect(webUrlButton).toBeInTheDocument();
+
     // Clicar em Colar Texto deve abrir o modal de texto rápido
     fireEvent.click(pasteTextButton);
     expect(screen.getByText(/Colar ou Digitar Texto/i)).toBeInTheDocument();
+
+    // Fechar e abrir o modal de URL
+    const cancelPaste = screen.getByRole("button", { name: /cancelar/i });
+    fireEvent.click(cancelPaste);
+
+    fireEvent.click(webUrlButton);
+    expect(screen.getByRole("dialog", { name: /ler artigo da web/i })).toBeInTheDocument();
   });
 });
+

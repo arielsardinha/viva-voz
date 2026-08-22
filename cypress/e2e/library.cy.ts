@@ -15,6 +15,7 @@ describe("Biblioteca de Leituras (/leituras)", () => {
         );
       },
     });
+    cy.get('header[data-hydrated="true"]').should("exist");
   });
 
   it("deve carregar a página da biblioteca exibindo navegação e armazenamento", () => {
@@ -39,11 +40,18 @@ describe("Biblioteca de Leituras (/leituras)", () => {
     cy.contains("Nenhuma leitura encontrada").should("be.visible");
   });
 
-  it("deve permitir filtrar pelas tags pré-definidas de formato", () => {
-    const tags = ["Todos", "PDF", "EPUB", "DOCX", "ODT", "TXT", "MD"];
+  it("deve permitir filtrar pelas tags pré-definidas de formato incluindo PPTX e WEB", () => {
+    const tags = ["Todos", "PDF", "EPUB", "DOCX", "ODT", "PPTX", "TXT", "MD", "WEB", "Notas"];
 
     tags.forEach((tag) => {
       cy.contains("button", tag).should("be.visible").click();
     });
   });
+
+  it("deve exibir o botão 'Ler Artigo da Web' e abrir o diálogo ao clicar", () => {
+    cy.get('[data-cy="library-web-url-btn"]').should("be.visible").click({ force: true });
+    cy.get('[data-cy="web-url-input"]', { timeout: 6000 }).should("be.visible");
+    cy.get('[data-cy="web-url-dialog-close"]').click({ force: true });
+  });
 });
+

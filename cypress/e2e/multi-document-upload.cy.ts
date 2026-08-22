@@ -2,6 +2,7 @@ describe("Tier 1: Multi-Document Architecture & Quick Paste E2E", () => {
   beforeEach(() => {
     cy.visit("/", {
       onBeforeLoad(win) {
+        win.localStorage.clear();
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
@@ -13,20 +14,27 @@ describe("Tier 1: Multi-Document Architecture & Quick Paste E2E", () => {
             hasCompletedOnboarding: true,
           })
         );
+        try {
+          win.indexedDB?.deleteDatabase("pdf-audio-library");
+          win.indexedDB?.deleteDatabase("vivavoz-db");
+        } catch {
+          // ignore
+        }
       },
     });
 
     cy.get('header[data-hydrated="true"]').should("exist");
 
-    // Se estiver com leitura anterior carregada, troca para voltar à dropzone limpa
+    // Se estiver com leitura carregada, clica para trocar documento e voltar à dropzone limpa
     cy.get("body").then(($body) => {
-      if ($body.find('[data-cy="change-document-btn"]').length > 0) {
-        cy.get('[data-cy="change-document-btn"]').click({ force: true });
+      const btn = $body.find('[data-cy="change-document-btn"]');
+      if (btn.length > 0) {
+        cy.wrap(btn.first()).click({ force: true });
       }
     });
 
-    // Garante que a área de upload está disponível
-    cy.contains(/Arraste seus documentos/i, { timeout: 10000 }).should("be.visible");
+    // Garante que o botão de selecionar arquivo e a dropzone estão comprovadamente visíveis
+    cy.contains("Selecionar Arquivo", { timeout: 10000 }).should("be.visible");
   });
 
   it("deve exibir a dropzone com suporte aos formatos do Tier 1 e anotações WebMCP", () => {
@@ -70,7 +78,57 @@ describe("Tier 1: Multi-Document Architecture & Quick Paste E2E", () => {
     );
 
     // Valida que o player carregou o documento processado
-    cy.get('[data-cy="change-document-btn"]', { timeout: 15000 }).should("be.visible");
+    cy.get('[data-cy="change-document-btn"]', { timeout: 15000 }).first().should("be.visible");
+  });
+
+  it("deve permitir extrair artigo da web via URL e iniciar leitura diretamente", () => {
+    cy.get("body").then(($body) => {
+      const btn = $body.find('[data-cy="change-document-btn"]');
+      if (btn.length > 0) {
+        cy.wrap(btn.first()).click({ force: true });
+      }
+    });
+    cy.contains("Selecionar Arquivo", { timeout: 8000 }).should("be.visible");
+
+    cy.intercept("POST", "/api/extract-url", {
+      statusCode: 200,
+      body: {
+        title: "Artigo Web E2E",
+        siteUrl: "exemplo.com",
+        wordCount: 50,
+        estimatedMinutes: 1,
+        document: {
+          id: "doc_e2e_web_test",
+          metadata: {
+            id: "doc_e2e_web_test",
+            title: "Artigo Web E2E",
+            format: "web",
+            sizeBytes: 800,
+            wordCount: 50,
+            estimatedReadingMinutes: 1,
+            chapterCount: 1,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+          chapters: [{ id: "c1", title: "Início", startIndex: 0, endIndex: 1 }],
+          sentences: [
+            { index: 0, page: 1, text: "Primeira frase extraída do artigo online." },
+            { index: 1, page: 1, text: "Segunda frase pronta para reprodução em áudio." },
+          ],
+          lastSentenceIndex: 0,
+        },
+      },
+    }).as("extractUrlReq");
+
+    cy.get('[data-cy="web-url-btn"]').should("be.visible").click({ force: true });
+    cy.get('[data-cy="web-url-input"]', { timeout: 8000 }).should("be.visible");
+    cy.get('[data-cy="web-url-input"]').type("https://exemplo.com/artigo-e2e");
+
+    cy.get('[data-cy="web-url-extract-btn"]').click({ force: true });
+    cy.wait("@extractUrlReq");
+
+    // Modal deve fechar e documento deve aparecer carregado no player diretamente
+    cy.contains(/Artigo Web E2E/i, { timeout: 12000 }).should("be.visible");
   });
 
   it("deve exibir e filtrar documentos por badges de formato na biblioteca", () => {
@@ -82,3 +140,4 @@ describe("Tier 1: Multi-Document Architecture & Quick Paste E2E", () => {
     cy.contains("Armazenamento Local").should("be.visible");
   });
 });
+

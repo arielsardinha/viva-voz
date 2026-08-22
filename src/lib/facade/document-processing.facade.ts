@@ -76,6 +76,17 @@ export class DocumentProcessingFacade {
   }
 
   /**
+   * Salva um documento previamente processado (ex: artigo web extraído via rota API) no repositório local.
+   */
+  public async saveParsedDocument(doc: ParsedDocument): Promise<ParsedDocument> {
+    if (!doc || !doc.sentences || doc.sentences.length === 0) {
+      throw new Error("Nenhuma sentença legível foi identificada no documento informado.");
+    }
+    await this.repository.save(doc);
+    return doc;
+  }
+
+  /**
    * Atualiza o índice da sentença atual para manter o estado de leitura persistido.
    */
   public async saveReadingProgress(documentId: string, sentenceIndex: number): Promise<void> {

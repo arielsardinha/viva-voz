@@ -35,13 +35,13 @@
 {
   "tools": [
     {
-      "name": "uploadPdf",
-      "selector": "[data-webmcp-tool='uploadPdf']",
+      "name": "uploadDocument",
+      "selector": "[data-webmcp-tool='uploadDocument']",
       "action": "extract-sentences",
       "parameters": {
         "file": {
           "type": "file",
-          "accept": "application/pdf"
+          "accept": ".pdf,.epub,.docx,.odt,.pptx,.txt,.md,text/plain,text/markdown"
         }
       }
     },

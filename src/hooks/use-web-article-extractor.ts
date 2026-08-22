@@ -21,7 +21,6 @@ export type WebArticleExtractorState =
   | "idle"
   | "validating"
   | "loading"
-  | "preview"
   | "error";
 
 export interface UseWebArticleExtractorResult {
@@ -29,11 +28,9 @@ export interface UseWebArticleExtractorResult {
   setUrl: (url: string) => void;
   isUrlValid: boolean;
   state: WebArticleExtractorState;
-  preview: WebArticlePreview | null;
   error: string | null;
   progress: number;
-  handleExtract: () => Promise<void>;
-  handleConfirm: () => ParsedDocument | null;
+  handleExtract: (onExtracted: (doc: ParsedDocument) => void) => Promise<void>;
   reset: () => void;
 }
 
@@ -50,23 +47,19 @@ export function useWebArticleExtractor(): UseWebArticleExtractorResult {
   const [url, setUrlState] = useState<string>("");
   const [isUrlValid, setIsUrlValid] = useState<boolean>(false);
   const [state, setState] = useState<WebArticleExtractorState>("idle");
-  const [preview, setPreview] = useState<WebArticlePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [extractedDocument, setExtractedDocument] = useState<ParsedDocument | null>(null);
 
   const setUrl = useCallback((value: string) => {
     setUrlState(value);
     setIsUrlValid(validateUrl(value.trim()));
     setError(null);
-    if (state === "preview" || state === "error") {
+    if (state === "error") {
       setState("idle");
-      setPreview(null);
-      setExtractedDocument(null);
     }
   }, [state]);
 
-  const handleExtract = useCallback(async () => {
+  const handleExtract = useCallback(async (onExtracted: (doc: ParsedDocument) => void) => {
     const trimmedUrl = url.trim();
     if (!validateUrl(trimmedUrl)) {
       setError("Por favor, insira uma URL válida começando com http:// ou https://");
@@ -77,8 +70,6 @@ export function useWebArticleExtractor(): UseWebArticleExtractorResult {
     setState("loading");
     setError(null);
     setProgress(0);
-    setPreview(null);
-    setExtractedDocument(null);
 
     try {
       setProgress(20);
@@ -105,16 +96,10 @@ export function useWebArticleExtractor(): UseWebArticleExtractorResult {
         throw new Error("Resposta inválida do servidor: documento não encontrado.");
       }
 
-      setExtractedDocument(data.document as ParsedDocument);
-      setPreview({
-        title: data.title ?? data.document.metadata.title,
-        byline: data.byline,
-        siteUrl: data.siteUrl ?? trimmedUrl,
-        wordCount: data.wordCount ?? data.document.metadata.wordCount,
-        estimatedMinutes: data.estimatedMinutes ?? data.document.metadata.estimatedReadingMinutes,
-      });
-      setState("preview");
-      setProgress(100);
+      setState("idle");
+      setProgress(0);
+      // Dispara imediatamente — sem etapa de confirmação
+      onExtracted(data.document as ParsedDocument);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido ao extrair artigo.";
       setError(message);
@@ -124,18 +109,12 @@ export function useWebArticleExtractor(): UseWebArticleExtractorResult {
   }, [url]);
 
 
-  const handleConfirm = useCallback((): ParsedDocument | null => {
-    return extractedDocument;
-  }, [extractedDocument]);
-
   const reset = useCallback(() => {
     setUrlState("");
     setIsUrlValid(false);
     setState("idle");
-    setPreview(null);
     setError(null);
     setProgress(0);
-    setExtractedDocument(null);
   }, []);
 
   return {
@@ -143,11 +122,9 @@ export function useWebArticleExtractor(): UseWebArticleExtractorResult {
     setUrl,
     isUrlValid,
     state,
-    preview,
     error,
     progress,
     handleExtract,
-    handleConfirm,
     reset,
   };
 }

@@ -63,4 +63,37 @@ describe("DocumentProcessingFacade (GoF Facade Pattern)", () => {
     const retrieved = await facade.getRepository().getById(doc.id);
     expect(retrieved?.metadata.title).toBe("Novo Título Fantástico");
   });
+
+  it("deve salvar ParsedDocument diretamente no repositório (artigos da web offline-first)", async () => {
+    const webDoc = {
+      id: "doc_web_test_123",
+      metadata: {
+        id: "doc_web_test_123",
+        title: "Notícia sobre IA",
+        format: "web" as const,
+        sizeBytes: 1500,
+        wordCount: 200,
+        estimatedReadingMinutes: 2,
+        chapterCount: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      chapters: [{ id: "c1", title: "Introdução", startIndex: 0, endIndex: 1 }],
+      sentences: [
+        { index: 0, page: 1, text: "O avanço da inteligência artificial continua acelerado." },
+        { index: 1, page: 1, text: "Novos leitores neurais trazem mais acessibilidade." },
+      ],
+      lastSentenceIndex: 0,
+    };
+
+    const saved = await facade.saveParsedDocument(webDoc);
+    expect(saved.id).toBe("doc_web_test_123");
+
+    const fromDb = await facade.getRepository().getById("doc_web_test_123");
+    expect(fromDb).not.toBeNull();
+    expect(fromDb?.metadata.title).toBe("Notícia sobre IA");
+    expect(fromDb?.metadata.format).toBe("web");
+    expect(fromDb?.sentences.length).toBe(2);
+  });
 });
+

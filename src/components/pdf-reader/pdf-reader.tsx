@@ -408,7 +408,12 @@ export function PdfReader() {
   );
 
   const handleWebUrl = useCallback(
-    (doc: import("@/lib/domain/document.types").ParsedDocument) => {
+    async (doc: import("@/lib/domain/document.types").ParsedDocument) => {
+      try {
+        await facade.saveParsedDocument(doc);
+      } catch {
+        // Se houver algum erro de persistência, prossegue com a leitura em memória
+      }
       setReadingId(doc.id);
       setTitle(doc.metadata.title);
       setSentences(doc.sentences);
@@ -416,10 +421,10 @@ export function PdfReader() {
       setDocFormat(doc.metadata.format);
       void savePreferences({ lastReadingId: doc.id });
       toast.success(
-        `Artigo "${doc.metadata.title}" pronto — ${doc.metadata.wordCount} palavras para ouvir.`
+        `Artigo "${doc.metadata.title}" salvo na biblioteca (${doc.metadata.wordCount} palavras).`
       );
     },
-    []
+    [facade]
   );
 
   const saveTitle = useCallback(async () => {

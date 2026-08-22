@@ -23,8 +23,10 @@ export const FORMAT_FILTER_TAGS = [
   "EPUB",
   "DOCX",
   "ODT",
+  "PPTX",
   "TXT",
   "MD",
+  "WEB",
   "Notas",
 ] as const;
 
