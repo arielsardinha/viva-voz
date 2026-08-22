@@ -6,7 +6,7 @@
 
 - [Leitor de Documentos](/): Ambiente principal de leitura e narração em áudio, com suporte a upload de PDFs, sincronização de trechos, seleção de templates de leitura e interação contextual com assistente de IA.
 - [Biblioteca de Leituras](/leituras): Painel local (IndexedDB) para gerenciar documentos arquivados, retomar posições de leitura, buscar títulos, gerenciar favoritos e baixar arquivos originais.
-- [Apoio e Contribuição Voluntária](/apoiar): Página com QR Code Pix, chave EVP e opções de contribuição voluntária para manutenção do projeto independente.
+- [Apoio e Contribuição Voluntária](/apoiar): Página com QR Code Pix, chave Pix direta e canais de apoio ao desenvolvimento open-source no repositório oficial do GitHub (estrelas, issues, PRs).
 
 ## Endpoints e Serviços Estruturados
 
@@ -21,7 +21,7 @@
 - **askDocumentAI** (`data-webmcp-tool="askDocumentAI"`): Envia perguntas e instruções ao assistente de IA com base nas sentenças e páginas do PDF ativo.
 - **searchLibrary** (`data-webmcp-tool="searchLibrary"`): Filtra e consulta leituras armazenadas na base local do navegador.
 - **configureReaderPreferences** (`data-webmcp-tool="configureReaderPreferences"`): Ajusta temas de contraste (Clean, Papel Zen, Escuro), famílias tipográficas e modos de exibição.
-- **supportProject** (`data-webmcp-tool="supportProject"`): Disponibiliza dados e QR Code Pix para contribuição voluntária.
+- **supportProject** (`data-webmcp-tool="supportProject"`): Disponibiliza dados e QR Code Pix para contribuição voluntária e links de apoio ao desenvolvimento comunitário no GitHub.
 - **contactDeveloper** (`data-webmcp-tool="contactDeveloper"`): Permite envio direto de sugestões de novos recursos, relatórios de bugs, feedback de usabilidade e contato direto com o desenvolvedor.
 - **installVivaVozPwa** (`data-webmcp-tool="installVivaVozPwa"`): Abre o diálogo de instalação e orientações de PWA para execução nativa e leitura offline do VivaVoz.
 

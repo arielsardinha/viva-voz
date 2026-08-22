@@ -24,4 +24,9 @@ describe("Developer Contact Utilities", () => {
     expect(mailto).toContain(DEVELOPER_CONTACT_CONFIG.email);
     expect(mailto).toContain(encodeURIComponent("[VivaVoz] Contato com o Desenvolvedor"));
   });
+
+  it("deve conter as URLs oficiais do GitHub configuradas", () => {
+    expect(DEVELOPER_CONTACT_CONFIG.githubUrl).toBe("https://github.com/arielsardinha/viva-voz");
+    expect(DEVELOPER_CONTACT_CONFIG.githubIssuesUrl).toBe("https://github.com/arielsardinha/viva-voz/issues");
+  });
 });

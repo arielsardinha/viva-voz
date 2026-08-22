@@ -14,13 +14,15 @@ export interface ContactCategoryInfo {
 
 export interface DeveloperContactConfig {
   email: string;
+  githubUrl: string;
   githubIssuesUrl: string;
   categories: Record<ContactCategoryKey, ContactCategoryInfo>;
 }
 
 export const DEVELOPER_CONTACT_CONFIG: DeveloperContactConfig = {
   email: "ariel.contato.dev@gmail.com",
-  githubIssuesUrl: "https://github.com",
+  githubUrl: "https://github.com/arielsardinha/viva-voz",
+  githubIssuesUrl: "https://github.com/arielsardinha/viva-voz/issues",
   categories: {
     feature: {
       id: "feature",
