@@ -9,6 +9,34 @@ export interface TesseractStrategyOptions {
   customRecognizer?: (blob: Blob, onProgress?: OcrProgressCallback) => Promise<string>;
 }
 
+interface TesseractWorker {
+  recognize: (buffer: ArrayBuffer) => Promise<{ data: { text: string } }>;
+  terminate: () => Promise<unknown>;
+}
+
+interface TesseractModule {
+  createWorker?: (
+    languages: string,
+    options?: number,
+    config?: { logger?: (m: { status?: string; progress?: number }) => void }
+  ) => Promise<TesseractWorker>;
+}
+
+/**
+ * Import dinâmico seguro em runtime sem disparar warning de compilação estática do Webpack/Next.js.
+ */
+async function loadTesseractModule(): Promise<TesseractModule | null> {
+  if (typeof window !== "undefined" && (window as unknown as { Tesseract?: TesseractModule }).Tesseract) {
+    return (window as unknown as { Tesseract: TesseractModule }).Tesseract;
+  }
+  try {
+    const dynamicImport = new Function("modulePath", "return import(modulePath)");
+    return (await dynamicImport("tesseract.js").catch(() => null)) as TesseractModule | null;
+  } catch {
+    return null;
+  }
+}
+
 export class TesseractOcrStrategy implements IOcrEngineStrategy {
   public readonly engineType: OcrEngineType = "tesseract";
   private readonly languages: string;
@@ -30,15 +58,12 @@ export class TesseractOcrStrategy implements IOcrEngineStrategy {
       return this.customRecognizer(imageBlob, onProgress);
     }
 
-    // Se estiver em ambiente de navegador com suporte a dynamic import ou worker
     try {
       onProgress?.(25, "Carregando modelos de linguagem (Português/Inglês)...");
 
-      // Tenta importar tesseract.js dinamicamente se estiver instalado ou disponível no bundle
-      // @ts-expect-error - dynamic import opcional caso a biblioteca seja carregada sob demanda
-      const tesseractModule = await import("tesseract.js").catch(() => null);
+      const tesseractModule = await loadTesseractModule();
 
-      if (tesseractModule && tesseractModule.createWorker) {
+      if (tesseractModule && typeof tesseractModule.createWorker === "function") {
         onProgress?.(40, "Criando worker de processamento...");
         const worker = await tesseractModule.createWorker(this.languages, 1, {
           logger: (m: { status?: string; progress?: number }) => {
