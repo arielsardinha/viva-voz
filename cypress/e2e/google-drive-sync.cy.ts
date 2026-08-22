@@ -32,7 +32,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     cy.get('[data-webmcp-tool="googleDriveSync"]').should("be.visible");
     cy.contains("Backup no Google Drive").should("be.visible");
     cy.contains("Conectar com Google").should("be.visible");
-    cy.contains("Pasta Oculta e Isolada (appDataFolder)").should("be.visible");
+    cy.contains("Pasta Oculta e Isolada").should("be.visible");
   });
 
   it("deve exibir status conectado e permitir realizar backup com feedback", () => {

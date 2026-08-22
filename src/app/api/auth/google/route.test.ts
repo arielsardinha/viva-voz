@@ -10,13 +10,16 @@ jest.mock("@/lib/sync/server/google-drive.service");
 
 describe("Auth Google Route Handlers", () => {
   const originalEnv = process.env;
+  const originalFetch = global.fetch;
   let errorSpy: jest.SpyInstance;
   let logSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
     errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
     process.env = {
       ...originalEnv,
@@ -29,15 +32,18 @@ describe("Auth Google Route Handlers", () => {
   afterEach(() => {
     errorSpy.mockRestore();
     logSpy.mockRestore();
+    warnSpy.mockRestore();
+    global.fetch = originalFetch;
     process.env = originalEnv;
   });
 
-  it("/api/auth/google/start deve gerar authUrl e salvar cookie de state", async () => {
+  it("/api/auth/google/start deve gerar authUrl com include_granted_scopes e salvar cookie de state", async () => {
     const req = new Request("http://localhost:3000/api/auth/google/start?format=json");
     const res = await startGET(req);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.authUrl).toContain("accounts.google.com/o/oauth2/v2/auth");
+    expect(data.authUrl).toContain("include_granted_scopes=true");
     expect(data.authUrl).toContain("mock_client_id_123");
     expect(sessionModule.setOAuthStateCookie).toHaveBeenCalled();
   });
@@ -73,6 +79,54 @@ describe("Auth Google Route Handlers", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("sync_error=server_credentials_missing");
     expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("/api/auth/google/callback deve desconectar e redirecionar para permission_denied se o usuário desmarcar a opção do Google Drive", async () => {
+    (sessionModule.consumeOAuthStateCookie as jest.Mock).mockResolvedValue("valid_state_123");
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        access_token: "mock_token_no_drive",
+        expires_in: 3600,
+        scope: "openid https://www.googleapis.com/auth/userinfo.email", // Sem drive.appdata!
+      }),
+    });
+
+    const req = new Request("http://localhost:3000/api/auth/google/callback?code=mock_code&state=valid_state_123");
+    const res = await callbackGET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("sync_error=permission_denied");
+    expect(sessionModule.clearDriveSession).toHaveBeenCalled();
+    expect(sessionModule.setDriveSession).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("/api/auth/google/callback deve salvar sessão com sucesso quando drive.appdata for concedido", async () => {
+    (sessionModule.consumeOAuthStateCookie as jest.Mock).mockResolvedValue("valid_state_123");
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        access_token: "mock_token_valid",
+        refresh_token: "mock_refresh_token",
+        expires_in: 3600,
+        scope: "https://www.googleapis.com/auth/drive.appdata openid email",
+      }),
+    });
+
+    const req = new Request("http://localhost:3000/api/auth/google/callback?code=mock_code&state=valid_state_123");
+    const res = await callbackGET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("sync=connected");
+    expect(sessionModule.setDriveSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: "mock_token_valid",
+        refreshToken: "mock_refresh_token",
+      })
+    );
   });
 
   it("/api/auth/google/status deve retornar isConnected: false quando não houver sessão", async () => {

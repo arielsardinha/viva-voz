@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { SyncManifestBuilder } from "@/lib/sync/client/sync-manifest-builder";
 import { SyncMergerService } from "@/lib/sync/client/sync-merger.service";
 import { AudioSyncService } from "@/lib/sync/client/audio-sync.service";
+import { describeDriveError } from "@/lib/sync/domain/drive-error-formatter";
 import type { DriveAuthStatus, SyncManifest } from "@/lib/sync/domain/sync.types";
 
 export type SyncPhase =
@@ -25,6 +26,8 @@ export interface UseGoogleDriveSyncReturn {
   syncPhase: SyncPhase;
   progress: number;
   errorMessage: string | null;
+  showPermissionModal: boolean;
+  setShowPermissionModal: (open: boolean) => void;
   checkStatus: () => Promise<void>;
   connect: () => void;
   disconnect: () => Promise<void>;
@@ -39,6 +42,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   const [syncPhase, setSyncPhase] = useState<SyncPhase>("idle");
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -59,6 +63,33 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
 
   useEffect(() => {
     checkStatus();
+
+    // Intercepta parâmetros de redirecionamento do OAuth da URL
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const syncError = params.get("sync_error");
+      const syncConnected = params.get("sync");
+
+      if (syncConnected === "connected") {
+        toast.success("Conta do Google conectada com sucesso!");
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      } else if (syncError) {
+        const isPermission = syncError === "permission_denied" || /permission|scope/i.test(syncError);
+        const friendlyMsg = describeDriveError(syncError);
+        setErrorMessage(friendlyMsg);
+        setStatus({ isConnected: false });
+
+        if (isPermission) {
+          setShowPermissionModal(true);
+        } else {
+          toast.error(friendlyMsg);
+        }
+
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
   }, [checkStatus]);
 
   const connect = useCallback(() => {
@@ -71,10 +102,14 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       const res = await fetch("/api/auth/google/disconnect", { method: "POST" });
       if (res.ok) {
         setStatus({ isConnected: false });
+        setErrorMessage(null);
         toast.success("Google Drive desconectado com sucesso.");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Falha ao desconectar");
       }
     } catch (err: any) {
-      toast.error("Falha ao desconectar Google Drive.");
+      toast.error(describeDriveError(err));
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +140,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       });
 
       if (!backupRes.ok) {
-        const err = await backupRes.json();
+        const err = await backupRes.json().catch(() => ({}));
         throw new Error(err.error || "Falha ao enviar backup para o Google Drive.");
       }
       setProgress(60);
@@ -156,9 +191,23 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       await checkStatus();
       return true;
     } catch (err: any) {
+      const rawMsg = err?.message || String(err || "");
+      const isPermissionError = /permission|scope|403/i.test(rawMsg);
+      const friendlyMsg = describeDriveError(rawMsg);
+
+      if (isPermissionError) {
+        // Realiza o logout automático para limpar sessão inválida
+        try {
+          await fetch("/api/auth/google/disconnect", { method: "POST" });
+        } catch {}
+        setStatus({ isConnected: false });
+        setShowPermissionModal(true);
+      } else {
+        toast.error(friendlyMsg);
+      }
+
       setSyncPhase("error");
-      setErrorMessage(err?.message || "Erro durante o backup.");
-      toast.error(err?.message || "Erro durante o backup.");
+      setErrorMessage(friendlyMsg);
       return false;
     } finally {
       setIsSyncing(false);
@@ -180,7 +229,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       // 1. Baixa o manifesto
       const restoreRes = await fetch("/api/sync/restore");
       if (!restoreRes.ok) {
-        const err = await restoreRes.json();
+        const err = await restoreRes.json().catch(() => ({}));
         throw new Error(err.error || "Nenhum backup encontrado no Google Drive.");
       }
 
@@ -214,9 +263,23 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       );
       return true;
     } catch (err: any) {
+      const rawMsg = err?.message || String(err || "");
+      const isPermissionError = /permission|scope|403/i.test(rawMsg);
+      const friendlyMsg = describeDriveError(rawMsg);
+
+      if (isPermissionError) {
+        // Realiza o logout automático para limpar sessão inválida
+        try {
+          await fetch("/api/auth/google/disconnect", { method: "POST" });
+        } catch {}
+        setStatus({ isConnected: false });
+        setShowPermissionModal(true);
+      } else {
+        toast.error(friendlyMsg);
+      }
+
       setSyncPhase("error");
-      setErrorMessage(err?.message || "Erro durante a restauração.");
-      toast.error(err?.message || "Erro durante a restauração.");
+      setErrorMessage(friendlyMsg);
       return false;
     } finally {
       setIsSyncing(false);
@@ -230,6 +293,8 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     syncPhase,
     progress,
     errorMessage,
+    showPermissionModal,
+    setShowPermissionModal,
     checkStatus,
     connect,
     disconnect,

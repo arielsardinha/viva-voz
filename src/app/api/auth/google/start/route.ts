@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       clientId
     )}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    )}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&include_granted_scopes=true&state=${state}`;
 
     console.log(`[GoogleDrive Auth] Redirecionando usuário para consentimento OAuth no Google (redirectUri: ${redirectUri})`);
 

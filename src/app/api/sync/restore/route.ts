@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleDriveServerService } from "@/lib/sync/server/google-drive.service";
+import { describeDriveError } from "@/lib/sync/domain/drive-error-formatter";
 
 export async function GET() {
   try {
@@ -17,8 +18,9 @@ export async function GET() {
       manifest,
     });
   } catch (err: any) {
+    const friendlyError = describeDriveError(err);
     return NextResponse.json(
-      { error: err?.message || "Erro ao restaurar backup do Google Drive." },
+      { error: friendlyError },
       { status: 500 }
     );
   }

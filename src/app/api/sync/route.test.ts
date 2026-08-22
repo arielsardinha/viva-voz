@@ -60,6 +60,41 @@ describe("Sync Route Handlers", () => {
     expect(data.file.id).toBe("drive_file_123");
   });
 
+  it("/api/sync/backup deve retornar mensagem amigável quando ocorrer erro de escopo 403", async () => {
+    (GoogleDriveServerService.uploadManifest as jest.Mock).mockRejectedValue(
+      new Error('Erro ao buscar arquivo no Google Drive: { "error": { "code": 403, "reason": "ACCESS_TOKEN_SCOPE_INSUFFICIENT" } }')
+    );
+
+    const validManifest = {
+      meta: {
+        version: "1.0.0",
+        appVersion: "0.1.0",
+        createdAt: Date.now(),
+        deviceId: "device_abc",
+      },
+      preferences: {
+        engine: "google",
+        voice: { google: "Kore" },
+        speed: "1.0",
+        lastReadingId: null,
+        disabledEngines: [],
+      },
+      readings: [],
+    };
+
+    const req = new Request("http://localhost:3000/api/sync/backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(validManifest),
+    });
+
+    const res = await backupPOST(req);
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toContain("Permissão necessária");
+    expect(data.error).not.toContain("{");
+  });
+
   it("/api/sync/restore deve retornar 404 se nenhum backup for encontrado", async () => {
     (GoogleDriveServerService.downloadManifest as jest.Mock).mockResolvedValue(null);
 

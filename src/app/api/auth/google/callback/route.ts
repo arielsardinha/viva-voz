@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   consumeOAuthStateCookie,
   setDriveSession,
+  clearDriveSession,
   DriveSessionData,
 } from "@/lib/sync/server/session-cookie.service";
 
@@ -76,8 +77,19 @@ export async function GET(request: Request) {
       access_token: string;
       refresh_token?: string;
       expires_in: number;
+      scope?: string;
       id_token?: string;
     };
+
+    // Validação estrita: O usuário deve ter marcado a opção de acesso ao Google Drive
+    const grantedScope = tokenData.scope || "";
+    if (!grantedScope.includes("drive.appdata")) {
+      console.warn(
+        `[GoogleDrive Auth] Permissão do Google Drive não concedida. Escopos recebidos: "${grantedScope}". Desconectando sessão e solicitando permissão...`
+      );
+      await clearDriveSession();
+      return NextResponse.redirect(`${baseUrl}/leituras?sync_error=permission_denied`);
+    }
 
     // Extrai o e-mail do usuário se id_token estiver presente
     let userEmail: string | undefined;

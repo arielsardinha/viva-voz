@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleDriveServerService } from "@/lib/sync/server/google-drive.service";
 import { SyncManifestSchema } from "@/lib/sync/domain/sync.types";
+import { describeDriveError } from "@/lib/sync/domain/drive-error-formatter";
 
 export async function POST(request: Request) {
   try {
@@ -22,8 +23,9 @@ export async function POST(request: Request) {
       timestamp: Date.now(),
     });
   } catch (err: any) {
+    const friendlyError = describeDriveError(err);
     return NextResponse.json(
-      { error: err?.message || "Erro interno ao realizar backup." },
+      { error: friendlyError },
       { status: 500 }
     );
   }

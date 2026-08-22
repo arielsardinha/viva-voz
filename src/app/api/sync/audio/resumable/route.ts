@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleDriveServerService } from "@/lib/sync/server/google-drive.service";
+import { describeDriveError } from "@/lib/sync/domain/drive-error-formatter";
 import { z } from "zod";
 
 const ResumableInitSchema = z.object({
@@ -30,8 +31,9 @@ export async function POST(request: Request) {
       uploadUrl,
     });
   } catch (err: any) {
+    const friendlyError = describeDriveError(err);
     return NextResponse.json(
-      { error: err?.message || "Erro ao inicializar sessão de upload de áudio." },
+      { error: friendlyError },
       { status: 500 }
     );
   }
