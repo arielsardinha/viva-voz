@@ -58,7 +58,7 @@ describe("AppHeader Component", () => {
 
     // Os outros botões principais devem estar presentes
     expect(
-      screen.getByRole("button", { name: /apoiar o desenvolvimento do vivavoz/i })
+      screen.getByRole("button", { name: /apoiar.*vivavoz/i })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /entrar em contato com o desenvolvedor/i })

@@ -1,4 +1,4 @@
-describe("Fluxo de Contribuição Voluntária & Apoio Pix / GitHub", () => {
+describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
   beforeEach(() => {
     cy.visit("/", {
       onBeforeLoad(win) {
@@ -17,12 +17,13 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix / GitHub", () => {
     });
   });
 
-  it("deve abrir o modal de apoio a partir do AppHeader e navegar entre as abas Pix e Desenvolvimento", () => {
+  it("deve abrir o modal de apoio a partir do AppHeader e exibir dados do Pix diretamente", () => {
     cy.get('[data-cy="support-project-btn"]').should("be.visible").click();
 
     cy.get('[role="dialog"][data-webmcp-tool="supportProject"]').should("be.visible");
-    cy.get('[role="tab"]').contains("Doação Pix").should("be.visible");
-    cy.get('[role="tab"]').contains("Desenvolvimento").should("be.visible");
+    cy.get('[role="tab"]').should("not.exist");
+    cy.contains("Desenvolvimento").should("not.exist");
+    cy.contains("Código Aberto & Comunidade").should("not.exist");
 
     cy.get('input[aria-label="Chave Pix Aleatória"]').should(
       "have.value",
@@ -45,51 +46,28 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix / GitHub", () => {
     cy.contains("Prefere escanear com a câmera? Ver QR Code").click({ force: true });
     cy.get('[data-testid="pix-qrcode-container"]').should("exist");
 
-    // Alterna para a aba 'Desenvolvimento'
-    cy.get('[role="tab"]').contains("Desenvolvimento").click();
-
-    // Valida conteúdo da aba Desenvolvimento
-    cy.contains("Código Aberto & Comunidade").should("be.visible");
-    cy.contains("Deixar uma Estrela (Star)").should("exist");
-    cy.contains("Sugerir Ideias & Recursos").should("exist");
-    cy.contains("Relatar Problemas").should("exist");
-    cy.contains("Contribuir com Código").should("exist");
-
-    cy.contains("Ver Repositório no GitHub")
-      .should("have.attr", "href", "https://github.com/arielsardinha/viva-voz")
-      .should("have.attr", "target", "_blank");
-
-    cy.get('input[aria-label="Link do Repositório no GitHub"]').should(
-      "have.value",
-      "https://github.com/arielsardinha/viva-voz"
-    );
-
     // Fecha o modal pelo botão 'Voltar ao início'
     cy.contains("Voltar ao início").click({ force: true });
     cy.get('[role="dialog"]').should("not.exist");
   });
 
-  it("deve carregar a página dedicada /apoiar com abas Pix e Desenvolvimento e links funcionais", () => {
+  it("deve carregar a página dedicada /apoiar diretamente com dados do Pix e link de retorno", () => {
     cy.visit("/apoiar");
     cy.get('main[data-webmcp-tool="supportProject"]').should("be.visible");
     cy.get("h1").should("contain.text", "Apoie o VivaVoz");
 
-    cy.get('[role="tab"]').contains("Doação Pix").should("be.visible");
-    cy.get('[role="tab"]').contains("Desenvolvimento").should("be.visible");
+    cy.get('[role="tab"]').should("not.exist");
+    cy.contains("Desenvolvimento").should("not.exist");
+    cy.contains("Código Aberto & Comunidade").should("not.exist");
 
     cy.get('input[aria-label="Chave Pix Aleatória"]').should(
       "have.value",
       "d1b12e3a-a8db-4164-a580-91b6a172e77a"
     );
 
-    // Alterna para a aba 'Desenvolvimento'
-    cy.get('[role="tab"]').contains("Desenvolvimento").click();
-    cy.contains("Código Aberto & Comunidade").should("be.visible");
-    cy.contains("Ver Repositório no GitHub")
-      .should("have.attr", "href", "https://github.com/arielsardinha/viva-voz");
-
     // Valida link de retorno ao leitor
     cy.contains("Voltar ao Leitor").should("be.visible").click();
     cy.location("pathname").should("eq", "/");
   });
 });
+

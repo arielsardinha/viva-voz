@@ -21,12 +21,13 @@ describe("SupportView Component", () => {
     jest.clearAllMocks();
   });
 
-  it("deve renderizar o título da página e os dados do Pix sem nome pessoal e sem texto redundante", async () => {
+  it("deve renderizar o título da página e os dados do Pix diretamente sem abas de desenvolvimento", async () => {
     render(<SupportView />);
 
     expect(screen.getByRole("heading", { name: /apoie o vivavoz/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /doação pix/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /desenvolvimento/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /desenvolvimento/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/código aberto & comunidade/i)).not.toBeInTheDocument();
 
     expect(screen.getByText(/consultas com ia/i)).toBeInTheDocument();
     expect(screen.getByText(/vozes neurais de estúdio/i)).toBeInTheDocument();
@@ -83,41 +84,5 @@ describe("SupportView Component", () => {
       );
     });
   });
-
-  it("deve permitir alternar para a aba 'Desenvolvimento' e interagir com as opções do GitHub", async () => {
-    render(<SupportView />);
-
-    const devTab = screen.getByRole("tab", { name: /desenvolvimento/i });
-    await act(async () => {
-      fireEvent.click(devTab);
-    });
-
-    expect(screen.getByText(/código aberto & comunidade/i)).toBeInTheDocument();
-    expect(screen.getByText(/deixar uma estrela \(star\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/sugerir ideias & recursos/i)).toBeInTheDocument();
-    expect(screen.getByText(/relatar problemas/i)).toBeInTheDocument();
-    expect(screen.getByText(/contribuir com código/i)).toBeInTheDocument();
-
-    const repoLink = screen.getByRole("link", { name: /repositório.*github/i });
-    expect(repoLink).toHaveAttribute("href", "https://github.com/arielsardinha/viva-voz");
-    expect(repoLink).toHaveAttribute("target", "_blank");
-    expect(repoLink).toHaveAttribute("rel", "noopener noreferrer");
-
-    expect(screen.getByLabelText(/link do repositório no github/i)).toHaveValue(
-      "https://github.com/arielsardinha/viva-voz"
-    );
-
-    const copyRepoBtn = screen.getByRole("button", { name: /copiar link do github/i });
-    await act(async () => {
-      fireEvent.click(copyRepoBtn);
-    });
-
-    await waitFor(() => {
-      expect(copyToClipboard).toHaveBeenCalledWith(
-        "https://github.com/arielsardinha/viva-voz",
-        expect.anything()
-      );
-      expect(toast.success).toHaveBeenCalledWith("Link do repositório no GitHub copiado!");
-    });
-  });
 });
+
