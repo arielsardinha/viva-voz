@@ -93,12 +93,14 @@ export function LibrarySidebar({
           <p>
             {documentCount} documento(s) salvos no navegador ({formatSize(totalBytes)}).
           </p>
-          <p className="flex items-center gap-1.5 text-foreground/90 font-medium">
-            <Sparkles className="size-3 text-accent shrink-0" />
-            <span>
-              Áudio em cache: {formatSize(audioCacheStats.totalBytes)} ({audioCacheStats.totalTracks} faixas)
-            </span>
-          </p>
+          {audioCacheStats.totalTracks > 0 && (
+            <p className="flex items-center gap-1.5 text-foreground/90 font-medium">
+              <Sparkles className="size-3 text-accent shrink-0" />
+              <span>
+                Áudio em cache: {formatSize(audioCacheStats.totalBytes)} ({audioCacheStats.totalTracks} faixas)
+              </span>
+            </p>
+          )}
         </div>
 
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -122,22 +124,20 @@ export function LibrarySidebar({
           />
         </div>
 
-        {/* Botão de Ação para Limpar Apenas o Cache de Áudio */}
-        <div className="pt-2 border-t border-border/50">
-          <button
-            type="button"
-            disabled={audioCacheStats.totalTracks === 0}
-            onClick={onClearAudioCache}
-            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-border bg-secondary/70 hover:bg-secondary text-[11px] font-semibold text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <VolumeX className="size-3.5 text-accent" aria-hidden="true" />
-            <span>
-              {audioCacheStats.totalTracks > 0
-                ? "Limpar Cache de Áudio"
-                : "Sem Cache de Áudio"}
-            </span>
-          </button>
-        </div>
+        {/* Botão de Ação para Limpar Apenas o Cache de Áudio (visível apenas quando há cache) */}
+        {audioCacheStats.totalTracks > 0 && (
+          <div className="pt-2 border-t border-border/50">
+            <button
+              type="button"
+              onClick={onClearAudioCache}
+              className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-border bg-secondary/70 hover:bg-secondary text-[11px] font-semibold text-foreground transition-colors cursor-pointer"
+            >
+              <VolumeX className="size-3.5 text-accent" aria-hidden="true" />
+              <span>Limpar Cache de Áudio</span>
+            </button>
+          </div>
+        )}
+
 
         {/* Seção da Chave Gemini (Google AI Studio) */}
         <div className="pt-2.5 border-t border-border/50 space-y-2">

@@ -1,10 +1,11 @@
 # SDD 03: Tier 3 — Multimodal e OCR (Imagens e Documentos Digitalizados)
 
-> **Status:** Proposto  
+> **Status:** Concluído / Implementado  
 > **Prioridade:** P2 (Fase 3)  
 > **Padrões Aplicados:** MVVM, Facade, Adapters, Builder & Strategy  
 > **Componentes Afetados:** `src/lib/parsers/`, `src/lib/ocr/`, `src/components/pdf-reader/`  
 > **Data:** Agosto de 2026  
+
 
 ---
 

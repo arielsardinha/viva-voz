@@ -32,6 +32,7 @@ const SUPPORTED_FORMAT_BADGES = [
   { label: "PPTX", color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
   { label: "TXT", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   { label: "MD", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
+  { label: "OCR (FOTO)", color: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20" },
   { label: "URL", color: "bg-sky-500/10 text-sky-500 border-sky-500/20" },
 ];
 
@@ -91,7 +92,7 @@ export function PdfDropzone({
           name="pdfFile"
           type="file"
           multiple
-          accept=".pdf,.epub,.docx,.odt,.pptx,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/markdown"
+          accept=".pdf,.epub,.docx,.odt,.pptx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/markdown,image/png,image/jpeg,image/webp,image/*"
           aria-label="Selecionar documento para leitura e narração"
           className="sr-only"
           onChange={(event) => handleFiles(event.target.files)}
@@ -112,8 +113,9 @@ export function PdfDropzone({
 
         <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-muted-foreground">
           {progress ??
-            "Converta livros, artigos e documentos (.pdf, .epub, .docx, .odt, .txt, .md) em leitura em voz alta com IA."}
+            "Converta livros, artigos, fotos e documentos (.pdf, .epub, .docx, .odt, .pptx, .txt, .md, .png, .jpg) em leitura em voz alta com IA."}
         </p>
+
 
         {/* Botões de Ação Principais */}
         <div className="mt-5 sm:mt-6 flex flex-wrap items-center justify-center gap-2.5">

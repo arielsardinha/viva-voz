@@ -139,5 +139,6 @@ agf submit <id> --result '{"arquivos":["x.ts"],"testes":{"passed":N,"failed":0},
 
 - **Tier 1 — Documentos Essenciais** ✅ **CONCLUÍDO** — `.txt`, `.md`, `.docx`, `.epub`, Quick Paste, PDF, adapter registry completo.
 - **Tier 2 — Web Reader e Apresentações** ✅ **CONCLUÍDO** — `.odt`, `.pptx`, `web-article.adapter`, `/api/extract-url`, `web-url-dialog`, `use-web-article-extractor` — todos implementados e testados.
-- **Tier 3 — Multimodal e OCR** ⏳ Pendente — Imagens, PDFs digitalizados, OCR (Tesseract / Gemini Vision).
+- **Tier 3 — Multimodal e OCR** ✅ **CONCLUÍDO** — Imagens (`.png`, `.jpg`, `.jpeg`, `.webp`), PDFs digitalizados, OCR híbrido (`TesseractOcrStrategy` / `GeminiVisionOcrStrategy`), `ImagePreprocessorService` e `ScannedPdfDetectorService`.
 <!-- agent-graph-flow:end -->
+

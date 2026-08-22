@@ -56,15 +56,18 @@ describe("GeminiKeyDialog Component", () => {
     ).toBeInTheDocument();
   });
 
-  it("deve abrir o modal ao clicar no botão de conexão", () => {
+  it("deve abrir o modal ao clicar no botão de conexão e exibir o card de benefícios", () => {
     const onChangeMock = jest.fn();
     render(<GeminiKeyDialog apiKey={null} onChange={onChangeMock} />);
 
     fireEvent.click(screen.getByRole("button", { name: /conectar chave gemini/i }));
 
     expect(
-      screen.getByText("Conectar conta do Gemini (Google AI Studio)")
+      screen.getByRole("heading", { name: /conectar conta do gemini/i })
     ).toBeInTheDocument();
+    expect(screen.getByText(/Leitura de Fotos & OCR Multimodal:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Narração Neural com Vozes Humanas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Assistente de Estudo e Chat Interativo:/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText("AIza...")).toBeInTheDocument();
   });
 
@@ -107,6 +110,6 @@ describe("GeminiKeyDialog Component", () => {
     const cancelBtn = screen.getByRole("button", { name: /cancelar/i });
     fireEvent.click(cancelBtn);
 
-    expect(screen.queryByText("Conectar conta do Gemini (Google AI Studio)")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("AIza...")).not.toBeInTheDocument();
   });
 });

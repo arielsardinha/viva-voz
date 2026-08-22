@@ -27,8 +27,10 @@ export const FORMAT_FILTER_TAGS = [
   "TXT",
   "MD",
   "WEB",
+  "OCR",
   "Notas",
 ] as const;
+
 
 export type FormatFilterTag = (typeof FORMAT_FILTER_TAGS)[number];
 

@@ -1,5 +1,8 @@
 import "fake-indexeddb/auto";
 import { DocumentProcessingFacade } from "./document-processing.facade";
+import { IOcrEngineStrategy } from "@/lib/ocr/ocr-strategy.interface";
+import { OcrDocumentAdapter } from "@/lib/parsers/ocr.adapter";
+import { AdapterRegistry } from "@/lib/parsers/adapter-registry";
 
 describe("DocumentProcessingFacade (GoF Facade Pattern)", () => {
   let facade: DocumentProcessingFacade;
@@ -21,6 +24,29 @@ describe("DocumentProcessingFacade (GoF Facade Pattern)", () => {
     const saved = await facade.getRepository().getById(doc.id);
     expect(saved).not.toBeNull();
     expect(saved?.id).toBe(doc.id);
+  });
+
+  it("deve processar e salvar imagem .png via OCR com sucesso", async () => {
+    const mockStrategy: IOcrEngineStrategy = {
+      engineType: "gemini-vision",
+      isAvailable: async () => true,
+      recognize: jest.fn().mockResolvedValue("Texto extraído da imagem com sucesso."),
+    };
+    const customRegistry = new AdapterRegistry([
+      new OcrDocumentAdapter({ defaultStrategy: mockStrategy }),
+    ]);
+    const customFacade = new DocumentProcessingFacade(customRegistry);
+
+    const imageFile = new File(["image-binary"], "anotacao.png", { type: "image/png" });
+    const doc = await customFacade.processAndSaveFile(imageFile);
+
+    expect(doc.metadata.title).toBe("anotacao");
+    expect(doc.metadata.format).toBe("ocr");
+    expect(doc.sentences.length).toBeGreaterThan(0);
+
+    const saved = await customFacade.getRepository().getById(doc.id);
+    expect(saved).not.toBeNull();
+    expect(saved?.metadata.format).toBe("ocr");
   });
 
   it("deve processar e salvar texto colado (Quick Paste)", async () => {
@@ -96,4 +122,3 @@ describe("DocumentProcessingFacade (GoF Facade Pattern)", () => {
     expect(fromDb?.sentences.length).toBe(2);
   });
 });
-

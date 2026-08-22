@@ -39,7 +39,6 @@ describe("LibrarySidebar", () => {
 
     it("deve exibir a contagem de documentos no botão Biblioteca", () => {
       render(<LibrarySidebar {...defaultProps} />);
-      // O badge de contagem fica dentro do botão; verificamos pelo texto
       expect(screen.getByText("5")).toBeInTheDocument();
     });
 
@@ -74,9 +73,14 @@ describe("LibrarySidebar", () => {
       expect(screen.getByText(/5 documento\(s\) salvos no navegador/i)).toBeInTheDocument();
     });
 
-    it("deve exibir informações de cache de áudio", () => {
+    it("deve exibir informações de cache de áudio quando há faixas", () => {
       render(<LibrarySidebar {...defaultProps} />);
       expect(screen.getByText(/3 faixas/i)).toBeInTheDocument();
+    });
+
+    it("não deve exibir informações de cache de áudio quando totalTracks for 0", () => {
+      render(<LibrarySidebar {...defaultProps} audioCacheStats={{ totalBytes: 0, totalTracks: 0 }} />);
+      expect(screen.queryByText(/áudio em cache/i)).not.toBeInTheDocument();
     });
 
     it("deve exibir o botão de sincronização Google Drive", () => {
@@ -91,11 +95,9 @@ describe("LibrarySidebar", () => {
       expect(screen.getByRole("button", { name: /limpar cache de áudio/i })).toBeInTheDocument();
     });
 
-    it("deve exibir 'Sem Cache de Áudio' e desabilitar o botão quando não há faixas", () => {
+    it("não deve exibir o botão de limpar cache de áudio quando não há faixas", () => {
       render(<LibrarySidebar {...defaultProps} audioCacheStats={{ totalBytes: 0, totalTracks: 0 }} />);
-      const btn = screen.getByRole("button", { name: /sem cache de áudio/i });
-      expect(btn).toBeInTheDocument();
-      expect(btn).toBeDisabled();
+      expect(screen.queryByRole("button", { name: /limpar cache de áudio/i })).not.toBeInTheDocument();
     });
 
     it("deve chamar onClearAudioCache ao clicar em limpar cache", () => {

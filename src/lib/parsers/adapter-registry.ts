@@ -6,6 +6,7 @@ import type { IDocumentParserAdapter } from "./adapter.interface";
 import { DocxDocumentAdapter } from "./docx.adapter";
 import { EpubDocumentAdapter } from "./epub.adapter";
 import { MdDocumentAdapter } from "./md.adapter";
+import { OcrDocumentAdapter } from "./ocr.adapter";
 import { OdtDocumentAdapter } from "./odt.adapter";
 import { PdfDocumentAdapter } from "./pdf.adapter";
 import { PptxDocumentAdapter } from "./pptx.adapter";
@@ -15,8 +16,12 @@ export class AdapterRegistry {
   private static instance: AdapterRegistry;
   private adapters: IDocumentParserAdapter[] = [];
 
-  private constructor() {
-    this.registerDefaultAdapters();
+  public constructor(adapters?: IDocumentParserAdapter[]) {
+    if (adapters && adapters.length > 0) {
+      this.adapters = [...adapters];
+    } else {
+      this.registerDefaultAdapters();
+    }
   }
 
   public static getInstance(): AdapterRegistry {
@@ -24,6 +29,10 @@ export class AdapterRegistry {
       AdapterRegistry.instance = new AdapterRegistry();
     }
     return AdapterRegistry.instance;
+  }
+
+  public static resetInstance(): void {
+    AdapterRegistry.instance = new AdapterRegistry();
   }
 
   private registerDefaultAdapters(): void {
@@ -34,6 +43,7 @@ export class AdapterRegistry {
     this.register(new PptxDocumentAdapter());
     this.register(new TxtDocumentAdapter());
     this.register(new MdDocumentAdapter());
+    this.register(new OcrDocumentAdapter());
   }
 
   /**
@@ -59,13 +69,26 @@ export class AdapterRegistry {
    * Retorna todas as extensões suportadas pelo catálogo ativo.
    */
   public getSupportedExtensions(): string[] {
-    return [".pdf", ".epub", ".docx", ".odt", ".pptx", ".txt", ".md", ".markdown"];
+    return [
+      ".pdf",
+      ".epub",
+      ".docx",
+      ".odt",
+      ".pptx",
+      ".txt",
+      ".md",
+      ".markdown",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".webp",
+    ];
   }
 
   /**
    * Retorna a string do atributo `accept` para inputs de arquivo HTML.
    */
   public getAcceptAttribute(): string {
-    return ".pdf,.epub,.docx,.odt,.pptx,.txt,.md,.markdown,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/markdown";
+    return ".pdf,.epub,.docx,.odt,.pptx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/markdown,image/png,image/jpeg,image/webp,image/*";
   }
 }
