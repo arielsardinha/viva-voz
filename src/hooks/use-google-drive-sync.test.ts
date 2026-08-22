@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useGoogleDriveSync } from "./use-google-drive-sync";
 import { SyncManifestBuilder } from "@/lib/sync/client/sync-manifest-builder";
 import { SyncMergerService } from "@/lib/sync/client/sync-merger.service";
@@ -207,5 +207,107 @@ describe("useGoogleDriveSync Hook", () => {
     expect(success).toBe(true);
     expect(result.current.syncPhase).toBe("completed");
     expect(SyncMergerService.merge).toHaveBeenCalled();
+  });
+
+  it("deve executar syncBidirectional com sucesso, mesclando dados remotos e subindo atualizações", async () => {
+    let backupCalled = false;
+    let restoreCalled = false;
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes("/api/auth/google/status")) {
+        return {
+          ok: true,
+          json: async () => ({ isConnected: true, email: "sync@test.com" }),
+        };
+      }
+      if (url.includes("/api/sync/restore")) {
+        restoreCalled = true;
+        return {
+          ok: true,
+          json: async () => ({
+            manifest: {
+              meta: { version: "1.0.0", appVersion: "0.1.0", createdAt: Date.now(), deviceId: "d1" },
+              preferences: { engine: "system", voice: {}, speed: "1", lastReadingId: null, disabledEngines: [] },
+              readings: [{ id: "doc1", title: "Doc Remoto" }],
+            },
+          }),
+        };
+      }
+      if (url.includes("/api/sync/backup")) {
+        backupCalled = true;
+        return {
+          ok: true,
+          json: async () => ({ success: true }),
+        };
+      }
+      return { ok: false, status: 404 };
+    });
+
+    const { result } = renderHook(() => useGoogleDriveSync());
+
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.syncBidirectional();
+    });
+
+    expect(success).toBe(true);
+    expect(restoreCalled).toBe(true);
+    expect(backupCalled).toBe(true);
+    expect(result.current.syncPhase).toBe("completed");
+    expect(SyncMergerService.merge).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
+  });
+
+  it("deve disparar syncBidirectional automaticamente ao detectar parâmetro sync=connected na URL", async () => {
+    window.history.pushState({}, "", "/?sync=connected");
+
+    let restoreCalled = false;
+    let backupCalled = false;
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes("/api/auth/google/status")) {
+        return {
+          ok: true,
+          json: async () => ({ isConnected: true, email: "oauth@test.com" }),
+        };
+      }
+      if (url.includes("/api/sync/restore")) {
+        restoreCalled = true;
+        return {
+          ok: true,
+          json: async () => ({
+            manifest: {
+              meta: { version: "1.0.0", appVersion: "0.1.0", createdAt: Date.now(), deviceId: "d1" },
+              preferences: { engine: "system", voice: {}, speed: "1", lastReadingId: null, disabledEngines: [] },
+              readings: [],
+            },
+          }),
+        };
+      }
+      if (url.includes("/api/sync/backup")) {
+        backupCalled = true;
+        return {
+          ok: true,
+          json: async () => ({ success: true }),
+        };
+      }
+      return { ok: false, status: 404 };
+    });
+
+    renderHook(() => useGoogleDriveSync());
+
+    await waitFor(() => {
+      expect(restoreCalled).toBe(true);
+      expect(backupCalled).toBe(true);
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringMatching(/Sincronização concluída!|Conta do Google conectada/i)
+      );
+    });
+
+    window.history.pushState({}, "", "/");
   });
 });

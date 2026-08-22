@@ -15,6 +15,7 @@ import type {
   ParsedDocument,
 } from "@/lib/domain/document.types";
 import { deleteAudioCacheByDocument, AUDIO_CACHE_STORE } from "@/lib/tts-audio-cache";
+import { notifyLibraryChanged } from "@/lib/sync/client/sync-events";
 
 const DB_NAME = "pdf-audio-library";
 const DB_VERSION = 3;
@@ -119,6 +120,7 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
     };
 
     await this.tx("readwrite", (store) => store.put(entity));
+    notifyLibraryChanged("save_document");
     return doc;
   }
 
@@ -228,6 +230,7 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
   public async delete(id: string): Promise<void> {
     await this.tx("readwrite", (store) => store.delete(id));
     void deleteAudioCacheByDocument(id);
+    notifyLibraryChanged("delete_document");
   }
 
   public async getPreferences(): Promise<Preferences> {
@@ -250,6 +253,7 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
   public async savePreferences(patch: Partial<Preferences>): Promise<Preferences> {
     const next = { ...(await this.getPreferences()), ...patch };
     await this.tx("readwrite", (store) => store.put(next, PREFS_KEY), PREFS_STORE);
+    notifyLibraryChanged("save_preferences");
     return next;
   }
 }

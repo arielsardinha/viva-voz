@@ -4,6 +4,7 @@
  */
 import { IndexedDbLibraryRepository } from "@/lib/repository/library.repository";
 import { READER_SETTINGS_STORAGE } from "@/context/reader-settings-context";
+import { notifyLibraryChanged, notifySettingsChanged } from "./sync-events";
 import type { DocumentFormat, ParsedDocument } from "@/lib/domain/document.types";
 import type { SyncManifest } from "../domain/sync.types";
 
@@ -35,6 +36,7 @@ export class SyncMergerService {
             READER_SETTINGS_STORAGE,
             JSON.stringify(remoteManifest.preferences.readerSettings)
           );
+          notifySettingsChanged(remoteManifest.preferences.readerSettings);
         } catch {}
       }
 
@@ -113,6 +115,10 @@ export class SyncMergerService {
           }
         }
       }
+    }
+
+    if (importedDocumentsCount > 0 || updatedDocumentsCount > 0 || preferencesUpdated) {
+      notifyLibraryChanged("sync_merge_complete");
     }
 
     return {

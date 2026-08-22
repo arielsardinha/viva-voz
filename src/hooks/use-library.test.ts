@@ -109,4 +109,33 @@ describe("useLibrary (ViewModel MVVM)", () => {
     expect(result.current.filteredDocuments.length).toBe(1);
     expect(result.current.filteredDocuments[0].id).toBe("lib-1");
   });
+
+  it("deve recarregar documentos reativamente ao receber evento de biblioteca alterada", async () => {
+    const { result } = renderHook(() => useLibrary(facade));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.documents.length).toBe(3);
+
+    // Salva um quarto documento diretamente no repositório
+    const doc4 = new ParsedDocumentBuilder()
+      .setId("lib-4")
+      .setTitle("Quarto Documento")
+      .setFormat("txt")
+      .addSentence("Texto quatro.")
+      .build();
+
+    await facade.getRepository().save(doc4);
+
+    // O repositório já dispara notifyLibraryChanged no save, mas vamos garantir o teste do ciclo de evento
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("vivavoz:library-changed", { detail: { reason: "sync" } }));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    expect(result.current.documents.length).toBe(4);
+    expect(result.current.documents.some((d) => d.id === "lib-4")).toBe(true);
+  });
 });

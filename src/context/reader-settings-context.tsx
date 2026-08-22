@@ -190,7 +190,7 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
     [patchSettings]
   );
 
-  // Escuta alterações no localStorage em outras abas
+  // Escuta alterações no localStorage em outras abas ou disparadas por eventos de sincronização
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === READER_SETTINGS_STORAGE && e.newValue) {
@@ -207,8 +207,25 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
       }
     };
 
+    const handleCustomSettingsChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ settings?: Partial<ReaderSettings> }>;
+      if (customEvent.detail?.settings) {
+        setSettings((curr) => {
+          const next = { ...curr, ...customEvent.detail.settings };
+          if (next.theme) {
+            applyThemeToDocument(next.theme);
+          }
+          return next;
+        });
+      }
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("vivavoz:settings-changed", handleCustomSettingsChange);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("vivavoz:settings-changed", handleCustomSettingsChange);
+    };
   }, []);
 
   return (

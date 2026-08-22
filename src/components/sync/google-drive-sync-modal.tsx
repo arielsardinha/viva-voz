@@ -12,6 +12,7 @@ import {
   AlertCircle,
   FolderLock,
   Volume2,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -46,6 +47,7 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
     disconnect,
     backupNow,
     restoreNow,
+    syncBidirectional,
   } = useGoogleDriveSync();
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -60,6 +62,8 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
 
   const getPhaseDescription = () => {
     switch (syncPhase) {
+      case "checking":
+        return "Verificando dados na nuvem e no dispositivo...";
       case "building":
         return "Coletando leituras e preferências locais...";
       case "uploading_manifest":
@@ -178,70 +182,84 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
             )}
           </div>
 
-          <DialogFooter className="shrink-0 flex-col sm:flex-row gap-2 pt-2 border-t border-border/80">
+          <DialogFooter className="shrink-0 flex-col gap-2 pt-2 border-t border-border/80">
             {!status.isConnected ? (
               <Button
                 type="button"
                 onClick={connect}
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-accent to-indigo-600 text-accent-foreground font-bold shadow-md shadow-accent/20 hover:opacity-95"
+                className="w-full bg-gradient-to-r from-accent to-indigo-600 text-accent-foreground font-bold shadow-md shadow-accent/20 hover:opacity-95 cursor-pointer"
               >
                 <Cloud className="size-4 mr-2" />
                 Conectar com Google
               </Button>
             ) : (
-              <div className="w-full flex flex-col sm:flex-row gap-2">
+              <div className="w-full flex flex-col gap-2">
+                {/* Botão de Ação Primária: Sincronização Inteligente Completa */}
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => restoreNow()}
+                  onClick={() => syncBidirectional()}
                   disabled={isSyncing}
-                  className="flex-1 text-xs font-semibold"
-                >
-                  <CloudDownload className="size-3.5 mr-1.5 text-accent" />
-                  Restaurar
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={() => backupNow()}
-                  disabled={isSyncing}
-                  className="flex-1 text-xs font-bold bg-accent text-accent-foreground shadow-xs hover:bg-accent/90"
+                  className="w-full text-xs sm:text-sm font-bold bg-accent text-accent-foreground shadow-md shadow-accent/25 hover:bg-accent/90 cursor-pointer"
                 >
                   {isSyncing ? (
-                    <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                    <Loader2 className="size-4 mr-2 animate-spin" />
                   ) : (
-                    <CloudUpload className="size-3.5 mr-1.5" />
+                    <RefreshCw className="size-4 mr-2" />
                   )}
-                  Fazer Backup
+                  Sincronizar Agora (Enviar & Receber)
                 </Button>
 
-                {confirmDisconnect ? (
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      disconnect();
-                      setConfirmDisconnect(false);
-                    }}
-                    className="text-xs"
+                    variant="outline"
+                    onClick={() => restoreNow()}
+                    disabled={isSyncing}
+                    className="flex-1 text-xs font-semibold cursor-pointer"
                   >
-                    Confirmar Saída
+                    <CloudDownload className="size-3.5 mr-1.5 text-accent" />
+                    Apenas Baixar
                   </Button>
-                ) : (
+
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setConfirmDisconnect(true)}
-                    title="Desconectar do Google Drive"
-                    aria-label="Desconectar do Google Drive"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    variant="outline"
+                    onClick={() => backupNow()}
+                    disabled={isSyncing}
+                    className="flex-1 text-xs font-semibold cursor-pointer"
                   >
-                    <LogOut className="size-4" />
+                    <CloudUpload className="size-3.5 mr-1.5 text-accent" />
+                    Apenas Enviar
                   </Button>
-                )}
+
+                  {confirmDisconnect ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        disconnect();
+                        setConfirmDisconnect(false);
+                      }}
+                      className="text-xs shrink-0 cursor-pointer"
+                    >
+                      Confirmar
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setConfirmDisconnect(true)}
+                      title="Desconectar do Google Drive"
+                      aria-label="Desconectar do Google Drive"
+                      className="shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
+                    >
+                      <LogOut className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </DialogFooter>

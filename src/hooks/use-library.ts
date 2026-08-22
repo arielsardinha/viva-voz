@@ -12,6 +12,11 @@ import {
   type AudioCacheStats,
 } from "@/lib/tts-audio-cache";
 
+import {
+  VIVAVOZ_LIBRARY_CHANGED_EVENT,
+  VIVAVOZ_SYNC_COMPLETED_EVENT,
+} from "@/lib/sync/client/sync-events";
+
 export const FORMAT_FILTER_TAGS = [
   "Todos",
   "PDF",
@@ -63,6 +68,22 @@ export function useLibrary(facade: DocumentProcessingFacade = DocumentProcessing
     } catch {
       // Ignora erro de parse de localStorage
     }
+
+    const handleExternalLibraryChange = () => {
+      void refresh();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener(VIVAVOZ_LIBRARY_CHANGED_EVENT, handleExternalLibraryChange);
+      window.addEventListener(VIVAVOZ_SYNC_COMPLETED_EVENT, handleExternalLibraryChange);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(VIVAVOZ_LIBRARY_CHANGED_EVENT, handleExternalLibraryChange);
+        window.removeEventListener(VIVAVOZ_SYNC_COMPLETED_EVENT, handleExternalLibraryChange);
+      }
+    };
   }, [refresh]);
 
   const toggleFavorite = useCallback((id: string) => {

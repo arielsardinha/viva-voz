@@ -8,6 +8,25 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/leituras",
 }));
 
+jest.mock("@/hooks/use-google-drive-sync", () => ({
+  useGoogleDriveSync: () => ({
+    status: { isConnected: false },
+    isLoading: false,
+    isSyncing: false,
+    syncPhase: "idle",
+    progress: 0,
+    errorMessage: null,
+    showPermissionModal: false,
+    setShowPermissionModal: jest.fn(),
+    checkStatus: jest.fn(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    backupNow: jest.fn(),
+    restoreNow: jest.fn(),
+    syncBidirectional: jest.fn(),
+  }),
+}));
+
 describe("Library Component", () => {
   const mockReading1: Reading = {
     id: "r1",
