@@ -424,7 +424,14 @@ export function useTtsPlayer({
     [goTo],
   );
 
-  const seekTo = useCallback((index: number) => goTo(index), [goTo]);
+  const seekTo = useCallback(
+    (index: number) => {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      goTo(index);
+    },
+    [goTo],
+  );
 
   return {
     currentIndex,

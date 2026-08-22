@@ -219,6 +219,23 @@ export function PdfReader() {
     [player]
   );
 
+  const handleJumpToNoteSentence = useCallback(
+    (sentenceIndex: number) => {
+      player.seekTo(sentenceIndex);
+      if (typeof window !== "undefined") {
+        setTimeout(() => {
+          const el = document.querySelector<HTMLElement>(
+            `[data-sentence-index="${sentenceIndex}"]`
+          );
+          if (el && typeof el.scrollIntoView === "function") {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 50);
+      }
+    },
+    [player]
+  );
+
   const uploaderVM = useDocumentUploader({
     facade,
     onSuccess: (doc) => {
@@ -676,7 +693,7 @@ export function PdfReader() {
               open={notesDrawerOpen}
               onOpenChange={setNotesDrawerOpen}
               notes={docNotes.notes}
-              onSelectSentence={player.jumpTo}
+              onSelectSentence={handleJumpToNoteSentence}
               onEditNote={handleOpenNote}
               onDeleteNote={handleDeleteNote}
             />

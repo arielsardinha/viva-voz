@@ -126,6 +126,28 @@ describe("useTtsPlayer Hook", () => {
       expect(result.current.currentIndex).toBe(1);
       expect(result.current.isPlaying).toBe(false);
     });
+
+    it("deve atualizar posição e pausar reprodução se estiver tocando ao chamar seekTo", () => {
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "system",
+          voice: "",
+          speed: 1,
+        })
+      );
+
+      act(() => {
+        result.current.play();
+      });
+      expect(result.current.isPlaying).toBe(true);
+
+      act(() => {
+        result.current.seekTo(2);
+      });
+      expect(result.current.currentIndex).toBe(2);
+      expect(result.current.isPlaying).toBe(false);
+    });
   });
 
   describe("Motor de Narração do Sistema (SpeechSynthesis)", () => {
