@@ -37,13 +37,17 @@ declare global {
 function getLanguageModelApi(): ChromeAiLanguageModel | undefined {
   if (typeof window === "undefined") return undefined;
   
-  // 1. window.ai.languageModel (Spec atual do Chrome 128+)
+  // 1. window.LanguageModel (Spec Chrome 138+ / W3C Prompt API)
+  const winLangModel = (window as unknown as { LanguageModel?: ChromeAiLanguageModel }).LanguageModel;
+  if (winLangModel) return winLangModel;
+
+  // 2. window.ai.languageModel (Spec atual do Chrome 128+)
   if (window.ai?.languageModel) return window.ai.languageModel;
   
-  // 2. window.ai.assistant (Spec inicial do Chrome 127)
+  // 3. window.ai.assistant (Spec inicial do Chrome 127)
   if (window.ai?.assistant) return window.ai.assistant;
 
-  // 3. globalThis / self.ai
+  // 4. globalThis / self.ai
   const globalAi = (globalThis as unknown as { ai?: { languageModel?: ChromeAiLanguageModel; assistant?: ChromeAiLanguageModel } }).ai;
   if (globalAi?.languageModel) return globalAi.languageModel;
   if (globalAi?.assistant) return globalAi.assistant;
@@ -59,17 +63,22 @@ export async function checkChromeAiAvailability(): Promise<ChromeAiAvailability>
       return "no";
     }
 
+    // Suporte a api.availability() (Spec W3C mais recente / Chrome 130+)
+    const apiWithAvailability = api as unknown as { availability?: () => Promise<string> };
+    if (typeof apiWithAvailability.availability === "function") {
+      const avail = await apiWithAvailability.availability();
+      if (avail === "available" || avail === "readily") return "readily";
+      if (avail === "downloadable" || avail === "after-download") return "after-download";
+      return "no";
+    }
+
     // Suporte a api.capabilities() (Chrome 127/128/129)
     if (typeof api.capabilities === "function") {
       const caps = await api.capabilities();
-      return caps?.available ?? "no";
-    }
-
-    // Suporte a api.availability() (Spec W3C mais recente / Chrome 130+)
-    const apiWithAvailability = api as unknown as { availability?: () => Promise<ChromeAiAvailability> };
-    if (typeof apiWithAvailability.availability === "function") {
-      const avail = await apiWithAvailability.availability();
-      return avail ?? "no";
+      const status = caps?.available as string;
+      if (status === "available" || status === "readily") return "readily";
+      if (status === "downloadable" || status === "after-download") return "after-download";
+      return "no";
     }
 
     // Se possui create mas sem método de checagem explícito

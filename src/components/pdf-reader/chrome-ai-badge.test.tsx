@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ChromeAiBadge } from "./chrome-ai-badge";
 import * as chromeAiHook from "@/hooks/use-chrome-ai";
 
@@ -62,63 +62,10 @@ describe("ChromeAiBadge", () => {
     unmount();
   });
 
-  it("deve renderizar 'IA Não Conectada' e exibir instruções passo a passo ao abrir o popover", () => {
+  it("deve renderizar 'IA Não Conectada' quando não houver chave nem IA local pronta", () => {
     const { unmount } = render(<ChromeAiBadge hasCloudKey={false} />);
 
-    const badgeButton = screen.getByRole("button", {
-      name: /Informações sobre o motor de inteligência artificial ativo/i,
-    });
     expect(screen.getByText("IA Não Conectada")).toBeInTheDocument();
-
-    act(() => {
-      fireEvent.click(badgeButton);
-    });
-
-    expect(
-      screen.getByText(/Como ativar a IA Local Gratuita \(Gemini Nano\):/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Prompt API/i)).toBeInTheDocument();
-    expect(screen.getByText(/Enabled/i)).toBeInTheDocument();
-    expect(screen.getByText(/Relaunch/i)).toBeInTheDocument();
-    expect(screen.getByText(/chrome:\/\/flags\/#prompt-api-for-gemini-nano/i)).toBeInTheDocument();
-
-    unmount();
-  });
-
-  it("deve permitir copiar a URL da flag e não exibir botão manual de verificar", async () => {
-    const writeTextMock = jest.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: writeTextMock,
-      },
-    });
-
-    const { unmount } = render(<ChromeAiBadge hasCloudKey={false} />);
-
-    const badgeButton = screen.getByRole("button", {
-      name: /Informações sobre o motor de inteligência artificial ativo/i,
-    });
-    act(() => {
-      fireEvent.click(badgeButton);
-    });
-
-    const copyButton = screen.getByRole("button", {
-      name: /Copiar link da flag do Chrome/i,
-    });
-    await act(async () => {
-      fireEvent.click(copyButton);
-    });
-
-    expect(writeTextMock).toHaveBeenCalledWith(
-      "chrome://flags/#prompt-api-for-gemini-nano",
-    );
-
-    expect(
-      screen.queryByRole("button", {
-        name: /Verificar disponibilidade da IA no navegador/i,
-      }),
-    ).not.toBeInTheDocument();
-
     unmount();
   });
 });

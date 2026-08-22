@@ -16,7 +16,8 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { AIEngineBadge } from "@/components/ai/AIEngineBadge";
+import { GeminiKeyDialog } from "./gemini-key-dialog";
+import { ChromeAiBadge } from "./chrome-ai-badge";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
-  const { messages, sendPrompt, isLoading, status } = useFirebaseAI();
+  const { messages, sendPrompt, isLoading, status, activeEngine, apiKey, setApiKey } = useFirebaseAI();
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,7 +61,8 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
           <h2 className="text-sm font-semibold">Perguntar sobre o PDF</h2>
         </div>
         <div className="flex items-center gap-1.5">
-          <AIEngineBadge />
+          <ChromeAiBadge hasCloudKey={Boolean(apiKey)} activeEngine={activeEngine} />
+          <GeminiKeyDialog apiKey={apiKey} onChange={(k) => setApiKey(k || "")} compact />
         </div>
       </div>
 

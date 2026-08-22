@@ -25,7 +25,7 @@ import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highli
 import type { DocumentNote } from "@/lib/domain/document-note.types";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
-import { AIEngineBadge } from "@/components/ai/AIEngineBadge";
+import { ChromeAiBadge } from "../chrome-ai-badge";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
@@ -109,6 +109,7 @@ export function AIStudyTemplate({
     sendPrompt,
     isLoading: isLoadingAI,
     status,
+    activeEngine,
     apiKey,
     setApiKey,
   } = useFirebaseAI({ initialApiKey: propApiKey || undefined });
@@ -488,7 +489,8 @@ export function AIStudyTemplate({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <AIEngineBadge />
+            <ChromeAiBadge hasCloudKey={Boolean(apiKey)} activeEngine={activeEngine} />
+            <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
           </div>
         </div>
 

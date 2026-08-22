@@ -24,9 +24,6 @@ import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
 import { SupportDialog } from "./support-dialog";
 import { GoogleDriveSyncButton } from "@/components/sync/google-drive-sync-button";
 import { PwaInstallButton } from "@/components/pwa/pwa-install-button";
-import { AIEngineBadge } from "@/components/ai/AIEngineBadge";
-import { AIEngineModal } from "@/components/ai/AIEngineModal";
-import { useFirebaseAI } from "@/hooks/useFirebaseAI";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,9 +46,6 @@ export function AppHeader() {
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-
-  const { activeEngine, isOnline, onDeviceStatus } = useFirebaseAI();
 
   const { settings, setTheme, openOnboarding, isInitialized } = useReaderSettings();
 
@@ -159,11 +153,6 @@ export function AppHeader() {
           {/* Botão de Sincronização e Backup no Google Drive */}
           <GoogleDriveSyncButton hideWhenConnected={true} />
 
-          {/* Motor de IA Híbrida (Gemini Nano / Vertex AI) (Desktop) */}
-          <div className="hidden sm:flex items-center">
-            <AIEngineBadge />
-          </div>
-
           {/* Botão de Instalação PWA (Desktop) */}
           <div className="hidden md:flex items-center">
             <PwaInstallButton variant="default" />
@@ -189,13 +178,6 @@ export function AppHeader() {
             open={geminiDialogOpen}
             onOpenChange={setGeminiDialogOpen}
             trigger={<span className="hidden" />}
-          />
-          <AIEngineModal
-            open={aiModalOpen}
-            onOpenChange={setAiModalOpen}
-            activeEngine={activeEngine}
-            isOnline={isOnline}
-            onDeviceStatus={onDeviceStatus}
           />
 
           {/* Botão de Contribuição Voluntária Pix (Desktop) */}
@@ -401,16 +383,6 @@ export function AppHeader() {
                 >
                   <MessageSquarePlus className="size-4 text-accent" aria-hidden="true" />
                   <span>Falar com o Desenvolvedor</span>
-                </DropdownMenuItem>
-
-                {/* Motor de IA Híbrida (Firebase AI Logic) */}
-                <DropdownMenuItem
-                  data-cy="mobile-ai-engine-item"
-                  onClick={() => setAiModalOpen(true)}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-foreground hover:bg-secondary py-2 px-2.5"
-                >
-                  <Cpu className="size-4 text-primary" aria-hidden="true" />
-                  <span>Motor de IA Híbrida</span>
                 </DropdownMenuItem>
 
                 {/* Chave Gemini */}
