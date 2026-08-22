@@ -20,6 +20,9 @@ describe("useGoogleDriveSync Hook", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    if (typeof window !== "undefined") {
+      window.sessionStorage.clear();
+    }
     (SyncManifestBuilder.build as jest.Mock).mockResolvedValue({
       meta: { version: "1.0.0", appVersion: "0.1.0", createdAt: Date.now(), deviceId: "d1" },
       preferences: {
@@ -310,4 +313,79 @@ describe("useGoogleDriveSync Hook", () => {
 
     window.history.pushState({}, "", "/");
   });
+
+  it("deve carregar instantaneamente o status do sessionStorage sem loading ou fetch desnecessário", async () => {
+    window.sessionStorage.setItem(
+      "vivavoz_gdrive_auth_status",
+      JSON.stringify({ isConnected: true, email: "cached@sessao.com" })
+    );
+
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock;
+
+    const { result } = renderHook(() => useGoogleDriveSync());
+
+    expect(result.current.status.isConnected).toBe(true);
+    expect(result.current.status.email).toBe("cached@sessao.com");
+    expect(result.current.isLoading).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("deve atualizar o sessionStorage quando checkStatus(true) for chamado forçadamente", async () => {
+    window.sessionStorage.setItem(
+      "vivavoz_gdrive_auth_status",
+      JSON.stringify({ isConnected: false })
+    );
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes("/api/auth/google/status")) {
+        return {
+          ok: true,
+          json: async () => ({ isConnected: true, email: "forcado@teste.com" }),
+        };
+      }
+      return { ok: false, status: 404 };
+    });
+
+    const { result } = renderHook(() => useGoogleDriveSync());
+
+    await act(async () => {
+      await result.current.checkStatus(true);
+    });
+
+    expect(result.current.status.isConnected).toBe(true);
+    expect(result.current.status.email).toBe("forcado@teste.com");
+
+    const saved = JSON.parse(window.sessionStorage.getItem("vivavoz_gdrive_auth_status") || "{}");
+    expect(saved.isConnected).toBe(true);
+    expect(saved.email).toBe("forcado@teste.com");
+  });
+
+  it("deve atualizar o sessionStorage para desconectado ao executar disconnect()", async () => {
+    window.sessionStorage.setItem(
+      "vivavoz_gdrive_auth_status",
+      JSON.stringify({ isConnected: true, email: "user@teste.com" })
+    );
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes("/api/auth/google/disconnect")) {
+        return {
+          ok: true,
+          json: async () => ({ success: true }),
+        };
+      }
+      return { ok: false, status: 404 };
+    });
+
+    const { result } = renderHook(() => useGoogleDriveSync());
+
+    await act(async () => {
+      await result.current.disconnect();
+    });
+
+    expect(result.current.status.isConnected).toBe(false);
+    const saved = JSON.parse(window.sessionStorage.getItem("vivavoz_gdrive_auth_status") || "{}");
+    expect(saved.isConnected).toBe(false);
+  });
 });
+

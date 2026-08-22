@@ -2,6 +2,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
   beforeEach(() => {
     cy.visit("/", {
       onBeforeLoad(win) {
+        win.sessionStorage.clear();
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
@@ -35,7 +36,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     cy.contains("Pasta Oculta e Isolada").should("be.visible");
   });
 
-  it("deve exibir status conectado e permitir realizar backup com feedback", () => {
+  it("não deve exibir o botão na tela de leitura quando conectado, mas deve exibir na Biblioteca e permitir backup", () => {
     cy.intercept("GET", "/api/auth/google/status", {
       statusCode: 200,
       body: {
@@ -54,11 +55,45 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
       },
     }).as("postBackup");
 
-    // Recarrega para capturar o mock de status conectado
-    cy.reload();
+    // Visita com a sessão do Google Drive conectada no sessionStorage
+    cy.visit("/", {
+      onBeforeLoad(win) {
+        win.sessionStorage.setItem(
+          "vivavoz_gdrive_auth_status",
+          JSON.stringify({
+            isConnected: true,
+            email: "usuario.leitor@gmail.com",
+            lastSyncTimestamp: 1700000000000,
+          })
+        );
+        win.localStorage.setItem(
+          "vivavoz-reader-settings",
+          JSON.stringify({
+            template: "modern",
+            theme: "light",
+            font: "inter",
+            fontSize: 16,
+            lineHeight: 1.8,
+            hasCompletedOnboarding: true,
+          })
+        );
+      },
+    });
     cy.get('header[data-hydrated="true"]').should("exist");
 
-    cy.get('[data-cy="google-drive-sync-btn"]').should("be.visible").click();
+
+    // Na tela de leitura, com status conectado, o botão no cabeçalho NÃO deve existir
+    cy.get('header [data-cy="google-drive-sync-btn"]').should("not.exist");
+
+    // Navega até a Biblioteca
+    cy.get('[data-cy="nav-link-library"]').click();
+    cy.location("pathname").should("eq", "/leituras");
+
+    // No cabeçalho da Biblioteca, com status conectado, o botão também NÃO deve existir (header consistente)
+    cy.get('header [data-cy="google-drive-sync-btn"]').should("not.exist");
+
+    // Na barra lateral da Biblioteca, o botão de sincronização está presente e acessível
+    cy.get('aside [data-cy="google-drive-sync-btn"]').should("be.visible").click();
     cy.get('[data-webmcp-tool="googleDriveSync"]').should("be.visible");
 
     cy.contains("Conectado").should("be.visible");

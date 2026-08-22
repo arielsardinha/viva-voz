@@ -150,7 +150,9 @@ export function AppHeader() {
           </nav>
 
           {/* Botão de Sincronização e Backup no Google Drive */}
-          <GoogleDriveSyncButton />
+          <GoogleDriveSyncButton hideWhenConnected={true} />
+
+
 
           {/* Botão de Instalação PWA */}
           <PwaInstallButton variant="default" />

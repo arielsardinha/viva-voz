@@ -11,15 +11,21 @@ interface GoogleDriveSyncButtonProps {
   className?: string;
   variant?: "ghost" | "outline" | "default" | "secondary";
   showLabel?: boolean;
+  hideWhenConnected?: boolean;
 }
 
 export function GoogleDriveSyncButton({
   className,
   variant = "ghost",
   showLabel = false,
+  hideWhenConnected = false,
 }: GoogleDriveSyncButtonProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const { status, isSyncing, isLoading } = useGoogleDriveSync();
+
+  if (hideWhenConnected && status.isConnected) {
+    return null;
+  }
 
   return (
     <>

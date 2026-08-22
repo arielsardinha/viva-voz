@@ -19,6 +19,33 @@ export type SyncPhase =
   | "completed"
   | "error";
 
+export const DRIVE_AUTH_STATUS_STORAGE_KEY = "vivavoz_gdrive_auth_status";
+
+export function getCachedDriveAuthStatus(): DriveAuthStatus | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(DRIVE_AUTH_STATUS_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as DriveAuthStatus;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedDriveAuthStatus(status: DriveAuthStatus): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(DRIVE_AUTH_STATUS_STORAGE_KEY, JSON.stringify(status));
+  } catch {}
+}
+
+export function clearCachedDriveAuthStatus(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(DRIVE_AUTH_STATUS_STORAGE_KEY);
+  } catch {}
+}
+
 export interface UseGoogleDriveSyncReturn {
   status: DriveAuthStatus;
   isLoading: boolean;
@@ -28,7 +55,7 @@ export interface UseGoogleDriveSyncReturn {
   errorMessage: string | null;
   showPermissionModal: boolean;
   setShowPermissionModal: (open: boolean) => void;
-  checkStatus: () => Promise<DriveAuthStatus>;
+  checkStatus: (force?: boolean) => Promise<DriveAuthStatus>;
   connect: () => void;
   disconnect: () => Promise<void>;
   backupNow: () => Promise<boolean>;
@@ -38,8 +65,14 @@ export interface UseGoogleDriveSyncReturn {
 
 export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   const isMountedRef = useRef(true);
-  const [status, setStatus] = useState<DriveAuthStatus>({ isConnected: false });
-  const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState<DriveAuthStatus>(() => {
+    const cached = getCachedDriveAuthStatus();
+    return cached ?? { isConnected: false };
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const cached = getCachedDriveAuthStatus();
+    return cached === null;
+  });
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncPhase, setSyncPhase] = useState<SyncPhase>("idle");
   const [progress, setProgress] = useState(0);
@@ -81,27 +114,40 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     };
   }, []);
 
-  const checkStatus = useCallback(async (): Promise<DriveAuthStatus> => {
+  const checkStatus = useCallback(async (force: boolean = false): Promise<DriveAuthStatus> => {
+    if (!force) {
+      const cached = getCachedDriveAuthStatus();
+      if (cached !== null) {
+        safeSetStatus(cached);
+        safeSetIsLoading(false);
+        return cached;
+      }
+    }
+
     try {
       safeSetIsLoading(true);
       const res = await fetch("/api/auth/google/status", { cache: "no-store" });
       if (res.ok) {
         const data = (await res.json()) as DriveAuthStatus;
+        setCachedDriveAuthStatus(data);
         safeSetStatus(data);
         return data;
       } else {
         const data = { isConnected: false };
+        setCachedDriveAuthStatus(data);
         safeSetStatus(data);
         return data;
       }
     } catch {
       const data = { isConnected: false };
+      setCachedDriveAuthStatus(data);
       safeSetStatus(data);
       return data;
     } finally {
       safeSetIsLoading(false);
     }
   }, [safeSetIsLoading, safeSetStatus]);
+
 
   const syncBidirectional = useCallback(async (isAutoOnConnect: boolean = false): Promise<boolean> => {
     try {
@@ -228,6 +274,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         try {
           await fetch("/api/auth/google/disconnect", { method: "POST" });
         } catch {}
+        setCachedDriveAuthStatus({ isConnected: false });
         safeSetStatus({ isConnected: false });
         safeSetShowPermissionModal(true);
       } else {
@@ -272,6 +319,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
           const isPermission = syncError === "permission_denied" || /permission|scope/i.test(syncError);
           const friendlyMsg = describeDriveError(syncError);
           if (isMounted) {
+            setCachedDriveAuthStatus({ isConnected: false });
             safeSetErrorMessage(friendlyMsg);
             safeSetStatus({ isConnected: false });
             if (isPermission) {
@@ -287,9 +335,11 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         }
       }
 
-      // 2. Se não foi redirecionamento OAuth, apenas verifica status normal
+      // 2. Se não foi redirecionamento OAuth, apenas verifica se não houver cache no sessionStorage
       if (isMounted) {
-        await checkStatus();
+        if (getCachedDriveAuthStatus() === null) {
+          await checkStatus(false);
+        }
       }
     };
 
@@ -309,6 +359,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       safeSetIsLoading(true);
       const res = await fetch("/api/auth/google/disconnect", { method: "POST" });
       if (res.ok) {
+        setCachedDriveAuthStatus({ isConnected: false });
         safeSetStatus({ isConnected: false });
         safeSetErrorMessage(null);
         toast.success("Google Drive desconectado com sucesso.");
@@ -394,7 +445,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       safeSetProgress(100);
       safeSetSyncPhase("completed");
       toast.success("Backup no Google Drive concluído com sucesso!");
-      await checkStatus();
+      await checkStatus(true);
       return true;
     } catch (err: any) {
       const rawMsg = err?.message || String(err || "");
@@ -405,6 +456,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         try {
           await fetch("/api/auth/google/disconnect", { method: "POST" });
         } catch {}
+        setCachedDriveAuthStatus({ isConnected: false });
         safeSetStatus({ isConnected: false });
         safeSetShowPermissionModal(true);
       } else {
@@ -485,6 +537,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
         try {
           await fetch("/api/auth/google/disconnect", { method: "POST" });
         } catch {}
+        setCachedDriveAuthStatus({ isConnected: false });
         safeSetStatus({ isConnected: false });
         safeSetShowPermissionModal(true);
       } else {

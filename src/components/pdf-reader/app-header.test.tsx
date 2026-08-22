@@ -9,28 +9,31 @@ jest.mock("next/navigation", () => ({
   usePathname: () => mockUsePathname(),
 }));
 
+const mockUseGoogleDriveSync = jest.fn();
 jest.mock("@/hooks/use-google-drive-sync", () => ({
-  useGoogleDriveSync: () => ({
-    status: { isConnected: false },
-    isLoading: false,
-    isSyncing: false,
-    syncPhase: "idle",
-    progress: 0,
-    errorMessage: null,
-    showPermissionModal: false,
-    setShowPermissionModal: jest.fn(),
-    checkStatus: jest.fn(),
-    connect: jest.fn(),
-    disconnect: jest.fn(),
-    backupNow: jest.fn(),
-    restoreNow: jest.fn(),
-    syncBidirectional: jest.fn(),
-  }),
+  useGoogleDriveSync: () => mockUseGoogleDriveSync(),
 }));
+
 
 describe("AppHeader Component", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/");
+    mockUseGoogleDriveSync.mockReturnValue({
+      status: { isConnected: false },
+      isLoading: false,
+      isSyncing: false,
+      syncPhase: "idle",
+      progress: 0,
+      errorMessage: null,
+      showPermissionModal: false,
+      setShowPermissionModal: jest.fn(),
+      checkStatus: jest.fn(),
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+      backupNow: jest.fn(),
+      restoreNow: jest.fn(),
+      syncBidirectional: jest.fn(),
+    });
     localStorage.clear();
     localStorage.setItem(
       "vivavoz-reader-settings",
@@ -162,5 +165,44 @@ describe("AppHeader Component", () => {
 
     expect(localStorage.getItem("vivavoz-reader-settings")).toContain('"theme":"sepia"');
   });
+
+  it("deve exibir o botão de sincronização Google Drive no cabeçalho quando desconectado (em / e /leituras)", () => {
+    mockUsePathname.mockReturnValue("/leituras");
+    mockUseGoogleDriveSync.mockReturnValue({
+      status: { isConnected: false },
+      isLoading: false,
+      isSyncing: false,
+    });
+
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    expect(
+      screen.getByRole("button", { name: /backup e sincronização no google drive/i })
+    ).toBeInTheDocument();
+  });
+
+  it("NÃO deve exibir o botão de sincronização Google Drive no cabeçalho quando já estiver conectado (em / e /leituras)", () => {
+    mockUsePathname.mockReturnValue("/leituras");
+    mockUseGoogleDriveSync.mockReturnValue({
+      status: { isConnected: true, email: "user@test.com" },
+      isLoading: false,
+      isSyncing: false,
+    });
+
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /backup e sincronização no google drive/i })
+    ).not.toBeInTheDocument();
+  });
 });
+
 
