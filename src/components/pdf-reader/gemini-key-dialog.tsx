@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ExternalLink, Mic, Sparkle, Sparkles } from "lucide-react";
+import { ExternalLink, Sparkle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -151,7 +151,7 @@ export function GeminiKeyDialog({
         <DialogHeader>
           <DialogTitle id="gemini-dialog-title">Conectar conta do Gemini (Google AI Studio)</DialogTitle>
           <DialogDescription id="gemini-dialog-desc">
-            Siga os 3 passos abaixo para conectar sua chave do Google AI Studio (gratuita ou paga) — a chave habilita tanto a narração com <strong>Vozes Neurais (TTS)</strong> quanto o <strong>Assistente de Estudo</strong> e fica salva apenas neste navegador.
+            Siga os 3 passos abaixo para conectar sua chave do Google AI Studio (gratuita ou paga) — a chave habilita tanto a narração com <strong>Vozes Neurais (TTS)</strong> quanto o <strong>Assistente de Estudo</strong> e fica salva com segurança em cookie HttpOnly.
           </DialogDescription>
         </DialogHeader>
 
@@ -221,22 +221,14 @@ export function GeminiKeyDialog({
             autoComplete="off"
           />
 
-          <DialogFooter className="gap-2 sm:justify-between pt-2">
-            {hasKey ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  onChange(null);
-                  setOpen(false);
-                  toast.success("Conta Gemini desconectada.");
-                }}
-              >
-                Desconectar
-              </Button>
-            ) : (
-              <span />
-            )}
+          <DialogFooter className="gap-2 sm:justify-end pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancelar
+            </Button>
             <Button type="submit" data-cy="gemini-key-save-btn">
               Salvar chave
             </Button>

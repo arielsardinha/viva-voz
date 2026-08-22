@@ -82,4 +82,35 @@ describe("FloatingAudioDock Component", () => {
 
     expect(screen.getByText("Conectar conta do Gemini (Google AI Studio)")).toBeInTheDocument();
   });
+
+  it("NÃO deve renderizar botões de conexão de IA nem 'Gerenciar chave Gemini' quando já conectado", () => {
+    render(
+      <FloatingAudioDock
+        isPlaying={false}
+        isBuffering={false}
+        currentIndex={0}
+        total={10}
+        title="Documento de Teste"
+        currentPage={1}
+        voice="Kore"
+        speed="1"
+        engine="google"
+        voices={mockVoices}
+        disabledEngines={[]}
+        apiKey="AIzaSyTestValidKey12345"
+        onApiKeyChange={onApiKeyChangeMock}
+        onEngineChange={onEngineChangeMock}
+        onToggle={onToggleMock}
+        onPrevious={onPreviousMock}
+        onNext={onNextMock}
+        onRestart={onRestartMock}
+        onVoiceChange={onVoiceChangeMock}
+        onSpeedChange={onSpeedChangeMock}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /conectar som com ia/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Gerenciar chave Gemini/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Conectar chave Gemini/i)).not.toBeInTheDocument();
+  });
 });

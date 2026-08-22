@@ -1,6 +1,6 @@
 describe("AI Engine & Study Assistant E2E", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leituras", {
       onBeforeLoad(win) {
         win.localStorage.clear();
         win.localStorage.setItem(
@@ -19,41 +19,38 @@ describe("AI Engine & Study Assistant E2E", () => {
     cy.get('header[data-hydrated="true"]').should("exist");
   });
 
-  it("NÃO deve renderizar o botão 'Configurar IA' no cabeçalho e deve permitir configurar chave na aba AI Study", () => {
-    // 1. Garante que o botão 'Configurar IA' foi removido do cabeçalho
-    cy.get("header").find('[data-cy="ai-engine-badge"]').should("not.exist");
+  it("deve gerenciar ciclo de vida da chave Gemini: conectar, salvar cookie e desconectar no Armazenamento Local", () => {
+    // 1. No Armazenamento Local em /leituras, valida status inicial Inativa
+    cy.contains("Chave Gemini (IA)").should("be.visible");
+    cy.contains("Inativa").should("be.visible");
+    cy.get('[data-cy="connect-gemini-key-btn"]').should("be.visible").click();
 
-    // 2. Carrega um texto rápido para abrir o template AI Study
-    cy.get('[data-cy="quick-paste-btn"]').first().click({ force: true });
-    cy.get('[data-cy="quick-paste-title-input"]', { timeout: 8000 })
-      .should("be.visible")
-      .and("not.be.disabled")
-      .type("Documento de Estudo IA");
-    cy.get('[data-cy="quick-paste-content-textarea"]').should("not.be.disabled").type("Este é o texto de teste para análise com IA.");
-    cy.get('[data-cy="quick-paste-submit-btn"]').click();
-
-    // 3. Na aba AI Study Assistant, valida presença do status badge e botão de chave com instruções
-    cy.get('[data-cy="chrome-ai-badge-btn"]').should("be.visible");
-    cy.get('[data-cy="gemini-key-trigger"]').filter(':visible').first().click({ force: true });
-
-    // 4. Valida modal com instruções e título
+    // 2. Valida modal com instruções e campos WebMCP
     cy.contains("Conectar conta do Gemini (Google AI Studio)").should("be.visible");
     cy.get('[data-cy="gemini-key-input"]').should("be.visible");
 
-    // 5. Salva chave de API
+    // 3. Salva chave de API via Server Action
     cy.get('[data-cy="gemini-key-input"]').clear().type("AIzaSyTestValidVertexKey123");
     cy.get('[data-cy="gemini-key-save-btn"]').should("be.visible").click();
 
-    // 6. Valida que a chave foi persistida
-    cy.window().then((win) => {
-      expect(win.localStorage.getItem("gemini-api-key")).to.eq("AIzaSyTestValidVertexKey123");
-    });
+    // 4. Valida feedback de sucesso e atualização imediata do status no Armazenamento Local
+    cy.contains("Conta Gemini conectada").should("exist");
+    cy.contains("Conectada").should("be.visible");
+    cy.get('[data-cy="disconnect-gemini-key-btn"]').should("be.visible");
+
+    // 5. Clica em Desconectar no Armazenamento Local e confirma no popup
+    cy.get('[data-cy="disconnect-gemini-key-btn"]').click();
+    cy.contains("Desconectar Chave Gemini").should("be.visible");
+    cy.contains("Tem certeza que deseja desconectar sua chave de IA?").should("be.visible");
+    cy.contains("button", "Sim, Desconectar").click();
+
+    cy.contains("Conta Gemini desconectada").should("exist");
+    cy.contains("Inativa").should("be.visible");
+    cy.get('[data-cy="connect-gemini-key-btn"]').should("be.visible");
   });
 
   it("deve conter anotações semânticas e WebMCP acessíveis para agentes no formulário de chave", () => {
-    // Abre o diálogo da chave Gemini pelo menu de opções
-    cy.get("[data-cy='theme-dropdown-trigger']").first().click();
-    cy.get('[data-cy="gemini-key-trigger"]').filter(':visible').first().click({ force: true });
+    cy.get('[data-cy="connect-gemini-key-btn"]').should("be.visible").click();
 
     cy.get("form[data-webmcp-tool='configureGeminiApiKey']")
       .should("exist")
@@ -69,7 +66,7 @@ describe("AI Engine & Study Assistant E2E", () => {
 
   it("deve ser perfeitamente responsivo em mobile (370px) sem overflow horizontal", () => {
     cy.viewport(370, 667);
-    cy.visit("/", {
+    cy.visit("/leituras", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",

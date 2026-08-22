@@ -1,4 +1,9 @@
 import { describeAskError, handleAskRequest } from "./ask-handler";
+import * as cookieService from "@/lib/ai/server/gemini-cookie.service";
+
+jest.mock("@/lib/ai/server/gemini-cookie.service", () => ({
+  getGeminiKeyCookie: jest.fn(),
+}));
 
 jest.mock("@/lib/ai-gateway.server", () => ({
   createUserGeminiProvider: jest.fn().mockReturnValue(() => ({
@@ -55,8 +60,9 @@ describe("handleAskRequest", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.resetModules();
+    jest.clearAllMocks();
     process.env = { ...originalEnv };
+    (cookieService.getGeminiKeyCookie as jest.Mock).mockResolvedValue(null);
   });
 
   afterAll(() => {
@@ -86,7 +92,7 @@ describe("handleAskRequest", () => {
     expect(await response.text()).toBe("Mensagens obrigatórias");
   });
 
-  it("deve retornar status 400 se nenhuma chave de API for informada nem configurada no ambiente", async () => {
+  it("deve retornar status 400 se nenhuma chave de API for informada nem no cookie nem no body", async () => {
     const request = new Request("http://localhost/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -102,7 +108,26 @@ describe("handleAskRequest", () => {
     expect(body).toContain("Chave de API do Gemini não configurada");
   });
 
-  it("deve processar e retornar a resposta em stream quando a chave userApiKey for fornecida", async () => {
+  it("deve processar e retornar stream quando a chave estiver presente no cookie seguro HttpOnly", async () => {
+    (cookieService.getGeminiKeyCookie as jest.Mock).mockResolvedValue("cookie_key_valid_12345678");
+
+    const request = new Request("http://localhost/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "Qual o resumo?" }] }],
+        context: "Texto do documento.",
+        fileName: "artigo.pdf",
+        // sem userApiKey no body
+      }),
+    });
+
+    const response = await handleAskRequest(request);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("streamed response content");
+  });
+
+  it("deve processar e retornar a resposta em stream quando a chave userApiKey for fornecida no body", async () => {
     const request = new Request("http://localhost/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -119,7 +144,7 @@ describe("handleAskRequest", () => {
     expect(await response.text()).toBe("streamed response content");
   });
 
-  it("deve ignorar variáveis de ambiente no servidor e exigir userApiKey fornecida pelo usuário", async () => {
+  it("deve ignorar variáveis de ambiente no servidor e exigir chave do cookie ou userApiKey do usuário", async () => {
     process.env.GEMINI_API_KEY = "env_gemini_api_key_valid";
 
     const request = new Request("http://localhost/api/ask", {

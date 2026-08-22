@@ -33,31 +33,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useReaderSettings } from "@/context/reader-settings-context";
+import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "gemini-api-key";
 
 export function AppHeader() {
   const pathname = usePathname();
   const isReader = pathname === "/";
   const isLibrary = pathname === "/leituras";
 
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const { apiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
   const { settings, setTheme, openOnboarding, isInitialized } = useReaderSettings();
-
-  useEffect(() => {
-    setApiKey(window.localStorage.getItem(STORAGE_KEY));
-  }, []);
-
-  const updateApiKey = useCallback((key: string | null) => {
-    setApiKey(key);
-    if (key) window.localStorage.setItem(STORAGE_KEY, key);
-    else window.localStorage.removeItem(STORAGE_KEY);
-  }, []);
 
   const ThemeIcon =
     settings.theme === "dark"
@@ -274,14 +263,16 @@ export function AppHeader() {
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  data-cy="gemini-key-trigger"
-                  onClick={() => setGeminiDialogOpen(true)}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                  <Sparkles className="size-4 text-amber-500" aria-hidden="true" />
-                  <span>Configurar Chave Gemini</span>
-                </DropdownMenuItem>
+                {!hasApiKey && (
+                  <DropdownMenuItem
+                    data-cy="gemini-key-trigger"
+                    onClick={() => setGeminiDialogOpen(true)}
+                    className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    <Sparkles className="size-4 text-amber-500" aria-hidden="true" />
+                    <span>Conectar Chave Gemini</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   data-cy="reopen-tutorial-item"
                   onClick={() => openOnboarding()}
@@ -386,14 +377,16 @@ export function AppHeader() {
                 </DropdownMenuItem>
 
                 {/* Chave Gemini */}
-                <DropdownMenuItem
-                  data-cy="mobile-gemini-key-item"
-                  onClick={() => setGeminiDialogOpen(true)}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary py-2 px-2.5"
-                >
-                  <Sparkles className="size-4 text-amber-500" aria-hidden="true" />
-                  <span>Configurar Chave Gemini</span>
-                </DropdownMenuItem>
+                {!hasApiKey && (
+                  <DropdownMenuItem
+                    data-cy="mobile-gemini-key-item"
+                    onClick={() => setGeminiDialogOpen(true)}
+                    className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary py-2 px-2.5"
+                  >
+                    <Sparkles className="size-4 text-amber-500" aria-hidden="true" />
+                    <span>Conectar Chave Gemini</span>
+                  </DropdownMenuItem>
+                )}
 
                 {/* Tutorial / Preferências */}
                 <DropdownMenuItem

@@ -40,6 +40,17 @@ jest.mock("@ai-sdk/react", () => ({
   }),
 }));
 
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: null,
+    hasApiKey: false,
+    maskedKey: null,
+    isChecking: false,
+    updateApiKey: jest.fn(),
+    syncKey: jest.fn(),
+  }),
+}));
+
 import { ZenFocusTemplate } from "./zen-focus-template";
 import { ModernStudioTemplate } from "./modern-studio-template";
 import { AIStudyTemplate } from "./ai-study-template";

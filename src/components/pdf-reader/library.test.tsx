@@ -1,11 +1,32 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { Library } from "./library";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { saveReading, deleteReading, listReadings, type Reading } from "@/lib/library-db";
+import { toast } from "sonner";
+
+jest.mock("sonner", () => ({
+  toast: {
+    error: jest.fn(),
+    success: jest.fn(),
+    info: jest.fn(),
+  },
+}));
 
 jest.mock("next/navigation", () => ({
   usePathname: () => "/leituras",
+}));
+
+const mockUpdateApiKey = jest.fn();
+let mockGeminiApiState = {
+  hasApiKey: false,
+  maskedKey: null as string | null,
+  apiKey: null as string | null,
+  updateApiKey: mockUpdateApiKey,
+};
+
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => mockGeminiApiState,
 }));
 
 jest.mock("@/hooks/use-google-drive-sync", () => ({
@@ -55,6 +76,13 @@ describe("Library Component", () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockGeminiApiState = {
+      hasApiKey: false,
+      maskedKey: null,
+      apiKey: null,
+      updateApiKey: mockUpdateApiKey,
+    };
     localStorage.clear();
     localStorage.setItem(
       "vivavoz-reader-settings",
@@ -67,6 +95,9 @@ describe("Library Component", () => {
         hasCompletedOnboarding: true,
       })
     );
+    localStorage.setItem("vivavoz_onboarding_dismissed", "true");
+    localStorage.setItem("has-seen-preferences-tutorial-v1", "true");
+
     const existing = await listReadings();
     for (const r of existing) {
       await deleteReading(r.id);
@@ -198,5 +229,60 @@ describe("Library Component", () => {
     fireEvent.click(webUrlButton);
     expect(screen.getByRole("dialog", { name: /ler artigo da web/i })).toBeInTheDocument();
   });
-});
 
+  describe("Gerenciamento da Chave Gemini no Armazenamento Local", () => {
+    it("deve renderizar botão 'Conectar Chave Gemini' quando a chave não estiver conectada", () => {
+      render(
+        <ReaderSettingsProvider>
+          <Library />
+        </ReaderSettingsProvider>
+      );
+
+      const connectBtn = screen.getByRole("button", { name: /conectar chave gemini/i });
+      expect(connectBtn).toBeInTheDocument();
+      expect(screen.getByText("Inativa")).toBeInTheDocument();
+
+      fireEvent.click(connectBtn);
+      expect(screen.getByText("Conectar conta do Gemini (Google AI Studio)")).toBeInTheDocument();
+    });
+
+    it("deve renderizar status 'Conectada', abrir modal de confirmação e desconectar ao confirmar", async () => {
+      mockGeminiApiState = {
+        hasApiKey: true,
+        maskedKey: "AIzaSy...890",
+        apiKey: "AIzaSy...890",
+        updateApiKey: mockUpdateApiKey.mockResolvedValue(true),
+      };
+
+      render(
+        <ReaderSettingsProvider>
+          <Library />
+        </ReaderSettingsProvider>
+      );
+
+      expect(screen.getByText("Conectada")).toBeInTheDocument();
+      expect(screen.getByText(/Chave salva em cookie seguro \(AIzaSy\.\.\.890\)/i)).toBeInTheDocument();
+
+      const disconnectBtn = screen.getByRole("button", { name: /desconectar chave gemini/i });
+      expect(disconnectBtn).toBeInTheDocument();
+
+      // Clica em desconectar -> abre modal de confirmação
+      fireEvent.click(disconnectBtn);
+
+      expect(screen.getByRole("heading", { name: "Desconectar Chave Gemini" })).toBeInTheDocument();
+      expect(
+        screen.getByText(/Tem certeza que deseja desconectar sua chave de IA\?/i)
+      ).toBeInTheDocument();
+
+      const confirmButton = screen.getByRole("button", { name: /sim, desconectar/i });
+      expect(confirmButton).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(confirmButton);
+      });
+
+      expect(mockUpdateApiKey).toHaveBeenCalledWith(null);
+      expect(toast.success).toHaveBeenCalledWith("Conta Gemini desconectada.");
+    });
+  });
+});

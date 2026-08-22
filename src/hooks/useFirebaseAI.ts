@@ -8,6 +8,7 @@ import {
   InferenceMode,
   type GenerativeModel,
 } from "@/lib/ai/firebase-ai";
+import { useGeminiApiKey } from "./use-gemini-api-key";
 
 export type AIEngineType = "vertex" | "gemini-nano" | "disconnected";
 
@@ -49,13 +50,12 @@ export interface UseFirebaseAIReturn {
   abortCurrentRequest: () => void;
 }
 
-const STORAGE_KEY = "gemini-api-key";
-
 export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAIReturn {
   const isMountedRef = useRef(true);
+  const { apiKey: unifiedApiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
 
   // Inicialização determinística para SSR e hidratação sem mismatch
-  const [apiKey, setApiKeyState] = useState<string | null>(options.initialApiKey || null);
+  const apiKey = options.initialApiKey || unifiedApiKey;
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [onDeviceStatus, setOnDeviceStatus] = useState<
     "available" | "downloadable" | "unavailable" | "checking"
@@ -88,10 +88,6 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     let active = true;
 
     if (typeof window !== "undefined") {
-      const storedKey = localStorage.getItem(STORAGE_KEY);
-      if (storedKey) {
-        setApiKeyState(storedKey);
-      }
       if (typeof navigator !== "undefined") {
         setIsOnline(navigator.onLine);
       }
@@ -140,23 +136,20 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     };
   }, []);
 
-  const setApiKey = useCallback((newKey: string) => {
-    const trimmed = newKey.trim();
-    if (trimmed) {
-      localStorage.setItem(STORAGE_KEY, trimmed);
-      setApiKeyState(trimmed);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-      setApiKeyState(null);
-    }
-  }, []);
+  const setApiKey = useCallback(
+    (newKey: string) => {
+      const trimmed = newKey.trim();
+      void updateApiKey(trimmed || null);
+    },
+    [updateApiKey]
+  );
 
   // Determina o motor ativo com base nas regras do Firebase AI Logic
   const activeEngine: AIEngineType = (() => {
     if (!isOnline) {
       return onDeviceStatus === "available" ? "gemini-nano" : "disconnected";
     }
-    if (apiKey && apiKey.length > 5) {
+    if (hasApiKey || (apiKey && apiKey.length > 5)) {
       return "vertex";
     }
     if (onDeviceStatus === "available") {

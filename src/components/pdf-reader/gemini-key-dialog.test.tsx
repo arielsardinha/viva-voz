@@ -98,16 +98,15 @@ describe("GeminiKeyDialog Component", () => {
     expect(toast.success).toHaveBeenCalledWith("Conta Gemini conectada neste navegador.");
   });
 
-  it("deve permitir desconectar a chave existente", () => {
+  it("deve fechar o diálogo ao clicar em cancelar", () => {
     const onChangeMock = jest.fn();
-    render(<GeminiKeyDialog apiKey="AIzaSyValidKey12345" onChange={onChangeMock} />);
+    render(<GeminiKeyDialog apiKey={null} onChange={onChangeMock} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /chave gemini conectada/i }));
+    fireEvent.click(screen.getByRole("button", { name: /conectar chave gemini/i }));
 
-    const disconnectBtn = screen.getByRole("button", { name: /desconectar/i });
-    fireEvent.click(disconnectBtn);
+    const cancelBtn = screen.getByRole("button", { name: /cancelar/i });
+    fireEvent.click(cancelBtn);
 
-    expect(onChangeMock).toHaveBeenCalledWith(null);
-    expect(toast.success).toHaveBeenCalledWith("Conta Gemini desconectada.");
+    expect(screen.queryByText("Conectar conta do Gemini (Google AI Studio)")).not.toBeInTheDocument();
   });
 });

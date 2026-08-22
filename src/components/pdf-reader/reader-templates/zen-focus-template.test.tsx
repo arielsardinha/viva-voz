@@ -24,6 +24,17 @@ const mockVoices = [
   { id: "Kore", label: "Kore (Google)" },
 ];
 
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: null,
+    hasApiKey: false,
+    maskedKey: null,
+    isChecking: false,
+    updateApiKey: jest.fn(),
+    syncKey: jest.fn(),
+  }),
+}));
+
 describe("ZenFocusTemplate Component", () => {
   const onToggleMock = jest.fn();
   const onPreviousMock = jest.fn();
@@ -71,6 +82,36 @@ describe("ZenFocusTemplate Component", () => {
     // Garante que o texto de Som de Fundo/Sons de Foco NÃO existe no header
     expect(screen.queryByText(/som de fundo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/sons de foco/i)).not.toBeInTheDocument();
+  });
+
+  it("NÃO deve renderizar o ícone/botão para conectar chave Gemini quando conectada", () => {
+    render(
+      <ZenFocusTemplate
+        sentences={mockSentences}
+        currentIndex={0}
+        title="Documento Zen"
+        settings={mockSettings}
+        isPlaying={false}
+        isBuffering={false}
+        voice="Kore"
+        speed="1"
+        engine="google"
+        voices={mockVoices}
+        disabledEngines={[]}
+        apiKey="AIzaSyValidKey123456"
+        onEngineChange={onEngineChangeMock}
+        onSelectSentence={onSelectSentenceMock}
+        onToggle={onToggleMock}
+        onPrevious={onPreviousMock}
+        onNext={onNextMock}
+        onRestart={onRestartMock}
+        onVoiceChange={onVoiceChangeMock}
+        onSpeedChange={onSpeedChangeMock}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /conectar chave gemini/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /chave gemini conectada/i })).not.toBeInTheDocument();
   });
 
   it("deve conter botões de Voltar e Avançar trecho e disparar callbacks", () => {

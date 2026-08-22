@@ -1,63 +1,126 @@
-import { renderHook, act } from "@testing-library/react";
-import { useGeminiApiKey, GEMINI_KEY_STORAGE, GEMINI_KEY_EVENT } from "./use-gemini-api-key";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { useGeminiApiKey, GEMINI_KEY_EVENT } from "./use-gemini-api-key";
+import * as actions from "@/app/actions/gemini-key.actions";
+
+jest.mock("@/app/actions/gemini-key.actions", () => ({
+  saveGeminiApiKeyAction: jest.fn(),
+  removeGeminiApiKeyAction: jest.fn(),
+  getGeminiApiKeyStatusAction: jest.fn(),
+}));
 
 describe("useGeminiApiKey Hook", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    jest.clearAllMocks();
+    (actions.getGeminiApiKeyStatusAction as jest.Mock).mockResolvedValue({ hasKey: false });
   });
 
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it("deve inicializar com chave nula se o localStorage estiver vazio", () => {
-    const { result } = renderHook(() => useGeminiApiKey());
-    expect(result.current.apiKey).toBeNull();
-    expect(result.current.hasApiKey).toBe(false);
-  });
-
-  it("deve inicializar com a chave existente no localStorage", () => {
-    window.localStorage.setItem(GEMINI_KEY_STORAGE, "AIzaSy1234567890");
-    const { result } = renderHook(() => useGeminiApiKey());
-    expect(result.current.apiKey).toBe("AIzaSy1234567890");
-    expect(result.current.hasApiKey).toBe(true);
-  });
-
-  it("deve atualizar a chave e salvar no localStorage", () => {
+  it("deve inicializar com hasApiKey: false se a Server Action retornar false", async () => {
     const { result } = renderHook(() => useGeminiApiKey());
 
-    act(() => {
-      result.current.updateApiKey("AIzaSyNewKey123456");
-    });
-
-    expect(result.current.apiKey).toBe("AIzaSyNewKey123456");
-    expect(result.current.hasApiKey).toBe(true);
-    expect(window.localStorage.getItem(GEMINI_KEY_STORAGE)).toBe("AIzaSyNewKey123456");
-  });
-
-  it("deve remover a chave quando passado null ou string vazia", () => {
-    window.localStorage.setItem(GEMINI_KEY_STORAGE, "AIzaSy1234567890");
-    const { result } = renderHook(() => useGeminiApiKey());
-
-    act(() => {
-      result.current.updateApiKey(null);
+    await waitFor(() => {
+      expect(result.current.isChecking).toBe(false);
     });
 
     expect(result.current.apiKey).toBeNull();
     expect(result.current.hasApiKey).toBe(false);
-    expect(window.localStorage.getItem(GEMINI_KEY_STORAGE)).toBeNull();
+    expect(actions.getGeminiApiKeyStatusAction).toHaveBeenCalledTimes(1);
   });
 
-  it("deve reagir a eventos de custom event disparados em outros componentes", () => {
-    const { result } = renderHook(() => useGeminiApiKey());
-    expect(result.current.apiKey).toBeNull();
-
-    act(() => {
-      window.localStorage.setItem(GEMINI_KEY_STORAGE, "AIzaSyDispatchedKey");
-      window.dispatchEvent(new CustomEvent(GEMINI_KEY_EVENT, { detail: "AIzaSyDispatchedKey" }));
+  it("deve inicializar com hasApiKey: true se a Server Action indicar cookie existente", async () => {
+    (actions.getGeminiApiKeyStatusAction as jest.Mock).mockResolvedValue({
+      hasKey: true,
+      maskedKey: "AIzaSy...890",
     });
 
-    expect(result.current.apiKey).toBe("AIzaSyDispatchedKey");
+    const { result } = renderHook(() => useGeminiApiKey());
+
+    await waitFor(() => {
+      expect(result.current.hasApiKey).toBe(true);
+    });
+
+    expect(result.current.apiKey).toBe("AIzaSy...890");
     expect(result.current.hasApiKey).toBe(true);
+    expect(result.current.maskedKey).toBe("AIzaSy...890");
+  });
+
+  it("deve chamar saveGeminiApiKeyAction ao atualizar a chave e emitir evento", async () => {
+    (actions.saveGeminiApiKeyAction as jest.Mock).mockResolvedValue({ success: true });
+    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+
+    const { result } = renderHook(() => useGeminiApiKey());
+
+    await waitFor(() => {
+      expect(result.current.isChecking).toBe(false);
+    });
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.updateApiKey("AIzaSyNewValidKey123");
+    });
+
+    expect(success).toBe(true);
+    expect(actions.saveGeminiApiKeyAction).toHaveBeenCalledWith("AIzaSyNewValidKey123");
+    expect(result.current.hasApiKey).toBe(true);
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: GEMINI_KEY_EVENT,
+        detail: expect.objectContaining({ hasApiKey: true }),
+      })
+    );
+
+    dispatchSpy.mockRestore();
+  });
+
+  it("deve chamar removeGeminiApiKeyAction ao desconectar (null) e atualizar estado", async () => {
+    (actions.getGeminiApiKeyStatusAction as jest.Mock).mockResolvedValue({
+      hasKey: true,
+      maskedKey: "AIzaSy...890",
+    });
+    (actions.removeGeminiApiKeyAction as jest.Mock).mockResolvedValue({ success: true });
+    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+
+    const { result } = renderHook(() => useGeminiApiKey());
+
+    await waitFor(() => {
+      expect(result.current.hasApiKey).toBe(true);
+    });
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.updateApiKey(null);
+    });
+
+    expect(success).toBe(true);
+    expect(actions.removeGeminiApiKeyAction).toHaveBeenCalledTimes(1);
+    expect(result.current.hasApiKey).toBe(false);
+    expect(result.current.apiKey).toBeNull();
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: GEMINI_KEY_EVENT,
+        detail: { hasApiKey: false },
+      })
+    );
+
+    dispatchSpy.mockRestore();
+  });
+
+  it("deve reagir a eventos GEMINI_KEY_EVENT disparados em outros componentes", async () => {
+    const { result } = renderHook(() => useGeminiApiKey());
+
+    await waitFor(() => {
+      expect(result.current.isChecking).toBe(false);
+    });
+    expect(result.current.hasApiKey).toBe(false);
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(GEMINI_KEY_EVENT, {
+          detail: { hasApiKey: true, maskedKey: "AIzaSy...XYZ" },
+        })
+      );
+    });
+
+    expect(result.current.hasApiKey).toBe(true);
+    expect(result.current.maskedKey).toBe("AIzaSy...XYZ");
   });
 });

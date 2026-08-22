@@ -204,11 +204,13 @@ export function FloatingAudioDock({
         {/* Controles de Voz, IA & Velocidade (Direita) */}
         <div className="flex items-center gap-1.5 justify-end">
           {/* Botão de Conectar/Gerenciar IA TTS */}
-          <GeminiKeyDialog
-            apiKey={apiKey}
-            onChange={onApiKeyChange}
-            variant="audio"
-          />
+          {!hasApiKey && (
+            <GeminiKeyDialog
+              apiKey={apiKey}
+              onChange={onApiKeyChange}
+              variant="audio"
+            />
+          )}
 
           {/* Seletor de Velocidade */}
           <DropdownMenu>
@@ -258,7 +260,7 @@ export function FloatingAudioDock({
                   <DropdownMenuRadioItem
                     key={eng.id}
                     value={eng.id}
-                    disabled={disabledEngines.includes(eng.id)}
+                    disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
                     className="cursor-pointer text-xs"
                   >
                     <div className="flex flex-col">
@@ -269,20 +271,18 @@ export function FloatingAudioDock({
                 ))}
               </DropdownMenuRadioGroup>
 
-              {/* Ação rápida para conectar/gerenciar chave do Gemini */}
-              <DropdownMenuSeparator className="my-1.5" />
-              <DropdownMenuItem
-                onClick={() => setGeminiDialogOpen(true)}
-                className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium hover:bg-accent/10"
-              >
-                <Sparkles className="size-3.5" />
-                <span>
-                  {hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}
-                </span>
-                {hasApiKey && (
-                  <span className="size-1.5 rounded-full bg-emerald-500 ml-auto shrink-0" />
-                )}
-              </DropdownMenuItem>
+              {!hasApiKey && (
+                <>
+                  <DropdownMenuSeparator className="my-1.5" />
+                  <DropdownMenuItem
+                    onClick={() => setGeminiDialogOpen(true)}
+                    className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium hover:bg-accent/10"
+                  >
+                    <Sparkles className="size-3.5" />
+                    <span>Conectar chave Gemini (IA)</span>
+                  </DropdownMenuItem>
+                </>
+              )}
 
               <DropdownMenuSeparator className="my-1.5" />
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
@@ -320,11 +320,13 @@ export function FloatingAudioDock({
 
           <div className="flex items-center gap-1 shrink-0">
             {/* Ícone de Conectar IA Mobile */}
-            <GeminiKeyDialog
-              apiKey={apiKey}
-              onChange={onApiKeyChange}
-              variant="icon"
-            />
+            {!hasApiKey && (
+              <GeminiKeyDialog
+                apiKey={apiKey}
+                onChange={onApiKeyChange}
+                variant="icon"
+              />
+            )}
 
             {/* Velocidade Mobile */}
             <DropdownMenu>
@@ -373,7 +375,7 @@ export function FloatingAudioDock({
                     <DropdownMenuRadioItem
                       key={eng.id}
                       value={eng.id}
-                      disabled={disabledEngines.includes(eng.id)}
+                      disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
                       className="cursor-pointer text-xs"
                     >
                       <div className="flex flex-col">
@@ -384,18 +386,22 @@ export function FloatingAudioDock({
                   ))}
                 </DropdownMenuRadioGroup>
 
-                <DropdownMenuSeparator className="my-1.5" />
-                <DropdownMenuItem
-                  onClick={() => setGeminiDialogOpen(true)}
-                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini"}</span>
-                </DropdownMenuItem>
+                {!hasApiKey && (
+                  <>
+                    <DropdownMenuSeparator className="my-1.5" />
+                    <DropdownMenuItem
+                      onClick={() => setGeminiDialogOpen(true)}
+                      className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+                    >
+                      <Sparkles className="size-3.5" />
+                      <span>Conectar chave Gemini (IA)</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Voz
+                  Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                   {voices.map((v) => (

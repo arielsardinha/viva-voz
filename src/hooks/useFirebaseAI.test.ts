@@ -1,6 +1,21 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useFirebaseAI } from "./useFirebaseAI";
-import * as firebaseAiModule from "@/lib/ai/firebase-ai";
+
+let mockApiKey: string | null = null;
+const mockUpdateApiKey = jest.fn((key: string | null) => {
+  mockApiKey = key;
+  return Promise.resolve(true);
+});
+
+jest.mock("./use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: mockApiKey,
+    hasApiKey: Boolean(mockApiKey && mockApiKey.length >= 10),
+    maskedKey: mockApiKey ? `${mockApiKey.slice(0, 6)}...` : null,
+    isChecking: false,
+    updateApiKey: mockUpdateApiKey,
+  }),
+}));
 
 jest.mock("@/lib/ai/firebase-ai", () => {
   const actual = jest.requireActual("@/lib/ai/firebase-ai");
@@ -20,7 +35,7 @@ jest.mock("@/lib/ai/firebase-ai", () => {
 
 describe("useFirebaseAI hook", () => {
   beforeEach(() => {
-    localStorage.clear();
+    mockApiKey = null;
     jest.clearAllMocks();
     (window as any).ai = { languageModel: {} };
   });
@@ -41,7 +56,7 @@ describe("useFirebaseAI hook", () => {
   });
 
   it("deve selecionar 'vertex' quando houver chave de API configurada e estiver online", async () => {
-    localStorage.setItem("gemini-api-key", "AIzaSyValidTestKey123");
+    mockApiKey = "AIzaSyValidTestKey123";
 
     const { result } = renderHook(() => useFirebaseAI());
 
@@ -52,7 +67,7 @@ describe("useFirebaseAI hook", () => {
     expect(result.current.activeEngine).toBe("vertex");
   });
 
-  it("deve salvar nova chave de API no localStorage via setApiKey", async () => {
+  it("deve delegar a persistência de nova chave via setApiKey para updateApiKey", async () => {
     const { result } = renderHook(() => useFirebaseAI());
 
     await waitFor(() => {
@@ -63,12 +78,11 @@ describe("useFirebaseAI hook", () => {
       result.current.setApiKey("AIzaSyNewKey456");
     });
 
-    expect(result.current.apiKey).toBe("AIzaSyNewKey456");
-    expect(localStorage.getItem("gemini-api-key")).toBe("AIzaSyNewKey456");
+    expect(mockUpdateApiKey).toHaveBeenCalledWith("AIzaSyNewKey456");
   });
 
   it("deve remover chave de API quando passada string vazia", async () => {
-    localStorage.setItem("gemini-api-key", "AIzaSyKeyToRemove");
+    mockApiKey = "AIzaSyKeyToRemove";
 
     const { result } = renderHook(() => useFirebaseAI());
 
@@ -80,8 +94,7 @@ describe("useFirebaseAI hook", () => {
       result.current.setApiKey("");
     });
 
-    expect(result.current.apiKey).toBeNull();
-    expect(localStorage.getItem("gemini-api-key")).toBeNull();
+    expect(mockUpdateApiKey).toHaveBeenCalledWith(null);
   });
 
   it("deve executar sendMessage e obter chunks de texto", async () => {
@@ -132,7 +145,7 @@ describe("useFirebaseAI hook", () => {
   });
 
   it("deve chavear para 'gemini-nano' quando offline se nano estiver disponível", async () => {
-    localStorage.setItem("gemini-api-key", "AIzaSyCloudKey");
+    mockApiKey = "AIzaSyCloudKey";
 
     const { result } = renderHook(() => useFirebaseAI());
 

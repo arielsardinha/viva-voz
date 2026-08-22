@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getGeminiKeyCookie } from "@/lib/ai/server/gemini-cookie.service";
 
 const BodySchema = z.object({
   text: z.string().min(1).max(2000),
@@ -69,7 +70,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Requisição inválida." }, { status: 400 });
   }
 
-  const apiKey = parsed.userApiKey;
+  // Prioriza a chave segura recuperada do cookie HttpOnly (BFF)
+  const cookieKey = await getGeminiKeyCookie().catch(() => null);
+  const apiKey = cookieKey || parsed.userApiKey;
 
   if (!apiKey) {
     return Response.json(
@@ -116,4 +119,3 @@ export async function POST(request: Request) {
     headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
   });
 }
-

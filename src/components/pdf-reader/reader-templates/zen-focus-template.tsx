@@ -435,7 +435,7 @@ export function ZenFocusTemplate({
                 <DropdownMenuRadioItem
                   key={eng.id}
                   value={eng.id}
-                  disabled={disabledEngines.includes(eng.id)}
+                  disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
                   className="cursor-pointer text-xs"
                 >
                   <div className="flex flex-col">
@@ -446,18 +446,22 @@ export function ZenFocusTemplate({
               ))}
             </DropdownMenuRadioGroup>
 
-            <DropdownMenuSeparator className="my-1.5" />
-            <DropdownMenuItem
-              onClick={() => setGeminiDialogOpen(true)}
-              className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-            >
-              <Sparkles className="size-3.5" />
-              <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
-            </DropdownMenuItem>
+            {!hasApiKey && (
+              <>
+                <DropdownMenuSeparator className="my-1.5" />
+                <DropdownMenuItem
+                  onClick={() => setGeminiDialogOpen(true)}
+                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Conectar chave Gemini (IA)</span>
+                </DropdownMenuItem>
+              </>
+            )}
 
             <DropdownMenuSeparator className="my-1.5" />
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-              Voz
+              Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
               {voices.map((v) => (
@@ -469,13 +473,15 @@ export function ZenFocusTemplate({
           </DropdownMenuContent>
         </DropdownMenu>
         
-        {/* Ícone para incluir SOM com IA / Enviar Token (caso desconectada ou gerenciar) */}
-        <GeminiKeyDialog
-          apiKey={apiKey}
-          onChange={updateApiKey}
-          variant="icon"
-          className="size-8 sm:size-9"
-        />
+        {/* Ícone para incluir SOM com IA / Enviar Token (caso desconectada) */}
+        {!apiKey && (
+          <GeminiKeyDialog
+            apiKey={apiKey}
+            onChange={updateApiKey}
+            variant="icon"
+            className="size-8 sm:size-9"
+          />
+        )}
       </div>
 
       {/* Drawer de Páginas Overlay */}

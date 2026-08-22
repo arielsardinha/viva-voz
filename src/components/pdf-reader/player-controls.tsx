@@ -103,26 +103,29 @@ export function PlayerControls({
           <DropdownMenuRadioItem
             key={item.id}
             value={item.id}
-            disabled={disabledEngines.includes(item.id)}
+            disabled={item.id === "google" ? !hasApiKey : disabledEngines.includes(item.id)}
           >
             <div className="flex flex-col">
               <span>{item.label}</span>
               <span className="text-[10px] text-muted-foreground">{item.hint}</span>
             </div>
-            {disabledEngines.includes(item.id) ? " — indisponível" : ""}
+            {disabledEngines.includes(item.id) && item.id !== "google" ? " — indisponível" : ""}
           </DropdownMenuRadioItem>
         ))}
       </DropdownMenuRadioGroup>
 
-      <DropdownMenuSeparator className="my-1.5" />
-      <DropdownMenuItem
-        onClick={() => setGeminiDialogOpen(true)}
-        className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-      >
-        <Sparkles className="size-3.5" />
-        <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
-        {hasApiKey && <span className="size-1.5 rounded-full bg-emerald-500 ml-auto" />}
-      </DropdownMenuItem>
+      {!hasApiKey && (
+        <>
+          <DropdownMenuSeparator className="my-1.5" />
+          <DropdownMenuItem
+            onClick={() => setGeminiDialogOpen(true)}
+            className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+          >
+            <Sparkles className="size-3.5" />
+            <span>Conectar chave Gemini (IA)</span>
+          </DropdownMenuItem>
+        </>
+      )}
     </>
   );
 
@@ -208,12 +211,14 @@ export function PlayerControls({
 
           {/* Compactos (estilo YouTube) até lg */}
           <div className="ml-auto flex items-center gap-1 lg:hidden">
-            <GeminiKeyDialog
-              apiKey={apiKey}
-              onChange={onApiKeyChange}
-              variant="icon"
-              className="size-8 sm:size-9"
-            />
+            {!hasApiKey && (
+              <GeminiKeyDialog
+                apiKey={apiKey}
+                onChange={onApiKeyChange}
+                variant="icon"
+                className="size-8 sm:size-9"
+              />
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -284,11 +289,13 @@ export function PlayerControls({
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <GeminiKeyDialog
-            apiKey={apiKey}
-            onChange={onApiKeyChange}
-            variant="audio"
-          />
+          {!hasApiKey && (
+            <GeminiKeyDialog
+              apiKey={apiKey}
+              onChange={onApiKeyChange}
+              variant="audio"
+            />
+          )}
 
           <Select value={engine} onValueChange={(value) => handleSelectEngine(value as TtsEngine)}>
             <SelectTrigger className="w-[168px]" aria-label="Motor de narração">
@@ -299,7 +306,7 @@ export function PlayerControls({
                 <SelectItem
                   key={item.id}
                   value={item.id}
-                  disabled={disabledEngines.includes(item.id)}
+                  disabled={item.id === "google" ? !hasApiKey : disabledEngines.includes(item.id)}
                 >
                   {item.label}
                 </SelectItem>

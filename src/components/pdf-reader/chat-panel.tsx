@@ -62,7 +62,7 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <ChromeAiBadge hasCloudKey={Boolean(apiKey)} activeEngine={activeEngine} />
-          <GeminiKeyDialog apiKey={apiKey} onChange={(k) => setApiKey(k || "")} compact />
+          {!apiKey && <GeminiKeyDialog apiKey={apiKey} onChange={(k) => setApiKey(k || "")} compact />}
         </div>
       </div>
 

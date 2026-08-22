@@ -14,6 +14,16 @@ jest.mock("@/hooks/use-google-drive-sync", () => ({
   useGoogleDriveSync: () => mockUseGoogleDriveSync(),
 }));
 
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: null,
+    hasApiKey: false,
+    maskedKey: null,
+    isChecking: false,
+    updateApiKey: jest.fn().mockResolvedValue(true),
+    syncKey: jest.fn().mockResolvedValue(true),
+  }),
+}));
 
 describe("AppHeader Component", () => {
   beforeEach(() => {
@@ -202,6 +212,21 @@ describe("AppHeader Component", () => {
     expect(
       screen.queryByRole("button", { name: /backup e sincronização no google drive/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("deve exibir 'Conectar Chave Gemini' no menu mobile quando não conectado", () => {
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    const mobileMenuBtn = screen.getByRole("button", {
+      name: /abrir menu de opções/i,
+    });
+    fireEvent.keyDown(mobileMenuBtn, { key: "ArrowDown", code: "ArrowDown" });
+
+    expect(screen.getByText("Conectar Chave Gemini")).toBeInTheDocument();
   });
 });
 

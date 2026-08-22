@@ -1,62 +1,101 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  saveGeminiApiKeyAction,
+  removeGeminiApiKeyAction,
+  getGeminiApiKeyStatusAction,
+} from "@/app/actions/gemini-key.actions";
 
-export const GEMINI_KEY_STORAGE = "gemini-api-key";
 export const GEMINI_KEY_EVENT = "gemini-key-changed";
 
 export function useGeminiApiKey() {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [maskedKey, setMaskedKey] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
 
-  const syncKey = useCallback(() => {
-    if (typeof window === "undefined") return;
+  const syncKey = useCallback(async () => {
     try {
-      const current = window.localStorage.getItem(GEMINI_KEY_STORAGE);
-      setApiKey(current);
+      const status = await getGeminiApiKeyStatusAction();
+      setHasApiKey(status.hasKey);
+      setMaskedKey(status.maskedKey ?? null);
     } catch {
-      setApiKey(null);
+      setHasApiKey(false);
+      setMaskedKey(null);
+    } finally {
+      setIsChecking(false);
     }
   }, []);
 
-  const updateApiKey = useCallback((key: string | null) => {
-    if (typeof window === "undefined") return;
+  const updateApiKey = useCallback(async (key: string | null): Promise<boolean> => {
     try {
-      if (key && key.trim().length > 0) {
-        window.localStorage.setItem(GEMINI_KEY_STORAGE, key.trim());
-        setApiKey(key.trim());
+      if (key && key.trim().length >= 10) {
+        const result = await saveGeminiApiKeyAction(key.trim());
+        if (result.success) {
+          setHasApiKey(true);
+          const prefix = key.trim().slice(0, 6);
+          const suffix = key.trim().slice(-3);
+          setMaskedKey(`${prefix}...${suffix}`);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent(GEMINI_KEY_EVENT, {
+                detail: { hasApiKey: true, maskedKey: `${prefix}...${suffix}` },
+              })
+            );
+          }
+          return true;
+        }
+        return false;
       } else {
-        window.localStorage.removeItem(GEMINI_KEY_STORAGE);
-        setApiKey(null);
+        const result = await removeGeminiApiKeyAction();
+        if (result.success) {
+          setHasApiKey(false);
+          setMaskedKey(null);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent(GEMINI_KEY_EVENT, { detail: { hasApiKey: false } })
+            );
+          }
+          return true;
+        }
+        return false;
       }
-      // Notifica todos os componentes na mesma janela
-      window.dispatchEvent(new CustomEvent(GEMINI_KEY_EVENT, { detail: key }));
     } catch (e) {
-      console.error("Falha ao salvar chave Gemini no localStorage:", e);
+      console.error("Falha ao atualizar chave Gemini via Server Action:", e);
+      return false;
     }
   }, []);
 
   useEffect(() => {
-    syncKey();
+    void syncKey();
 
-    const handleCustomEvent = () => syncKey();
-    const handleStorageEvent = (event: StorageEvent) => {
-      if (event.key === GEMINI_KEY_STORAGE || event.key === null) {
-        syncKey();
+    const handleCustomEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ hasApiKey?: boolean; maskedKey?: string }>;
+      if (customEvent.detail && typeof customEvent.detail.hasApiKey === "boolean") {
+        setHasApiKey(customEvent.detail.hasApiKey);
+        setMaskedKey(customEvent.detail.maskedKey ?? null);
+      } else {
+        void syncKey();
       }
     };
 
-    window.addEventListener(GEMINI_KEY_EVENT, handleCustomEvent);
-    window.addEventListener("storage", handleStorageEvent);
+    if (typeof window !== "undefined") {
+      window.addEventListener(GEMINI_KEY_EVENT, handleCustomEvent);
+    }
 
     return () => {
-      window.removeEventListener(GEMINI_KEY_EVENT, handleCustomEvent);
-      window.removeEventListener("storage", handleStorageEvent);
+      if (typeof window !== "undefined") {
+        window.removeEventListener(GEMINI_KEY_EVENT, handleCustomEvent);
+      }
     };
   }, [syncKey]);
 
   return {
-    apiKey,
-    hasApiKey: Boolean(apiKey && apiKey.length >= 10),
+    apiKey: hasApiKey ? (maskedKey || "connected") : null,
+    hasApiKey,
+    maskedKey,
+    isChecking,
     updateApiKey,
+    syncKey,
   };
 }

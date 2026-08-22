@@ -62,7 +62,7 @@ export function PdfReader() {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
-  const { apiKey: userApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
+  const { apiKey: userApiKey, hasApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
   const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
@@ -265,23 +265,40 @@ export function PdfReader() {
     },
     [patchPrefs, patchSettings]
   );
+  const effectiveDisabledEngines = useMemo(() => {
+    const disabled = (prefs.disabledEngines as TtsEngine[]) || [];
+    if (hasApiKey) {
+      return disabled.filter((e) => e !== "google");
+    }
+    return disabled;
+  }, [hasApiKey, prefs.disabledEngines]);
+
   const setEngine = useCallback(
     (next: TtsEngine) => {
-      if (next === "google" && (!userApiKey || userApiKey.trim().length < 10)) {
+      if (next === "google" && !hasApiKey) {
         patchPrefs({ engine: "system" });
         return;
       }
       patchPrefs({ engine: next });
     },
-    [patchPrefs, userApiKey]
+    [patchPrefs, hasApiKey]
   );
 
   // Se o motor estiver configurado como Google mas não houver chave, volta para a seleção padrão gratuita (sistema)
   useEffect(() => {
-    if (prefs.engine === "google" && (!userApiKey || userApiKey.trim().length < 10)) {
+    if (prefs.engine === "google" && !hasApiKey) {
       patchPrefs({ engine: "system" });
     }
-  }, [prefs.engine, userApiKey, patchPrefs]);
+  }, [prefs.engine, hasApiKey, patchPrefs]);
+
+  // Se a chave for conectada e 'google' estava em disabledEngines, limpa a restrição
+  useEffect(() => {
+    if (hasApiKey && prefs.disabledEngines.includes("google")) {
+      patchPrefs({
+        disabledEngines: prefs.disabledEngines.filter((e) => e !== "google"),
+      });
+    }
+  }, [hasApiKey, prefs.disabledEngines, patchPrefs]);
 
   // System voices
   useEffect(() => {
@@ -590,7 +607,7 @@ export function PdfReader() {
                 speed={speed}
                 engine={engine}
                 voices={voices}
-                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}
                 onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}
@@ -625,7 +642,7 @@ export function PdfReader() {
                 speed={speed}
                 engine={engine}
                 voices={voices}
-                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}
                 onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}
@@ -657,7 +674,7 @@ export function PdfReader() {
                 speed={speed}
                 engine={engine}
                 voices={voices}
-                disabledEngines={prefs.disabledEngines as TtsEngine[]}
+                disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}
                 onApiKeyChange={setUserApiKey}
                 onEngineChange={setEngine}

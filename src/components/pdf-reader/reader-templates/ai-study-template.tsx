@@ -131,7 +131,7 @@ export function AIStudyTemplate({
   const currentVoiceObj = voices.find((v) => v.id === voice);
   const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
   const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
-  const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
+  const hasApiKey = Boolean(propApiKey && propApiKey.length >= 10) || Boolean(apiKey && apiKey.length >= 10);
 
   // Group pages for chapter navigation
   const pageList = useMemo(() => {
@@ -357,7 +357,7 @@ export function AIStudyTemplate({
                     <DropdownMenuRadioItem
                       key={eng.id}
                       value={eng.id}
-                      disabled={disabledEngines.includes(eng.id)}
+                      disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
                       className="cursor-pointer text-xs"
                     >
                       <div className="flex flex-col">
@@ -368,18 +368,22 @@ export function AIStudyTemplate({
                   ))}
                 </DropdownMenuRadioGroup>
 
-                <DropdownMenuSeparator className="my-1.5" />
-                <DropdownMenuItem
-                  onClick={() => setGeminiDialogOpen(true)}
-                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>{hasApiKey ? "Gerenciar chave Gemini" : "Conectar chave Gemini (IA)"}</span>
-                </DropdownMenuItem>
+                {!hasApiKey && (
+                  <>
+                    <DropdownMenuSeparator className="my-1.5" />
+                    <DropdownMenuItem
+                      onClick={() => setGeminiDialogOpen(true)}
+                      className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
+                    >
+                      <Sparkles className="size-3.5" />
+                      <span>Conectar chave Gemini (IA)</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Voz
+                  Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                   {voices.map((v) => (
@@ -490,7 +494,7 @@ export function AIStudyTemplate({
           </div>
           <div className="flex items-center gap-1.5">
             <ChromeAiBadge hasCloudKey={Boolean(apiKey)} activeEngine={activeEngine} />
-            <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
+            {!apiKey && <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />}
           </div>
         </div>
 

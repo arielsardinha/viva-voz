@@ -1,5 +1,6 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createUserGeminiProvider } from "@/lib/ai-gateway.server";
+import { getGeminiKeyCookie } from "@/lib/ai/server/gemini-cookie.service";
 
 const MAX_CONTEXT_CHARS = 60000;
 
@@ -61,7 +62,9 @@ export async function handleAskRequest(request: Request): Promise<Response> {
       ? body.userApiKey.trim()
       : null;
 
-  const apiKey = userApiKey;
+  // Prioriza o cookie HttpOnly seguro; fallback para o payload da requisição
+  const cookieKey = await getGeminiKeyCookie().catch(() => null);
+  const apiKey = cookieKey || userApiKey;
 
   if (!apiKey) {
     return new Response(
