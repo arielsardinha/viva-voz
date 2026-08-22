@@ -75,12 +75,20 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
             />
           ) : (
             messages.map((message) => {
+              const isAssistant = message.role === "assistant";
               return (
-                <Message key={message.id} from={message.role}>
-                  <MessageContent>
-                    <MessageResponse>{message.content}</MessageResponse>
-                  </MessageContent>
-                </Message>
+                <div key={message.id} className="flex flex-col gap-1">
+                  <Message from={message.role}>
+                    <MessageContent>
+                      <MessageResponse>{message.content}</MessageResponse>
+                    </MessageContent>
+                  </Message>
+                  <span className="text-[10px] text-muted-foreground px-2">
+                    {isAssistant
+                      ? `VivaVoz AI - ${message.source === "vertex" ? "vertex" : "nano"}`
+                      : "Você"}
+                  </span>
+                </div>
               );
             })
           )}

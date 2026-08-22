@@ -21,6 +21,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   createdAt?: Date;
+  source?: "vertex" | "nano" | string;
 }
 
 export interface UseFirebaseAIReturn {
@@ -256,6 +257,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
       const userMsgId = `user-${Date.now()}`;
       const assistantMsgId = `assistant-${Date.now()}`;
 
+      const expectedSource = isOnline && apiKey && apiKey.length > 5 ? "vertex" : "nano";
+
       const userMessage: ChatMessage = {
         id: userMsgId,
         role: "user",
@@ -268,6 +271,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         role: "assistant",
         content: "",
         createdAt: new Date(),
+        source: expectedSource,
       };
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
@@ -277,14 +281,57 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
 
       try {
         let accumulated = "";
-        const stream = sendMessage(cleanPrompt, msgOptions);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        let mode: InferenceMode = InferenceMode.PREFER_ON_DEVICE;
+        if (isOnline && apiKey && apiKey.length > 5) {
+          mode = InferenceMode.PREFER_IN_CLOUD;
+        } else if (!isOnline) {
+          mode = InferenceMode.ONLY_ON_DEVICE;
+        }
+
+        const model = createHybridGenerativeModel({
+          apiKey,
+          mode,
+          systemInstruction: options.systemInstruction,
+        });
+
+        const stream = streamHybridPrompt({
+          model,
+          prompt: cleanPrompt,
+          context: msgOptions?.context,
+          fileName: msgOptions?.fileName,
+          signal: controller.signal,
+        });
+
         setStatus("streaming");
 
         for await (const chunk of stream) {
-          accumulated += chunk;
+          if (chunk.text) {
+            accumulated += chunk.text;
+          }
+          const detectedSource = chunk.source
+            ? chunk.source === "IN_CLOUD"
+              ? "vertex"
+              : chunk.source === "ON_DEVICE"
+              ? "nano"
+              : chunk.source
+            : undefined;
+
+          if (chunk.source) {
+            setInferenceSource(chunk.source as "ON_DEVICE" | "IN_CLOUD");
+          }
+
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantMsgId ? { ...msg, content: accumulated } : msg,
+              msg.id === assistantMsgId
+                ? {
+                    ...msg,
+                    content: accumulated,
+                    ...(detectedSource ? { source: detectedSource } : {}),
+                  }
+                : msg,
             ),
           );
         }

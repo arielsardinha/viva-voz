@@ -1,18 +1,25 @@
 <!-- agent-graph-flow:start -->
 ## agent-graph-flow (`agf`) — viva-voz-text
 
-Este projeto usa **agent-graph-flow** para gestão de execução via grafo persistente SQLite (`workflow-graph/graph.db`). **Tudo via CLI `agf` — zero MCP.**
+Este projeto usa **agent-graph-flow** para gestão de execução via grafo persistente SQLite (`workflow-graph/graph.db`). **Tudo via CLI `agf`**
 Para detalhes aprofundados de comandos, gaps e arquitetura, consulte a skill [`agent-graph-flow`](.agents/skills/agent-graph-flow/SKILL.md).
 
-### ⚠️ Regras Inegociáveis de Execução
+### 🚨 REGRA SUPREMA E INEGOCIÁVEL: BLOQUEIO TOTAL SEM `agf`
 
-1. **Grafo é a Fonte Absoluta da Verdade:** Nenhuma linha de código ou refatoração é escrita sem um nó correspondente no grafo (`agf node add` ou `agf start`).
-2. **Fluxo de Trabalho Obrigatório:**
+**É ESTRITAMENTE PROIBIDA QUALQUER EXECUÇÃO, ALTERAÇÃO DE CÓDIGO OU REFATORAÇÃO SEM O USO CORRETO DO `agf` NO PROCESSO DE DESENVOLVIMENTO COM AGENTES.**
+
+Se o agente não iniciar e rastrear a tarefa no grafo via CLI `agf`, **ELE NÃO DEVE DAR CONTINUIDADE COM A EXECUÇÃO DO PROJETO**. Toda e qualquer ação de código fora do grafo é considerada nula e inválida.
+
+### ⚠️ Fluxo Obrigatório de Execução Passo a Passo
+
+1. **Grafo é a Fonte Absoluta da Verdade:** Nenhuma linha de código, teste ou refatoração é escrita sem um nó correspondente no grafo (`agf node add` ou `agf start`).
+2. **Ciclo Obrigatório de Cada Tarefa:**
    - `agf preflight "<tópico>"` antes de iniciar.
-   - `agf node status <id> in_progress` antes de codar.
+   - `agf node add --title "<Título>" --type task --ac "<Critérios>"` (se o nó ainda não existir).
+   - `agf node status <id> in_progress` **ANTES** de criar ou editar qualquer arquivo.
    - **TDD Rigoroso:** Red → Green → Refactor (teste antes da implementação).
-   - `agf check <id>` para validar Definition of Done (DoD).
-   - `agf node status <id> done` (ou `agf done <id>`) ao concluir.
+   - `agf check <id>` para validar Definition of Done (DoD) e Acceptance Criteria.
+   - `agf node status <id> done` (ou `agf done <id>`) ao concluir a tarefa.
 3. **Validação Obrigatória de Testes (Jest + Cypress) antes de encerrar qualquer prompt:**
    - Toda nova feature, componente, hook, adapter ou API route **DEVE** vir acompanhada de testes nos três níveis:
      - **Unitário** (`*.test.ts` / `*.test.tsx`) — lógica pura, hooks isolados, adapters, serviços de domínio.

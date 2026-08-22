@@ -110,16 +110,21 @@ export async function* streamHybridPrompt(options: {
 
   const result = await model.generateContentStream(fullPrompt);
 
-  let source: "ON_DEVICE" | "IN_CLOUD" | string | undefined;
+  let source: "ON_DEVICE" | "IN_CLOUD" | string | undefined = (result as unknown as { inferenceSource?: string })?.inferenceSource;
 
   for await (const chunk of result.stream) {
     if (signal?.aborted) break;
+
+    const chunkObj = chunk as unknown as { inferenceSource?: string; text?: () => string };
+    if (chunkObj?.inferenceSource) {
+      source = chunkObj.inferenceSource;
+    }
 
     const chunkText = typeof chunk.text === "function" ? chunk.text() : String(chunk);
     yield { text: chunkText, source };
   }
 
-  // Captura a fonte de inferência após a conclusão da resposta
+  // Captura a fonte de inferência final confirmada pela API se disponível
   try {
     const response = await result.response;
     const respSource = (response as unknown as { inferenceSource?: string })?.inferenceSource;

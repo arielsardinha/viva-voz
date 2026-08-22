@@ -530,7 +530,9 @@ export function AIStudyTemplate({
                     {m.content}
                   </div>
                   <span className="text-[10px] text-muted-foreground px-1">
-                    {isUser ? "Você" : "VivaVoz AI"}
+                    {isUser
+                      ? "Você"
+                      : `VivaVoz AI - ${m.source === "vertex" ? "vertex" : "nano"}`}
                   </span>
                 </div>
               );

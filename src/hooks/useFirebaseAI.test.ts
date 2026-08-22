@@ -121,6 +121,7 @@ describe("useFirebaseAI hook", () => {
     expect(result.current.messages[0].content).toBe("Qual o tema principal?");
     expect(result.current.messages[1].role).toBe("assistant");
     expect(result.current.messages[1].content).toBe("Resposta do assistente");
+    expect(result.current.messages[1].source).toBe("nano");
 
     act(() => {
       result.current.clearMessages();
