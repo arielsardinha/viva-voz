@@ -55,6 +55,9 @@ describe("DeveloperContactDialog Component", () => {
     expect(screen.queryByText(/reportar erro/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/reportar um bug/i)).not.toBeInTheDocument();
 
+    // NÃO deve conter o link de abrir issue no GitHub
+    expect(screen.queryByText(/abrir issue no github/i)).not.toBeInTheDocument();
+
     // NÃO deve conter o botão de WhatsApp
     expect(screen.queryByRole("button", { name: /falar via whatsapp/i })).not.toBeInTheDocument();
   });

@@ -103,4 +103,64 @@ describe("AppHeader Component", () => {
       screen.getByText("Falar com o Desenvolvedor")
     ).toBeInTheDocument();
   });
+
+  it("deve renderizar o menu hambúrguer em mobile com opções de Tema, Apoiar e Contato", () => {
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    // Deve conter o gatilho do menu hambúrguer
+    const mobileMenuBtn = screen.getByRole("button", {
+      name: /abrir menu de opções/i,
+    });
+    expect(mobileMenuBtn).toBeInTheDocument();
+
+    // Ao clicar no menu hambúrguer, o dropdown com as opções deve abrir
+    fireEvent.keyDown(mobileMenuBtn, { key: "ArrowDown", code: "ArrowDown" });
+
+    expect(screen.getByText("Apoiar com Pix")).toBeInTheDocument();
+    expect(screen.getByText("Falar com o Desenvolvedor")).toBeInTheDocument();
+    expect(screen.getByText("Clean (Claro)")).toBeInTheDocument();
+    expect(screen.getByText("Papel Zen (Sépia)")).toBeInTheDocument();
+    expect(screen.getByText("Escuro (Midnight)")).toBeInTheDocument();
+  });
+
+  it("deve abrir o modal de Apoio Pix ao clicar em 'Apoiar com Pix' no menu hambúrguer", () => {
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    const mobileMenuBtn = screen.getByRole("button", {
+      name: /abrir menu de opções/i,
+    });
+    fireEvent.keyDown(mobileMenuBtn, { key: "ArrowDown", code: "ArrowDown" });
+
+    const supportItem = screen.getByText("Apoiar com Pix");
+    fireEvent.click(supportItem);
+
+    expect(screen.getByText(/Apoie o VivaVoz/i)).toBeInTheDocument();
+  });
+
+  it("deve alternar o tema de leitura ao selecionar no menu hambúrguer", () => {
+    render(
+      <ReaderSettingsProvider>
+        <AppHeader />
+      </ReaderSettingsProvider>
+    );
+
+    const mobileMenuBtn = screen.getByRole("button", {
+      name: /abrir menu de opções/i,
+    });
+    fireEvent.keyDown(mobileMenuBtn, { key: "ArrowDown", code: "ArrowDown" });
+
+    const sepiaItem = screen.getByText("Papel Zen (Sépia)");
+    fireEvent.click(sepiaItem);
+
+    expect(localStorage.getItem("vivavoz-reader-settings")).toContain('"theme":"sepia"');
+  });
 });
+

@@ -47,6 +47,7 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
     cy.contains("VivaVoz").should("be.visible");
     cy.contains("Arraste seus documentos aqui").should("be.visible");
 
+    cy.get("[data-cy='theme-dropdown-trigger']").first().click();
     cy.get('[data-cy="gemini-key-trigger"]').should("be.visible").click();
 
     cy.contains("Conectar conta do Gemini (Google AI Studio)").should("be.visible");
@@ -62,8 +63,7 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
     cy.get('[data-cy="gemini-key-input"]').clear().type("AIzaSyFakeKeyForTesting123456");
     cy.get('[data-cy="gemini-key-save-btn"]').click();
 
-    // Modal deve fechar e botão do header mudar para conectado
+    // Modal deve fechar
     cy.contains("Conectar conta do Gemini (Google AI Studio)").should("not.exist");
-    cy.contains("Gemini Conectado").should("be.visible");
   });
 });

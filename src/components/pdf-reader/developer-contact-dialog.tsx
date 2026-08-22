@@ -10,7 +10,6 @@ import {
   Mail,
   Copy,
   Check,
-  ExternalLink,
   Sparkles,
 } from "lucide-react";
 import {
@@ -199,17 +198,7 @@ export function DeveloperContactDialog({
         </div>
 
         {/* Rodapé Seguro com Botão de Voltar */}
-        <div className="p-4 sm:p-5 pt-2 border-t border-border/50 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-card/30">
-          <a
-            href={contactConfig.githubIssuesUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
-          >
-            <span>Abrir issue no GitHub</span>
-            <ExternalLink className="size-3" aria-hidden="true" />
-          </a>
-
+        <div className="p-4 sm:p-5 pt-2 border-t border-border/50 shrink-0 flex items-center justify-end pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-card/30">
           <DialogClose asChild>
             <Button
               type="button"

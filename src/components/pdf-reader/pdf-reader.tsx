@@ -532,8 +532,9 @@ export function PdfReader() {
                 <button
                   type="button"
                   onClick={reset}
+                  data-cy="change-document-btn"
                   title="Trocar de documento"
-                  className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border bg-card/80 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border bg-card/80 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                 >
                   <X className="size-3.5" />
                   <span className="hidden xs:inline">Trocar Documento</span>

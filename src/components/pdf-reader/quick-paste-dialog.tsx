@@ -99,6 +99,7 @@ export function QuickPasteDialog({
             <input
               id={titleId}
               name="title"
+              data-cy="quick-paste-title-input"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -121,6 +122,7 @@ export function QuickPasteDialog({
             <textarea
               id={textId}
               name="content"
+              data-cy="quick-paste-content-textarea"
               required
               rows={6}
               value={text}
@@ -160,6 +162,7 @@ export function QuickPasteDialog({
           <button
             type="submit"
             form="quick-paste-form"
+            data-cy="quick-paste-submit-btn"
             disabled={!text.trim() || isLoading}
             className="w-full xs:w-auto flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
           >

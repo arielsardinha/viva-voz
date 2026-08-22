@@ -198,6 +198,7 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
                 {/* Botão de Ação Primária: Sincronização Inteligente Completa */}
                 <Button
                   type="button"
+                  data-cy="sync-bidirectional-btn"
                   onClick={() => syncBidirectional()}
                   disabled={isSyncing}
                   className="w-full text-xs sm:text-sm font-bold bg-accent text-accent-foreground shadow-md shadow-accent/25 hover:bg-accent/90 cursor-pointer"
@@ -214,6 +215,7 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
                   <Button
                     type="button"
                     variant="outline"
+                    data-cy="restore-now-btn"
                     onClick={() => restoreNow()}
                     disabled={isSyncing}
                     className="flex-1 text-xs font-semibold cursor-pointer"
@@ -225,6 +227,7 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
                   <Button
                     type="button"
                     variant="outline"
+                    data-cy="backup-now-btn"
                     onClick={() => backupNow()}
                     disabled={isSyncing}
                     className="flex-1 text-xs font-semibold cursor-pointer"

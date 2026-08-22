@@ -155,8 +155,9 @@ describe("Agent Accessibility & WebMCP Audits", () => {
     });
 
     it("deve conter formulário WebMCP acessível para configuração da chave Gemini (configureGeminiApiKey)", () => {
-      // Abre o diálogo da chave Gemini
-      cy.get("[data-cy='gemini-key-trigger']").first().should("be.visible").click();
+      // Abre o diálogo da chave Gemini através do menu de opções
+      cy.get("[data-cy='theme-dropdown-trigger']").first().click();
+      cy.get("[data-cy='gemini-key-trigger']").should("be.visible").click();
 
       cy.get("form[data-webmcp-tool='configureGeminiApiKey']")
         .should("exist")

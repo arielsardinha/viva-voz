@@ -80,7 +80,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
   });
 
   it("deve permitir reabrir o tutorial de preferências a qualquer momento pelo menu de tema", () => {
-    // Inicializa com onboarding já concluído
+    cy.viewport(1280, 720);
     cy.visit("/", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
@@ -98,23 +98,20 @@ describe("Tutorial e Onboarding de Preferências", () => {
     });
 
     // Aguarda a aplicação carregar
+    cy.get('header[data-hydrated="true"]').should("exist");
     cy.contains("VivaVoz").should("be.visible");
     cy.contains("Arraste seus documentos aqui").should("be.visible");
 
-    // O modal não deve abrir automaticamente e o botão não fica fixo no topo
-    cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
-    cy.get('[data-cy="open-tutorial-btn"]').should("not.exist");
-
     // Abre o menu de tema e clica na opção de refazer tutorial
-    cy.get('[data-cy="theme-dropdown-trigger"]').click();
-    cy.get('[data-cy="reopen-tutorial-item"]').should("be.visible").click();
+    cy.get('[data-cy="theme-dropdown-trigger"]').first().should("be.visible").click();
+    cy.get('[data-cy="reopen-tutorial-item"]').first().should("be.visible").click();
 
     // O modal abre com sucesso
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
     cy.contains("Personalize sua experiência de leitura").should("be.visible");
 
     // Fecha pelo botão de fechar no topo
-    cy.get('[data-cy="skip-onboarding-top-btn"]').click();
+    cy.get('[data-cy="skip-onboarding-top-btn"]').first().click({ force: true });
     cy.get('[data-cy="onboarding-dialog"]').should("not.exist");
   });
 

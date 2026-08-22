@@ -11,13 +11,14 @@ Seu objetivo é garantir máxima estabilidade e robustez com suites completas de
 
 # Regra Inegociável de Validação e Execução
 
-1. **Execução Obrigatória de `npm run test`**:
-   - Sempre execute `npm run test` antes de concluir qualquer tarefa para garantir que todo o ecossistema continue íntegro e sem regressões.
+1. **Execução Obrigatória de Testes (Jest + Cypress)**:
+   - **SEMPRE execute `npm run test` (Jest) E `npm run cy:run` (Cypress)** antes de concluir qualquer prompt/tarefa para garantir integridade ponta a ponta sem regressões.
+   - Ambos os comandos devem ser executados e aprovados antes de encerrar a resposta ao usuário.
 
 2. **Critério Estrito de Aprovação: Zero Logs de Erro**:
-   - Um teste **NÃO** é considerado aprovado apenas porque o Jest retornou código 0.
+   - Um teste **NÃO** é considerado aprovado apenas porque o executável retornou código 0.
    - O teste **SÓ PASSA** quando cumpre os dois requisitos simultaneamente:
-     - **Todas as `expect(...)` garantem a funcionalidade real e passam 100%.**
+     - **Todas as `expect(...)` / asserções garantem a funcionalidade real e passam 100%.**
      - **Não existe NENHUM log de erro ou aviso indesejado no terminal** (zero `console.error`, zero `console.warn` não tratado, zero `act(...)` warning e zero memory leaks / unhandled rejections).
    - Em testes de cenários de erro intencionais (ex: mock de falha 429/500 da API), os logs de console devem ser devidamente interceptados ou espionados (`jest.spyOn(console, 'error').mockImplementation(...)`) e restaurados após o teste.
 
@@ -26,7 +27,7 @@ Seu objetivo é garantir máxima estabilidade e robustez com suites completas de
 # Stack Técnica Obrigatória
 - **Framework Base:** Next.js + TypeScript
 - **Testes Unitários & Integração:** Jest / Vitest + React Testing Library + MSW (Mock Service Worker para mocks de rede)
-- **Testes E2E:** Cypress (utilizando boas práticas com seletores `data-cy` ou `data-testid`)
+- **Testes E2E:** Cypress (`npm run cy:run`) (utilizando boas práticas com seletores `data-cy` ou `data-testid`)
 
 ---
 

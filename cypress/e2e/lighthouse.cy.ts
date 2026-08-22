@@ -45,7 +45,8 @@ describe("Auditoria de Qualidade com Google Lighthouse", () => {
   });
 
   it("deve manter acessibilidade elevada no Modal de Conexão com Gemini", () => {
-    // Abre o modal de configuração de chave Gemini
+    // Abre o modal de configuração de chave Gemini via menu
+    cy.get("[data-cy='theme-dropdown-trigger']").first().click();
     cy.get('[data-cy="gemini-key-trigger"]').should("be.visible").click();
     cy.contains("Conectar conta do Gemini").should("be.visible");
 

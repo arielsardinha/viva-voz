@@ -26,9 +26,9 @@ describe("Biblioteca de Leituras (/leituras)", () => {
 
   it("deve exibir estado vazio quando não houver leituras salvas", () => {
     cy.contains("Nenhuma leitura encontrada").should("be.visible");
-    cy.contains("Envie um arquivo PDF acima para começar a sua biblioteca com narração.").should(
-      "be.visible"
-    );
+    cy.contains(
+      "Envie um arquivo PDF, EPUB, Word ou cole um texto acima para começar a sua biblioteca com narração."
+    ).should("be.visible");
   });
 
   it("deve alternar entre as abas Biblioteca e Favoritos na sidebar", () => {
@@ -39,8 +39,8 @@ describe("Biblioteca de Leituras (/leituras)", () => {
     cy.contains("Nenhuma leitura encontrada").should("be.visible");
   });
 
-  it("deve permitir filtrar pelas tags pré-definidas", () => {
-    const tags = ["Todos", "Design", "Tech", "Estudos", "Artigos"];
+  it("deve permitir filtrar pelas tags pré-definidas de formato", () => {
+    const tags = ["Todos", "PDF", "EPUB", "DOCX", "ODT", "TXT", "MD"];
 
     tags.forEach((tag) => {
       cy.contains("button", tag).should("be.visible").click();

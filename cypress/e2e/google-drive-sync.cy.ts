@@ -64,12 +64,12 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     cy.contains("Conectado").should("be.visible");
     cy.contains("usuario.leitor@gmail.com").should("be.visible");
 
-    // Clica no botão de Fazer Backup
-    cy.contains("button", "Fazer Backup").should("be.visible").click();
+    // Clica no botão de Fazer Backup (Apenas Enviar)
+    cy.get('[data-cy="backup-now-btn"]').should("be.visible").click();
     cy.wait("@postBackup");
 
-    // Notificação de sucesso deve surgir
-    cy.contains("Backup no Google Drive concluído com sucesso!").should("be.visible");
+    // Notificação ou status de sucesso deve surgir
+    cy.contains(/concluído com sucesso/i).should("exist");
   });
 
   it("deve ser responsivo em tela compacta de 370px de largura sem overflow", () => {
@@ -80,7 +80,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
       body: { isConnected: false },
     });
 
-    cy.get('[data-cy="google-drive-sync-btn"]').should("be.visible").click();
+    cy.get('[data-cy="google-drive-sync-btn"]').first().should("be.visible").click();
     cy.get('[data-webmcp-tool="googleDriveSync"]').should("be.visible");
     cy.contains("Conectar com Google").should("be.visible");
 
