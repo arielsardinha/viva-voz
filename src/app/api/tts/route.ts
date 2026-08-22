@@ -69,7 +69,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Requisição inválida." }, { status: 400 });
   }
 
-  const apiKey = parsed.userApiKey
+  const apiKey = parsed.userApiKey;
+
   if (!apiKey) {
     return Response.json(
       {

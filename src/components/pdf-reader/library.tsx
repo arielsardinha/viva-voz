@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { QuickPasteDialog } from "./quick-paste-dialog";
+import { GoogleDriveSyncButton } from "@/components/sync/google-drive-sync-button";
 import { DeleteConfirmDialog } from "./ui/delete-confirm-dialog";
 import { useReaderSettings } from "@/context/reader-settings-context";
 import { FORMAT_FILTER_TAGS, useLibrary } from "@/hooks/use-library";
@@ -346,6 +347,15 @@ export function Library() {
                       Math.max(5, documents.length * 8 + audioCacheStats.totalTracks * 2)
                     )}%`,
                   }}
+                />
+              </div>
+
+              {/* Botão de Sincronização Google Drive */}
+              <div className="pt-2 border-t border-border/50">
+                <GoogleDriveSyncButton
+                  variant="outline"
+                  showLabel={true}
+                  className="w-full justify-center bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
                 />
               </div>
 

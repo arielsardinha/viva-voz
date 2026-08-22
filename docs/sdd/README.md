@@ -21,6 +21,7 @@ Todas as especificações e implementações seguem rigorosamente:
 | [01-tier-1-essential-documents.md](file:///d:/project/viva-voz-text/docs/sdd/01-tier-1-essential-documents.md) | **Tier 1: Documentos Essenciais** | `.txt`, `.md`, `.docx`, `.epub`, Quick Paste e Upload em Lote. | Aprovado |
 | [02-tier-2-web-and-slides.md](file:///d:/project/viva-voz-text/docs/sdd/02-tier-2-web-and-slides.md) | **Tier 2: Web Reader e Apresentações** | Leitor de Artigos por URL (Readability), `.pptx` (PowerPoint) e `.odt`. | Proposto |
 | [03-tier-3-multimodal-ocr.md](file:///d:/project/viva-voz-text/docs/sdd/03-tier-3-multimodal-ocr.md) | **Tier 3: Multimodal e OCR** | Imagens (`.png`, `.jpg`, `.webp`), PDFs Escaneados (Tesseract / Gemini Vision). | Proposto |
+| [04-google-drive-appdata-sync.md](file:///d:/project/viva-voz-text/docs/sdd/04-google-drive-appdata-sync.md) | **Cloud Sync & Backup via BFF** | Sincronização Google Drive `appDataFolder`, Criptografia Zero-Knowledge, Cookies Seguros e Áudios TTS. | Aprovado |
 
 ---
 

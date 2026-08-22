@@ -6,9 +6,6 @@ describe("/api/tts Route Handler", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    delete process.env.GEMINI_API_KEY;
-    delete process.env.GOOGLE_API_KEY;
-    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   });
 
   afterEach(() => {
@@ -43,7 +40,7 @@ describe("/api/tts Route Handler", () => {
   });
 
   it("deve repassar o erro upstream 429 quando a cota do Gemini for excedida", async () => {
-    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => { });
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -132,5 +129,25 @@ describe("/api/tts Route Handler", () => {
     expect(res.status).toBe(502);
     const data = await res.json();
     expect(data.error).toContain("A IA não retornou áudio");
+  });
+
+  it("deve ignorar chaves no servidor e exigir que o userApiKey seja enviado na requisição (BYOK)", async () => {
+    process.env.GEMINI_API_KEY = "dummy_server_key";
+    process.env.GOOGLE_API_KEY = "dummy_server_key";
+
+    const req = new Request("http://localhost/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: "Texto de teste",
+        voice: "Kore",
+        // userApiKey ausente
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toContain("Chave do Google AI Studio não configurada");
   });
 });

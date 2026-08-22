@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 interface TextSelectionMenuProps {
   containerRef: React.RefObject<HTMLElement | null>;
   onAskAI?: (prompt: string) => void;
+  onSpeakSelection?: (text: string) => void;
   onHighlight?: (color: HighlightColor, text: string) => void;
   onRemoveHighlight?: (text: string) => void;
   onAddNote?: (text: string) => void;
@@ -21,6 +22,7 @@ interface TextSelectionMenuProps {
 export function TextSelectionMenu({
   containerRef,
   onAskAI,
+  onSpeakSelection,
   onHighlight,
   onRemoveHighlight,
   onAddNote,

@@ -15,6 +15,7 @@ import {
 import { DeveloperContactDialog } from "./developer-contact-dialog";
 import { PreferencesTutorialDialog } from "./preferences-tutorial-dialog";
 import { SupportDialog } from "./support-dialog";
+import { GoogleDriveSyncButton } from "@/components/sync/google-drive-sync-button";
 import { PwaInstallButton } from "@/components/pwa/pwa-install-button";
 import {
   DropdownMenu,
@@ -124,6 +125,9 @@ export function AppHeader() {
               <span>Biblioteca</span>
             </Link>
           </nav>
+
+          {/* Botão de Sincronização e Backup no Google Drive */}
+          <GoogleDriveSyncButton />
 
           {/* Botão de Instalação PWA */}
           <PwaInstallButton variant="default" />

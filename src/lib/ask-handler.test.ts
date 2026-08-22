@@ -57,9 +57,6 @@ describe("handleAskRequest", () => {
   beforeEach(() => {
     jest.resetModules();
     process.env = { ...originalEnv };
-    delete process.env.GEMINI_API_KEY;
-    delete process.env.GOOGLE_API_KEY;
-    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   });
 
   afterAll(() => {
