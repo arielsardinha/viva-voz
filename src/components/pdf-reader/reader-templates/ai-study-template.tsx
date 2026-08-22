@@ -25,7 +25,7 @@ import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highli
 import type { DocumentNote } from "@/lib/domain/document-note.types";
 import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
-import { ChromeAiBadge } from "../chrome-ai-badge";
+import { AIEngineBadge } from "@/components/ai/AIEngineBadge";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
@@ -41,9 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SPEEDS } from "../player-controls";
-import { HybridChatTransport } from "@/lib/client/hybrid-chat-transport";
-import { useChromeAi } from "@/hooks/use-chrome-ai";
-import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
+import { useFirebaseAI } from "@/hooks/useFirebaseAI";
 
 interface AIStudyTemplateProps {
   sentences: Sentence[];
@@ -106,13 +104,17 @@ export function AIStudyTemplate({
   onAddNote,
   onOpenNote,
 }: AIStudyTemplateProps) {
-  const { apiKey: hookApiKey, updateApiKey: hookUpdateApiKey } = useGeminiApiKey();
-  const apiKey = propApiKey !== undefined ? propApiKey : hookApiKey;
-  const updateApiKey = propOnApiKeyChange || hookUpdateApiKey;
+  const {
+    messages,
+    sendPrompt,
+    isLoading: isLoadingAI,
+    status,
+    apiKey,
+    setApiKey,
+  } = useFirebaseAI({ initialApiKey: propApiKey || undefined });
 
+  const updateApiKey = (key: string | null) => setApiKey(key || "");
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
-  const { status: chromeAiStatus } = useChromeAi();
-  const [activeEngine, setActiveEngine] = useState<"cloud" | "local">("cloud");
   const [input, setInput] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -144,25 +146,6 @@ export function AIStudyTemplate({
     [sentences]
   );
 
-  const transport = useMemo(
-    () =>
-      new HybridChatTransport({
-        api: "/api/ask",
-        context,
-        fileName: title,
-        userApiKey: apiKey,
-        onEngineChange: setActiveEngine,
-      }),
-    [context, title, apiKey]
-  );
-
-  const { messages, sendMessage, status } = useChat({
-    transport,
-    onError: (error) => toast.error(error.message || "Não foi possível consultar a IA."),
-  });
-
-  const isLoadingAI = status === "submitted" || status === "streaming";
-
   // Auto scroll chat
   useEffect(() => {
     if (chatScrollRef.current) {
@@ -177,7 +160,7 @@ export function AIStudyTemplate({
     if (!clean || isLoadingAI) return;
     setInput("");
     setMobileTab("chat");
-    void sendMessage({ text: clean });
+    void sendPrompt(clean, { context, fileName: title });
   };
 
   const handleSelectEngine = (nextEngine: TtsEngine) => {
@@ -505,8 +488,7 @@ export function AIStudyTemplate({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <ChromeAiBadge hasCloudKey={Boolean(apiKey)} chromeAiStatus={chromeAiStatus} />
-            <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />
+            <AIEngineBadge />
           </div>
         </div>
 
@@ -526,14 +508,14 @@ export function AIStudyTemplate({
           ) : (
             messages.map((m) => {
               const isUser = m.role === "user";
-              const text = m.parts
-                .map((part) => (part.type === "text" ? part.text : ""))
-                .join("");
 
               return (
                 <div
                   key={m.id}
-                  className={cn("flex flex-col gap-1 max-w-[92%] sm:max-w-[90%]", isUser ? "ml-auto items-end" : "mr-auto items-start")}
+                  className={cn(
+                    "flex flex-col gap-1 max-w-[92%] sm:max-w-[90%]",
+                    isUser ? "ml-auto items-end" : "mr-auto items-start"
+                  )}
                 >
                   <div
                     className={cn(
@@ -543,7 +525,7 @@ export function AIStudyTemplate({
                         : "bg-secondary/90 text-secondary-foreground rounded-bl-none border border-border/80 shadow-xs"
                     )}
                   >
-                    {text}
+                    {m.content}
                   </div>
                   <span className="text-[10px] text-muted-foreground px-1">
                     {isUser ? "Você" : "VivaVoz AI"}
@@ -614,7 +596,7 @@ export function AIStudyTemplate({
             </button>
           </form>
           <p className="text-[10px] text-muted-foreground mt-1 text-center">
-            {apiKey ? "Chave Gemini conectada" : "Usando IA integrada"}
+            Motor de IA Híbrida VivaVoz (Firebase AI Logic)
           </p>
         </div>
       </div>
