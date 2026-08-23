@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Merriweather, Lora, Roboto, Literata } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
+import { GeminiApiKeyProvider } from "@/hooks/use-gemini-api-key";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
@@ -124,9 +125,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
         <ReaderSettingsProvider>
-          <PwaRegister />
-          {children}
-          <Toaster />
+          <GeminiApiKeyProvider>
+            <PwaRegister />
+            {children}
+            <Toaster />
+          </GeminiApiKeyProvider>
         </ReaderSettingsProvider>
       </body>
     </html>
