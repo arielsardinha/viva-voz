@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import { sanitizeSentryEvent } from "./lib/monitoring/sanitizer";
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN || "https://9b24d9e20e86f033184f1f24a0777aa9@o4511959977295872.ingest.us.sentry.io/4511959982211073",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Add optional integrations for additional features
   integrations: [
@@ -18,7 +18,7 @@ Sentry.init({
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
-  
+
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
