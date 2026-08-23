@@ -224,7 +224,7 @@ export function DocumentCard({
       {/* Ações Inferiores: Ouvir / Favoritar / Download / Limpar Áudio / Excluir */}
       <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-border/60">
         <Link
-          href={`/?doc=${doc.id}`}
+          href={`/leitor?doc=${doc.id}`}
           className="flex-1 flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:scale-[1.02] active:scale-95 transition-all"
         >
           <Play className="size-3.5 fill-current" />

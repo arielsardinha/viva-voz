@@ -1,7 +1,13 @@
 describe("Auditoria de Qualidade com Google Lighthouse", () => {
+  before(function () {
+    if (Cypress.browser.family !== "chromium" || Cypress.browser.name === "electron") {
+      this.skip();
+    }
+  });
+
   beforeEach(() => {
     // Configura preferências iniciais para inicializar a aplicação com onboarding concluído
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",

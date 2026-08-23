@@ -1,6 +1,6 @@
 describe("Temas e Configurações de Leitura", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",

@@ -51,7 +51,7 @@ describe("Progressive Web App (PWA) — VivaVoz", () => {
   });
 
   it("deve permitir abrir o diálogo de instalação PWA através do menu", () => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",

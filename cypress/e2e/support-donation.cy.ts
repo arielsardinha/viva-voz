@@ -1,6 +1,6 @@
 describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
@@ -65,8 +65,8 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
       "d1b12e3a-a8db-4164-a580-91b6a172e77a"
     );
 
-    // Valida link de retorno ao leitor
-    cy.contains("Voltar ao Leitor").should("be.visible").click();
+    // Valida link de retorno à página inicial
+    cy.contains("a", "Voltar").should("be.visible").click();
     cy.location("pathname").should("eq", "/");
   });
 });

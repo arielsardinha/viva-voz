@@ -50,9 +50,11 @@ describe("describeAskError", () => {
     expect(describeAskError(error500)).toContain("O serviço do Gemini está temporariamente indisponível");
   });
 
-  it("deve formatar erro genérico com a mensagem original", () => {
+  it("deve formatar erro genérico com a mensagem amigável sanitizada", () => {
     const generic = new Error("Falha na conexão");
-    expect(describeAskError(generic)).toBe("Não foi possível consultar a IA: Falha na conexão");
+    expect(describeAskError(generic)).toBe(
+      "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes."
+    );
   });
 });
 

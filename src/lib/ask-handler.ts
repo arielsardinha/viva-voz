@@ -30,7 +30,7 @@ export function describeAskError(error: unknown): string {
   if (status && status >= 500) {
     return "O serviço do Gemini está temporariamente indisponível. Tente novamente em instantes.";
   }
-  return raw ? `Não foi possível consultar a IA: ${raw}` : "Não foi possível consultar a IA.";
+  return "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes.";
 }
 
 function extractStatus(error: unknown): number | undefined {

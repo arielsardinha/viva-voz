@@ -1,6 +1,6 @@
 describe("Google Drive Backup & Sincronização em Nuvem", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.sessionStorage.clear();
         win.localStorage.setItem(
@@ -56,7 +56,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     }).as("postBackup");
 
     // Visita com a sessão do Google Drive conectada no sessionStorage
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.sessionStorage.setItem(
           "vivavoz_gdrive_auth_status",

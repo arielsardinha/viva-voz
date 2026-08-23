@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useFirebaseAI } from "./useFirebaseAI";
+import { useFirebaseAI, sanitizeClientAIError } from "./useFirebaseAI";
 
 let mockApiKey: string | null = null;
 const mockUpdateApiKey = jest.fn((key: string | null) => {
@@ -169,5 +169,27 @@ describe("useFirebaseAI hook", () => {
 
     expect(result.current.isOnline).toBe(true);
     expect(result.current.activeEngine).toBe("vertex");
+  });
+
+  it("deve sanitizar erros 403 / Referrer Blocked sem vazar dados brutos de infraestrutura", () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const error403 = new Error(
+      "AI: Error fetching from https://firebasevertexai.googleapis.com/...: [403 ] Requests from referer https://viva-voz.vercel.app/ are blocked. API_KEY_HTTP_REFERRER_BLOCKED"
+    );
+    const sanitized = sanitizeClientAIError(error403);
+    expect(sanitized).toContain("Acesso não autorizado ou chave de API recusada");
+    expect(sanitized).not.toContain("firebasevertexai.googleapis.com");
+    expect(sanitized).not.toContain("API_KEY_HTTP_REFERRER_BLOCKED");
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("deve sanitizar erros desconhecidos com mensagem amigável padrão", () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const unknownError = new Error("Unexpected internal crash at line 999");
+    const sanitized = sanitizeClientAIError(unknownError);
+    expect(sanitized).toBe(
+      "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes."
+    );
+    consoleErrorSpy.mockRestore();
   });
 });

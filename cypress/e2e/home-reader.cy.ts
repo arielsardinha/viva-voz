@@ -1,6 +1,6 @@
 describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
@@ -39,7 +39,7 @@ describe("Leitor de PDF - Fluxo Principal e Dropzone", () => {
     cy.contains("Armazenamento Local").should("be.visible");
 
     cy.contains("a", "Leitor").click();
-    cy.url().should("eq", `${Cypress.config().baseUrl}/`);
+    cy.url().should("include", "/leitor");
     cy.contains("Arraste seus documentos aqui ou selecione").should("be.visible");
   });
 

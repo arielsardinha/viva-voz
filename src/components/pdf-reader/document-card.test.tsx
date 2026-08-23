@@ -55,7 +55,7 @@ describe("DocumentCard", () => {
     it("deve renderizar o link de 'Ouvir Áudio' apontando para o documento", () => {
       render(<DocumentCard {...defaultProps} />);
       const link = screen.getByRole("link", { name: /ouvir áudio/i });
-      expect(link).toHaveAttribute("href", "/?doc=doc-1");
+      expect(link).toHaveAttribute("href", "/leitor?doc=doc-1");
     });
 
     it("deve renderizar o badge de formato PDF", () => {

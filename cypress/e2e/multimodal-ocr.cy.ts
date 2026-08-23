@@ -1,6 +1,6 @@
-describe("Tier 3: Multimodal & OCR Architecture E2E", () => {
+describe("E2E: OCR Multimodal com Google Gemini Vision", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.clear();
         win.localStorage.setItem(

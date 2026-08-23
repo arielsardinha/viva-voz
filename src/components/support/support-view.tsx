@@ -105,7 +105,7 @@ export function SupportView() {
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 px-3 rounded-xl hover:bg-secondary/80 border border-border/40"
         >
           <ArrowLeft className="size-4" />
-          <span>Voltar ao Leitor</span>
+          <span>Voltar</span>
         </Link>
       </div>
 

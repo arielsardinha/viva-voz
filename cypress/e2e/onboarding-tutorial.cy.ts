@@ -5,7 +5,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
   });
 
   it("deve exibir o tutorial no primeiro acesso e não exibir botão fixo no cabeçalho após definir preferências", () => {
-    cy.visit("/");
+    cy.visit("/leitor");
 
     // Modal de onboarding visível
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
@@ -26,7 +26,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
   });
 
   it("deve permitir fazer a jornada completa passo a passo e aplicar as preferências", () => {
-    cy.visit("/");
+    cy.visit("/leitor");
 
     // Inicia a jornada
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
@@ -81,7 +81,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
 
   it("deve permitir reabrir o tutorial de preferências a qualquer momento pelo menu de tema", () => {
     cy.viewport(1280, 720);
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
@@ -117,7 +117,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
 
   it("deve renderizar com perfeita responsividade e espaçamento inferior em dispositivos móveis (370px)", () => {
     cy.viewport(370, 667);
-    cy.visit("/");
+    cy.visit("/leitor");
 
     // Modal de onboarding visível e adaptado
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
@@ -150,7 +150,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
   });
 
   it("deve refletir dinamicamente a velocidade selecionada no áudio de demonstração e no resumo", () => {
-    cy.visit("/");
+    cy.visit("/leitor");
     cy.get('[data-cy="onboarding-dialog"]').should("be.visible");
     cy.get('[data-cy="start-journey-btn"]').click();
 

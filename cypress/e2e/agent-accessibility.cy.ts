@@ -40,8 +40,8 @@ describe("Agent Accessibility & WebMCP Audits", () => {
   });
 
   describe("2. Auditoria Semântica e Landmarks da Accessibility Tree", () => {
-    it("deve possuir landmarks semânticos válidos no Leitor Principal (/)", () => {
-      cy.visit("/", {
+    it("deve possuir landmarks semânticos válidos no Leitor Principal (/leitor)", () => {
+      cy.visit("/leitor", {
         onBeforeLoad(win) {
           win.localStorage.setItem(
             "vivavoz-reader-settings",
@@ -110,7 +110,7 @@ describe("Agent Accessibility & WebMCP Audits", () => {
 
   describe("3. Auditoria de Anotações WebMCP em Formulários e Ações Críticas", () => {
     beforeEach(() => {
-      cy.visit("/", {
+      cy.visit("/leitor", {
         onBeforeLoad(win) {
           win.localStorage.setItem(
             "vivavoz-reader-settings",

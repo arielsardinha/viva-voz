@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 
 export function AppHeader() {
   const pathname = usePathname();
-  const isReader = pathname === "/";
+  const isReader = pathname === "/leitor" || pathname === "/";
   const isLibrary = pathname === "/leituras";
 
   const { apiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
@@ -93,7 +93,7 @@ export function AppHeader() {
             className="flex items-center gap-0.5 sm:gap-1 rounded-2xl bg-secondary/80 dark:bg-secondary/60 p-0.5 sm:p-1 border border-border/80 shadow-xs backdrop-blur-xs"
           >
             <Link
-              href="/"
+              href="/leitor"
               data-cy="nav-link-reader"
               aria-current={isReader ? "page" : undefined}
               className={cn(

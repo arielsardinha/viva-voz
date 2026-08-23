@@ -50,6 +50,39 @@ export interface UseFirebaseAIReturn {
   abortCurrentRequest: () => void;
 }
 
+/**
+ * Sanitiza e traduz erros de IA em mensagens acolhedoras para o usuário final,
+ * garantindo zero exposição de URLs, referrers ou detalhes de infraestrutura.
+ */
+export function sanitizeClientAIError(err: unknown): string {
+  if (!err) {
+    return "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes.";
+  }
+
+  const raw = err instanceof Error ? err.message : String(err);
+
+  // Log seguro no console para diagnóstico de desenvolvimento
+  console.error("[VivaVoz AI Client Error]", err);
+
+  if (/403|unauthorized|api key|api_key|invalid.*key|blocked|referrer/i.test(raw)) {
+    return "Acesso não autorizado ou chave de API recusada. Por favor, verifique sua chave do Google AI Studio nas configurações de IA.";
+  }
+
+  if (/429|quota|rate limit|resource_exhausted/i.test(raw)) {
+    return "Muitas perguntas em pouco tempo. Aguarde alguns segundos e tente novamente.";
+  }
+
+  if (/network|offline|failed to fetch/i.test(raw)) {
+    return "Falha de conexão com os servidores de IA. Verifique sua rede e tente novamente.";
+  }
+
+  if (/cancel|abort/i.test(raw)) {
+    return "Operação cancelada pelo usuário.";
+  }
+
+  return "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes.";
+}
+
 export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAIReturn {
   const isMountedRef = useRef(true);
   const { apiKey: unifiedApiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
@@ -331,8 +364,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         setStatus("idle");
       } catch (err: unknown) {
         setStatus("error");
-        const errMsg = err instanceof Error ? err.message : "Erro ao consultar a IA.";
-        setError(errMsg);
+        const sanitizedMsg = sanitizeClientAIError(err);
+        setError(sanitizedMsg);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -340,8 +373,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
                   ...msg,
                   content:
                     msg.content.length > 0
-                      ? `${msg.content}\n\n⚠️ Interrompido: ${errMsg}`
-                      : `⚠️ Não foi possível obter resposta: ${errMsg}`,
+                      ? `${msg.content}\n\n⚠️ Interrompido: ${sanitizedMsg}`
+                      : `⚠️ Não foi possível obter resposta: ${sanitizedMsg}`,
                 }
               : msg,
           ),

@@ -1,6 +1,6 @@
-describe("Tier 1: Multi-Document Architecture & Quick Paste E2E", () => {
+describe("Upload e Processamento Multi-Documento (PDF, EPUB, DOCX, ODT, PPTX, TXT, Web URL)", () => {
   beforeEach(() => {
-    cy.visit("/", {
+    cy.visit("/leitor", {
       onBeforeLoad(win) {
         win.localStorage.clear();
         win.localStorage.setItem(
