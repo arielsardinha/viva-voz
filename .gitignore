@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 workflow-graph/
 cypress/screenshots
+
+# Sentry Config File
+.env.sentry-build-plugin
