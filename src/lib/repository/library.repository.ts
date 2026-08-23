@@ -16,6 +16,7 @@ import type {
 } from "@/lib/domain/document.types";
 import { deleteAudioCacheByDocument, AUDIO_CACHE_STORE } from "@/lib/tts-audio-cache";
 import { notifyLibraryChanged } from "@/lib/sync/client/sync-events";
+import { isQuotaExceededError, StorageQuotaExceededError } from "@/lib/storage-quota";
 
 const DB_NAME = "pdf-audio-library";
 const DB_VERSION = 3;
@@ -126,7 +127,17 @@ export class IndexedDbLibraryRepository implements ILibraryRepository {
       chapters: doc.chapters,
     };
 
-    await this.tx("readwrite", (store) => store.put(entity));
+    try {
+      await this.tx("readwrite", (store) => store.put(entity));
+    } catch (err: unknown) {
+      if (isQuotaExceededError(err)) {
+        throw new StorageQuotaExceededError(
+          "Memória interna insuficiente no navegador para armazenar este documento.",
+          { requiredBytes: doc.metadata.sizeBytes }
+        );
+      }
+      throw err;
+    }
     notifyLibraryChanged("save_document");
 
     // Eviction LRU: remove documentos mais antigos se exceder o limite

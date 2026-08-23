@@ -39,6 +39,8 @@ describe("GoogleDriveSyncModal Component", () => {
     render(<GoogleDriveSyncModal open={true} onOpenChange={jest.fn()} />);
 
     expect(screen.getByText("Backup no Google Drive")).toBeInTheDocument();
+    expect(screen.getByText(/Vantagens do Backup no Google Drive/i)).toBeInTheDocument();
+    expect(screen.getByText(/Armazenamento Ilimitado em Nuvem:/i)).toBeInTheDocument();
     expect(screen.getByText("Conectar com Google")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Conectar com Google"));

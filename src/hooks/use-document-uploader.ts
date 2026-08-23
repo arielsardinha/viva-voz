@@ -1,10 +1,11 @@
-/**
- * ViewModel MVVM para upload e ingestão individual ou em lote de múltiplos documentos.
- * Padrão: MVVM ViewModel.
- */
 import { useCallback, useState } from "react";
 import type { ParsedDocument } from "@/lib/domain/document.types";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
+import {
+  checkStorageAvailable,
+  isQuotaExceededError,
+  StorageQuotaExceededError,
+} from "@/lib/storage-quota";
 
 export interface FileQueueItem {
   id: string;
@@ -19,6 +20,7 @@ export interface FileQueueItem {
 export interface UseDocumentUploaderOptions {
   onSuccess?: (doc: ParsedDocument) => void;
   onError?: (error: Error, file?: File) => void;
+  onQuotaExceeded?: (error: StorageQuotaExceededError, file?: File) => void;
   facade?: DocumentProcessingFacade;
 }
 
@@ -27,6 +29,7 @@ export function useDocumentUploader(options: UseDocumentUploaderOptions = {}) {
   const [queue, setQueue] = useState<FileQueueItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<string | null>(null);
+  const [isStorageQuotaExceeded, setIsStorageQuotaExceeded] = useState(false);
 
   const uploadFiles = useCallback(
     async (fileList: FileList | File[]): Promise<ParsedDocument[]> => {
@@ -55,6 +58,20 @@ export function useDocumentUploader(options: UseDocumentUploaderOptions = {}) {
         );
 
         try {
+          // Checagem prévia de armazenamento disponível
+          const storageCheck = await checkStorageAvailable(item.file.size);
+          if (!storageCheck.hasSpace) {
+            throw new StorageQuotaExceededError(
+              "Memória interna do navegador insuficiente para processar este arquivo.",
+              {
+                requiredBytes: item.file.size,
+                availableBytes: storageCheck.availableBytes,
+                quotaBytes: storageCheck.quotaBytes,
+                usageBytes: storageCheck.usageBytes,
+              }
+            );
+          }
+
           const doc = await facade.processAndSaveFile(item.file, (prog) => {
             setCurrentProgress(prog.message || `Processando ${item.file.name}...`);
             setQueue((prev) =>
@@ -77,7 +94,22 @@ export function useDocumentUploader(options: UseDocumentUploaderOptions = {}) {
           processedDocs.push(doc);
           options.onSuccess?.(doc);
         } catch (err: unknown) {
-          const errorObj = err instanceof Error ? err : new Error(String(err));
+          const isQuota = isQuotaExceededError(err);
+          const errorObj = isQuota
+            ? err instanceof StorageQuotaExceededError
+              ? err
+              : new StorageQuotaExceededError(
+                  "Memória interna insuficiente no navegador para salvar este documento."
+                )
+            : err instanceof Error
+            ? err
+            : new Error(String(err));
+
+          if (isQuota) {
+            setIsStorageQuotaExceeded(true);
+            options.onQuotaExceeded?.(errorObj as StorageQuotaExceededError, item.file);
+          }
+
           setQueue((prev) =>
             prev.map((q) =>
               q.id === item.id
@@ -101,11 +133,38 @@ export function useDocumentUploader(options: UseDocumentUploaderOptions = {}) {
       setIsUploading(true);
       setCurrentProgress("Processando texto...");
       try {
+        const textBytes = new Blob([text]).size;
+        const storageCheck = await checkStorageAvailable(textBytes);
+        if (!storageCheck.hasSpace) {
+          throw new StorageQuotaExceededError(
+            "Memória interna do navegador insuficiente para processar este texto.",
+            {
+              requiredBytes: textBytes,
+              availableBytes: storageCheck.availableBytes,
+            }
+          );
+        }
+
         const doc = await facade.processAndSaveRawText(title, text);
         options.onSuccess?.(doc);
         return doc;
       } catch (err: unknown) {
-        const errorObj = err instanceof Error ? err : new Error(String(err));
+        const isQuota = isQuotaExceededError(err);
+        const errorObj = isQuota
+          ? err instanceof StorageQuotaExceededError
+            ? err
+            : new StorageQuotaExceededError(
+                "Memória interna insuficiente no navegador para salvar este documento."
+              )
+          : err instanceof Error
+          ? err
+          : new Error(String(err));
+
+        if (isQuota) {
+          setIsStorageQuotaExceeded(true);
+          options.onQuotaExceeded?.(errorObj as StorageQuotaExceededError);
+        }
+
         options.onError?.(errorObj);
         return null;
       } finally {
@@ -126,6 +185,8 @@ export function useDocumentUploader(options: UseDocumentUploaderOptions = {}) {
     queue,
     isUploading,
     currentProgress,
+    isStorageQuotaExceeded,
+    setIsStorageQuotaExceeded,
     uploadFiles,
     uploadRawText,
     clearQueue,

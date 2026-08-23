@@ -45,6 +45,7 @@ import { useDocumentHighlights } from "@/hooks/use-document-highlights";
 import { useDocumentNotes } from "@/hooks/use-document-notes";
 import { NoteDialog } from "./ui/note-dialog";
 import { NotesDrawer } from "./ui/notes-drawer";
+import { StorageQuotaModal } from "@/components/sync/storage-quota-modal";
 import type { HighlightColor } from "@/lib/domain/document-highlight.types";
 import type { DocumentNote, NoteColor } from "@/lib/domain/document-note.types";
 
@@ -236,6 +237,8 @@ export function PdfReader() {
     [player]
   );
 
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+
   const uploaderVM = useDocumentUploader({
     facade,
     onSuccess: (doc) => {
@@ -250,7 +253,12 @@ export function PdfReader() {
       );
     },
     onError: (err) => {
-      toast.error(err.message || "Não foi possível processar o documento.");
+      if (!isQuotaModalOpen) {
+        toast.error(err.message || "Não foi possível processar o documento.");
+      }
+    },
+    onQuotaExceeded: () => {
+      setIsQuotaModalOpen(true);
     },
   });
 
@@ -739,6 +747,12 @@ export function PdfReader() {
             />
           </>
         )}
+
+        {/* Diálogo de Memória Insuficiente no Navegador (Acessível em qualquer estado) */}
+        <StorageQuotaModal
+          open={isQuotaModalOpen}
+          onOpenChange={setIsQuotaModalOpen}
+        />
       </main>
     </div>
   );

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { GoogleDriveBenefitsCard } from "./google-drive-benefits-card";
 import { GoogleDrivePermissionModal } from "./google-drive-permission-modal";
 import { useGoogleDriveSync } from "@/hooks/use-google-drive-sync";
 import { cn } from "@/lib/utils";
@@ -107,16 +108,8 @@ export function GoogleDriveSyncModal({ open, onOpenChange }: GoogleDriveSyncModa
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4 py-2 text-sm text-foreground/90">
-            {/* Box de Informações de Privacidade */}
-            <div className="rounded-xl bg-secondary/50 p-3 border border-border/60 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-accent font-semibold">
-                <FolderLock className="size-4 shrink-0" />
-                <span>Pasta Oculta e Isolada</span>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Os arquivos ficam guardados de forma privada na área oculta do seu próprio Google Drive, sem poluir suas pastas pessoais. Somente você tem acesso aos seus dados e arquivos.
-              </p>
-            </div>
+            {/* Card de Benefícios e Informações de Privacidade */}
+            <GoogleDriveBenefitsCard variant="default" />
 
             {/* Status de Conexão */}
             <div className="rounded-xl bg-background p-3.5 border border-border space-y-3">

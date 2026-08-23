@@ -62,4 +62,35 @@ describe("useDocumentUploader (ViewModel MVVM)", () => {
     expect(doc).not.toBeNull();
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
+
+  it("deve acionar onQuotaExceeded e definir isStorageQuotaExceeded quando o espaço for insuficiente", async () => {
+    const onQuotaExceeded = jest.fn();
+    const onError = jest.fn();
+
+    // Mockando navigator.storage para simular falta de espaço
+    Object.defineProperty(navigator, "storage", {
+      value: {
+        estimate: jest.fn().mockResolvedValue({
+          quota: 10 * 1024 * 1024,
+          usage: 9.9 * 1024 * 1024, // Quase cheio (apenas 100KB livre)
+        }),
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    const { result } = renderHook(() =>
+      useDocumentUploader({ facade, onError, onQuotaExceeded })
+    );
+
+    const file = new File(["Grande conteúdo de teste"], "grande.txt", { type: "text/plain" });
+
+    await act(async () => {
+      await result.current.uploadFiles([file]);
+    });
+
+    expect(result.current.isStorageQuotaExceeded).toBe(true);
+    expect(onQuotaExceeded).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
 });

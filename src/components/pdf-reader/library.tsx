@@ -8,6 +8,7 @@ import { QuickPasteDialog } from "./quick-paste-dialog";
 import { WebUrlDialog } from "./web-url-dialog";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
 import { DeleteConfirmDialog } from "./ui/delete-confirm-dialog";
+import { StorageQuotaModal } from "@/components/sync/storage-quota-modal";
 import { DocumentCard } from "./document-card";
 import { LibrarySidebar } from "./library-sidebar";
 import { useReaderSettings } from "@/context/reader-settings-context";
@@ -103,13 +104,20 @@ export function Library() {
     audioCacheStats,
   } = libraryVM;
 
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+
   const uploaderVM = useDocumentUploader({
     onSuccess: (doc) => {
       toast.success(`"${doc.metadata.title}" adicionado à biblioteca!`);
       void refresh();
     },
     onError: (err) => {
-      toast.error(err.message || "Erro ao processar arquivo.");
+      if (!isQuotaModalOpen) {
+        toast.error(err.message || "Erro ao processar arquivo.");
+      }
+    },
+    onQuotaExceeded: () => {
+      setIsQuotaModalOpen(true);
     },
   });
 
@@ -465,6 +473,12 @@ export function Library() {
         open={isGeminiDialogOpen}
         onOpenChange={setIsGeminiDialogOpen}
         trigger={<span className="hidden" />}
+      />
+
+      {/* Diálogo de Memória Insuficiente no Navegador */}
+      <StorageQuotaModal
+        open={isQuotaModalOpen}
+        onOpenChange={setIsQuotaModalOpen}
       />
     </div>
   );

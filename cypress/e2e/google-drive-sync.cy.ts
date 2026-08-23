@@ -33,7 +33,9 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     cy.get('[data-webmcp-tool="googleDriveSync"]').should("be.visible");
     cy.contains("Backup no Google Drive").should("be.visible");
     cy.contains("Conectar com Google").should("be.visible");
-    cy.contains("Pasta Oculta e Isolada").should("be.visible");
+    cy.contains("Vantagens do Backup no Google Drive").should("be.visible");
+    cy.contains("Armazenamento Ilimitado em Nuvem:").should("be.visible");
+    cy.contains("Pasta Oculta & 100% Segura:").should("be.visible");
   });
 
   it("não deve exibir o botão na tela de leitura quando conectado, mas deve exibir na Biblioteca e permitir backup", () => {
@@ -123,5 +125,49 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
     cy.get('[data-webmcp-tool="googleDriveSync"]').then(($modal) => {
       expect($modal.width()).to.be.lte(370);
     });
+  });
+
+  it("deve renderizar o card de benefícios no modal de alerta de memória insuficiente", () => {
+    cy.visit("/leitor", {
+      onBeforeLoad(win) {
+        win.sessionStorage.clear();
+        win.localStorage.setItem(
+          "vivavoz-reader-settings",
+          JSON.stringify({
+            template: "modern",
+            theme: "light",
+            font: "inter",
+            fontSize: 16,
+            lineHeight: 1.8,
+            hasCompletedOnboarding: true,
+          })
+        );
+        if (win.navigator.storage) {
+          cy.stub(win.navigator.storage, "estimate").resolves({
+            quota: 10 * 1024 * 1024,
+            usage: 9.99 * 1024 * 1024,
+          });
+        }
+      },
+    });
+    cy.get('header[data-hydrated="true"]').should("exist");
+
+    // Faz o upload de um arquivo de teste
+    cy.get('input#pdf-upload-input').selectFile(
+      {
+        contents: Cypress.Buffer.from("Conteúdo para teste de leitura"),
+        fileName: "artigo-teste.txt",
+        mimeType: "text/plain",
+      },
+      { force: true }
+    );
+
+    // O modal de aviso de memória deve estar visível
+    cy.get('[data-webmcp-tool="storageQuotaAlert"]').should("be.visible");
+    cy.contains("Memória Interna Insuficiente").should("be.visible");
+    cy.contains("Armazenamento Cheio").should("be.visible");
+    cy.contains("Memória interna insuficiente no navegador").should("be.visible");
+    cy.contains("Armazenamento Ilimitado em Nuvem:").should("be.visible");
+    cy.get('[data-cy="connect-google-drive-quota-btn"]').should("be.visible");
   });
 });
