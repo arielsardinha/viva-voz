@@ -330,7 +330,13 @@ Contribuições da comunidade são muito bem-vindas! Para manter a excelência t
 
 ## 📄 Licença
 
-Este projeto está sob a licença [MIT](LICENSE). Consulte o arquivo de licença para mais informações.
+Este projeto é público, gratuito e de código aberto sob a licença **CC BY-NC-SA 4.0** (Creative Commons Atribuição-NãoComercial-CompartilhaIgual 4.0 Internacional).
+
+* ❌ **Uso comercial e vendas são estritamente proibidos.**
+* ❌ **Proibida a incorporação em sistemas privados ou proprietários fechados.**
+* ✅ **Livre para estudo, uso pessoal e contribuições comunitárias.**
+
+Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
