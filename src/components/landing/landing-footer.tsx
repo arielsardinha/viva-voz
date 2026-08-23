@@ -97,17 +97,6 @@ export function LandingFooter() {
                   <span>/llms-full.txt</span>
                 </Link>
               </li>
-              <li>
-                <a
-                  href="https://github.com/arielsardinha/viva-voz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors inline-flex items-center gap-1"
-                >
-                  <GithubIcon className="size-3" />
-                  <span>GitHub Repository</span>
-                </a>
-              </li>
             </ul>
           </div>
         </div>
