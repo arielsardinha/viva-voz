@@ -64,6 +64,17 @@ jest.mock("@/hooks/use-pwa-install", () => ({
   }),
 }));
 
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: null,
+    hasApiKey: false,
+    maskedKey: null,
+    isChecking: false,
+    updateApiKey: jest.fn().mockResolvedValue(true),
+    syncKey: jest.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 const mockSeekTo = jest.fn();
 const mockJumpTo = jest.fn();
 const mockPause = jest.fn();

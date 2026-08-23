@@ -3,15 +3,27 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { sanitizeSentryEvent } from "./src/lib/monitoring/sanitizer";
 
 Sentry.init({
-  dsn: "https://9b24d9e20e86f033184f1f24a0777aa9@o4511959977295872.ingest.us.sentry.io/4511959982211073",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
 
   // Enable logs to be sent to Sentry
   enableLogs: true,
+
+  // Sanitização estrita de dados sensíveis antes de qualquer envio
+  beforeSend(event) {
+    return sanitizeSentryEvent(event);
+  },
+
+  ignoreErrors: [
+    "ResizeObserver loop limit exceeded",
+    "Network request failed",
+    "AbortError",
+  ],
 
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
