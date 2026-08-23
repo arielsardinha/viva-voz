@@ -25,8 +25,17 @@ describe("Developer Contact Utilities", () => {
     expect(mailto).toContain(encodeURIComponent("[VivaVoz] Contato com o Desenvolvedor"));
   });
 
-  it("deve conter as URLs oficiais do GitHub configuradas", () => {
+  it("deve conter as URLs oficiais do GitHub e comando de clone configurados", () => {
     expect(DEVELOPER_CONTACT_CONFIG.githubUrl).toBe("https://github.com/arielsardinha/viva-voz");
     expect(DEVELOPER_CONTACT_CONFIG.githubIssuesUrl).toBe("https://github.com/arielsardinha/viva-voz/issues");
+    expect(DEVELOPER_CONTACT_CONFIG.githubPullsUrl).toBe("https://github.com/arielsardinha/viva-voz/pulls");
+    expect(DEVELOPER_CONTACT_CONFIG.cloneCommand).toBe("git clone https://github.com/arielsardinha/viva-voz.git");
+  });
+
+  it("deve fornecer áreas de contribuição estruturadas", () => {
+    expect(DEVELOPER_CONTACT_CONFIG.contributionAreas.length).toBeGreaterThanOrEqual(3);
+    const codeArea = DEVELOPER_CONTACT_CONFIG.contributionAreas.find((a) => a.id === "code");
+    expect(codeArea).toBeDefined();
+    expect(codeArea?.title).toContain("Código");
   });
 });
