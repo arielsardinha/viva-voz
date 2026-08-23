@@ -14,12 +14,6 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center space-y-6">
-          {/* Top Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1.5 text-xs font-bold text-accent backdrop-blur-md shadow-xs animate-fade-in">
-            <Sparkles className="size-3.5 animate-pulse" aria-hidden="true" />
-            <span>VivaVoz Graph-Flow Engine • 100% Agent-Ready</span>
-          </div>
-
           {/* H1 Value Proposition */}
           <h1
             id="hero-title"

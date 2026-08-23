@@ -44,8 +44,8 @@ export function LandingHeader() {
     settings.theme === "dark"
       ? Moon
       : settings.theme === "sepia"
-      ? ScrollText
-      : Sun;
+        ? ScrollText
+        : Sun;
 
   const cycleTheme = () => {
     if (settings.theme === "light") setTheme("dark");
@@ -73,9 +73,6 @@ export function LandingHeader() {
             <div className="flex items-center gap-1.5">
               <span className="text-sm sm:text-base font-black tracking-tight text-foreground">
                 VivaVoz
-              </span>
-              <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-                Graph-Flow
               </span>
             </div>
             <p className="hidden text-[10px] text-muted-foreground sm:block">
