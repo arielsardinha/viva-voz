@@ -31,7 +31,7 @@ export const metadata: Metadata = {
       "Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.",
     type: "website",
     locale: "pt_BR",
-    url: "https://vivavoz.com",
+    url: "https://www.viva-voz.com",
     siteName: "VivaVoz",
   },
   twitter: {
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
       "Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.",
   },
   alternates: {
-    canonical: "https://vivavoz.com",
+    canonical: "https://www.viva-voz.com",
   },
 };
 
