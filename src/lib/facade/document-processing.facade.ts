@@ -2,7 +2,7 @@
  * Ponto unificado e simplificado de orquestração para ingestão, extração e persistência de documentos.
  * Padrão: GoF Structural Pattern — Facade (Clean Architecture).
  */
-import type { OnParseProgress, ParsedDocument, DocumentMetadata } from "@/lib/domain/document.types";
+import type { OnParseProgress, ParsedDocument } from "@/lib/domain/document.types";
 import { AdapterRegistry } from "@/lib/parsers/adapter-registry";
 import { QuickPasteAdapter } from "@/lib/parsers/quick-paste.adapter";
 import {

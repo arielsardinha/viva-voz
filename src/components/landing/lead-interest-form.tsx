@@ -5,7 +5,6 @@ import {
   AudioLines,
   BookOpen,
   FolderArchive,
-  Heart,
   MessageSquarePlus,
   ShieldCheck,
   Sparkles,

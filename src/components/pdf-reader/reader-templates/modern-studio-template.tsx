@@ -2,7 +2,6 @@
 
 import { useRef, useState, useMemo } from "react";
 import {
-  BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,

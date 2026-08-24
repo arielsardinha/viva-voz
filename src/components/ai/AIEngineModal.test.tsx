@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { AIEngineModal } from "./AIEngineModal";
 import * as useFirebaseAIHook from "@/hooks/useFirebaseAI";

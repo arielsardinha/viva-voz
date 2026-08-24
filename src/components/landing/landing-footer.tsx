@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AudioLines, Github, Heart, Shield, Sparkles, Bot, FileCode } from "lucide-react";
+import { AudioLines, Heart, Bot, FileCode } from "lucide-react";
 import { GithubIcon } from "@/components/ui/github-icon";
 
 export function LandingFooter() {

@@ -128,7 +128,7 @@ function sdRoundedBox(px, py, bx, by, bw, bh, r) {
 }
 
 // Renderizador com SDF nítido e antialiasing cirúrgico de 1 pixel
-function renderVivaVozPixel(px, py, w, h) {
+function renderVivaVozPixel(px, py, w, _h) {
   const scale = 64 / w;
   const x = (px + 0.5) * scale;
   const y = (py + 0.5) * scale;

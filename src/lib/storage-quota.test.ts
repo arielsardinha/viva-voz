@@ -2,7 +2,6 @@ import {
   StorageQuotaExceededError,
   isQuotaExceededError,
   checkStorageAvailable,
-  STORAGE_SAFETY_MARGIN_BYTES,
 } from "./storage-quota";
 
 describe("storage-quota utils", () => {

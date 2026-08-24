@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { Library } from "./library";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";

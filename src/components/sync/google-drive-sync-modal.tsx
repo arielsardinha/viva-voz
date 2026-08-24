@@ -3,15 +3,11 @@
 import { useState } from "react";
 import {
   Cloud,
-  CloudCheck,
   CloudUpload,
   CloudDownload,
   Loader2,
   LogOut,
-  ShieldCheck,
   AlertCircle,
-  FolderLock,
-  Volume2,
   RefreshCw,
 } from "lucide-react";
 import {
@@ -27,7 +23,6 @@ import { Progress } from "@/components/ui/progress";
 import { GoogleDriveBenefitsCard } from "./google-drive-benefits-card";
 import { GoogleDrivePermissionModal } from "./google-drive-permission-modal";
 import { useGoogleDriveSync } from "@/hooks/use-google-drive-sync";
-import { cn } from "@/lib/utils";
 
 interface GoogleDriveSyncModalProps {
   open: boolean;

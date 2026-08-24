@@ -77,7 +77,7 @@ export function ZenFocusTemplate({
   isPlaying,
   isBuffering,
   voice,
-  speed,
+  speed: _speed,
   engine,
   voices,
   disabledEngines,
@@ -88,9 +88,9 @@ export function ZenFocusTemplate({
   onToggle,
   onPrevious,
   onNext,
-  onRestart,
+  onRestart: _onRestart,
   onVoiceChange,
-  onSpeedChange,
+  onSpeedChange: _onSpeedChange,
   onAskAI,
   getHighlightsForSentence,
   onHighlight,
@@ -114,8 +114,6 @@ export function ZenFocusTemplate({
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
 
-  const currentVoiceObj = voices.find((v) => v.id === voice);
-  const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
   const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
   const hasApiKey = Boolean(apiKey && apiKey.length >= 10);
 

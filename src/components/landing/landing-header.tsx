@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   AudioLines,
   FolderArchive,
@@ -10,14 +9,10 @@ import {
   Menu,
   Moon,
   ScrollText,
-  Sparkles,
   Sun,
-  X,
   ArrowRight,
   Mic,
-  Cpu,
   Layers,
-  BookOpen,
 } from "lucide-react";
 import {
   Sheet,
@@ -28,11 +23,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useReaderSettings } from "@/context/reader-settings-context";
-import { cn } from "@/lib/utils";
 
 export function LandingHeader() {
-  const pathname = usePathname();
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { settings, setTheme } = useReaderSettings();
 

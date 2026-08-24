@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
 import { toast } from "sonner";

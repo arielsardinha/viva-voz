@@ -4,15 +4,9 @@ import { useState } from "react";
 import {
   AudioLines,
   Sparkles,
-  Layers,
-  Palette,
   ShieldCheck,
-  Bot,
-  ArrowUpRight,
   CheckCircle2,
-  FileCheck,
   Cpu,
-  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

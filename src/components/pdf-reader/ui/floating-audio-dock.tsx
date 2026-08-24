@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  AudioLines,
   FileText,
   Gauge,
   Loader2,
@@ -13,8 +12,6 @@ import {
   SkipBack,
   SkipForward,
   Sparkles,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import {
   DropdownMenu,

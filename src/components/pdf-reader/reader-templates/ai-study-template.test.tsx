@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { AIStudyTemplate } from "./ai-study-template";
 import type { ReaderSettings } from "@/context/reader-settings-context";

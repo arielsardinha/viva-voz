@@ -3,7 +3,7 @@
  * Padrão: MVVM ViewModel.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { DocumentFormat, DocumentMetadata } from "@/lib/domain/document.types";
+import type { DocumentMetadata } from "@/lib/domain/document.types";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
 import {
   getAudioCacheStats,

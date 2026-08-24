@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  BookOpen,
   Check,
-  FileText,
   Pencil,
   X,
 } from "lucide-react";

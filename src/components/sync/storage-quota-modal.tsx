@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Cloud, HardDrive } from "lucide-react";
+import { Cloud, HardDrive } from "lucide-react";
 import {
   Dialog,
   DialogContent,

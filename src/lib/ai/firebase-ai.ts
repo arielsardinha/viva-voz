@@ -11,7 +11,6 @@ import {
   InferenceMode,
   GoogleAIBackend,
   type GenerativeModel,
-  type AIModel,
 } from "firebase/ai";
 import { SYSTEM_INSTRUCTION_PT_BR, buildDocumentSystemPrompt } from "./system-instructions";
 

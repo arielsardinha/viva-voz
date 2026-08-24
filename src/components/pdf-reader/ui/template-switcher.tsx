@@ -10,13 +10,11 @@ import {
   ScrollText,
   Sun,
   Type,
-  Volume2,
   StickyNote,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -76,8 +74,8 @@ export function TemplateSwitcher({
   onChangeSettings,
   isFullscreen = false,
   onToggleFullscreen,
-  currentPage,
-  totalPages,
+  currentPage: _currentPage,
+  totalPages: _totalPages,
   notesCount = 0,
   onOpenNotesDrawer,
 }: TemplateSwitcherProps) {

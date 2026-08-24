@@ -2,7 +2,6 @@
 
 import {
   Cloud,
-  CloudUpload,
   HardDrive,
   Headphones,
   Smartphone,

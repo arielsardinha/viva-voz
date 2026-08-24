@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,7 +16,6 @@ import {
   ScrollText,
   Sparkles,
   Sun,
-  Cpu,
 } from "lucide-react";
 import { DeveloperContactDialog } from "./developer-contact-dialog";
 import { GeminiKeyDialog } from "./gemini-key-dialog";

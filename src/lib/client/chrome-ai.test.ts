@@ -4,8 +4,6 @@ import {
 } from "./chrome-ai";
 
 describe("Chrome Built-in AI (Prompt API)", () => {
-  const originalWindow = global.window;
-
   afterEach(() => {
     delete (window as unknown as { ai?: unknown }).ai;
     delete (globalThis as unknown as { ai?: unknown }).ai;
@@ -146,7 +144,7 @@ describe("Chrome Built-in AI (Prompt API)", () => {
       };
 
       const onChunk = jest.fn();
-      const result = await streamChromeAiPrompt({
+      await streamChromeAiPrompt({
         prompt: "Teste abort",
         onChunk,
         signal: controller.signal,

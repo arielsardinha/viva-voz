@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { StickyNote, Trash2, Check, X, Quote } from "lucide-react";
+import { StickyNote, Trash2, Check, Quote } from "lucide-react";
 import {
   Dialog,
   DialogContent,

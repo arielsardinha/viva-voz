@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Copy, HelpCircle, Highlighter, Eraser, ChevronDown, StickyNote } from "lucide-react";
+import { Copy, HelpCircle, Highlighter, Eraser, ChevronDown, StickyNote, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -92,6 +92,15 @@ export function TextSelectionMenu({
     setShowColorPalette(false);
   };
 
+  const handleSpeak = () => {
+    if (onSpeakSelection) {
+      onSpeakSelection(selectedText);
+    }
+    window.getSelection()?.removeAllRanges();
+    setPosition(null);
+    setShowColorPalette(false);
+  };
+
   const handleExplain = () => {
     if (onAskAI) {
       onAskAI(`Explique os conceitos e o significado deste trecho:\n\n"${selectedText}"`);
@@ -166,6 +175,20 @@ export function TextSelectionMenu({
             )}
           />
         </button>
+
+        {/* Opção Ouvir Trecho */}
+        {onSpeakSelection && (
+          <button
+            type="button"
+            onClick={handleSpeak}
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent/15 hover:text-accent rounded-lg transition-colors cursor-pointer"
+            title="Ouvir este trecho com voz neural"
+            aria-label="Ouvir trecho"
+          >
+            <Volume2 className="size-3.5 text-primary" />
+            <span>Ouvir</span>
+          </button>
+        )}
 
         {/* Opção Bloco de Notas */}
         {onAddNote && (

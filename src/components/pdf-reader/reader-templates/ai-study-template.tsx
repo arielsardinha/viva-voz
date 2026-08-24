@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { useChat } from "@ai-sdk/react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   BotMessageSquare,
   ChevronLeft,
@@ -16,7 +15,6 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { toast } from "sonner";
 import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
@@ -87,16 +85,16 @@ export function AIStudyTemplate({
   voices,
   disabledEngines,
   apiKey: propApiKey,
-  onApiKeyChange: propOnApiKeyChange,
+  onApiKeyChange: _propOnApiKeyChange,
   onEngineChange,
   onSelectSentence,
   onToggle,
-  onPrevious,
-  onNext,
+  onPrevious: _onPrevious,
+  onNext: _onNext,
   onRestart,
   onVoiceChange,
   onSpeedChange,
-  initialPrompt,
+  initialPrompt: _initialPrompt,
   getHighlightsForSentence,
   onHighlight,
   onRemoveHighlight,

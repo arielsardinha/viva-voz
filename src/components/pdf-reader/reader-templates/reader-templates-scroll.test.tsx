@@ -1,4 +1,3 @@
-import React from "react";
 import { render } from "@testing-library/react";
 import type { Sentence } from "@/lib/pdf-text";
 import type { ReaderSettings } from "@/context/reader-settings-context";

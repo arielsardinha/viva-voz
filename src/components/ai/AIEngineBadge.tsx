@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Zap, Cloud, AlertCircle, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFirebaseAI } from "@/hooks/useFirebaseAI";
@@ -19,13 +19,12 @@ export function AIEngineBadge() {
         className="h-8 gap-1 sm:gap-1.5 px-2 sm:px-2.5 text-xs font-medium transition-all shadow-xs border-border/80 hover:bg-accent/80"
         data-cy="ai-engine-badge"
         data-webmcp-tool="viewAIEngineStatus"
-        aria-label={`Motor de IA atual: ${
-          activeEngine === "gemini-nano"
+        aria-label={`Motor de IA atual: ${activeEngine === "gemini-nano"
             ? "Gemini Nano Local"
             : activeEngine === "vertex"
-            ? "Vertex AI Nuvem"
-            : "Desconectado"
-        }`}
+              ? "Vertex AI Nuvem"
+              : "Desconectado"
+          }`}
       >
         {activeEngine === "gemini-nano" && (
           <>

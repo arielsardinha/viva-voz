@@ -5,7 +5,6 @@
 import {
   DEFAULT_PREFERENCES,
   Preferences,
-  createReadingId,
 } from "@/lib/library-db";
 import type { Sentence } from "@/lib/pdf-text";
 import type {

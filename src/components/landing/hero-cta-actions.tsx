@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { InteractiveDemoModal } from "./interactive-demo-modal";
 
 export function HeroCtaActions() {

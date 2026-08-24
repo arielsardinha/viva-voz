@@ -1,5 +1,4 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { GoogleDriveSyncButton } from "./google-drive-sync-button";
 import { useGoogleDriveSync } from "@/hooks/use-google-drive-sync";
 

@@ -252,7 +252,7 @@ describe("useTtsPlayer Hook", () => {
 
     beforeEach(async () => {
       await clearAllAudioCache();
-      global.fetch = jest.fn().mockImplementation((url, options) => {
+      global.fetch = jest.fn().mockImplementation((_url, options) => {
         const body = options?.body ? JSON.parse(options.body as string) : {};
         return Promise.resolve({
           ok: true,
@@ -286,8 +286,6 @@ describe("useTtsPlayer Hook", () => {
         expect(global.fetch).toHaveBeenCalled();
         expect(result.current.isBuffering).toBe(false);
       });
-
-      const initialFetchCount = (global.fetch as jest.Mock).mock.calls.length;
 
       // Avança para a frase 1
       act(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Cpu, Sparkles, Volume2, HardDrive, Zap } from "lucide-react";
+import { FileText, Sparkles, Volume2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GraphNode {

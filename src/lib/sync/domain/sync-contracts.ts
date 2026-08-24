@@ -5,7 +5,6 @@ import type {
   SyncManifest,
   DriveFileInfo,
   DriveAuthStatus,
-  AudioPackageHeader,
 } from "./sync.types";
 
 export interface ISyncManifestBuilder {

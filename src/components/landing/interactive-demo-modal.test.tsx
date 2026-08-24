@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { InteractiveDemoModal, DEMO_SENTENCES } from "./interactive-demo-modal";
 
@@ -23,7 +22,7 @@ describe("InteractiveDemoModal (Demonstração Interativa VivaVoz)", () => {
     expect(screen.getByText("Demonstração Interativa VivaVoz")).toBeInTheDocument();
     expect(screen.getByText(/Voz Neural VivaVoz HD/i)).toBeInTheDocument();
 
-    DEMO_SENTENCES.forEach((s, idx) => {
+    DEMO_SENTENCES.forEach((_s, idx) => {
       expect(screen.getByTestId(`demo-sentence-${idx}`)).toBeInTheDocument();
     });
 

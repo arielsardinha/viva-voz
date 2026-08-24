@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Cloud, FileText, FileUp, Globe, Loader2, Search, Sparkles, Type } from "lucide-react";
+import { Cloud, FileText, FileUp, Globe, Loader2, Search, Type } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { QuickPasteDialog } from "./quick-paste-dialog";

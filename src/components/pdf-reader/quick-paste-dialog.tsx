@@ -10,7 +10,6 @@ import {
   Volume2,
 } from "lucide-react";
 import { ReadingMetricsService } from "@/lib/domain/reading-metrics.service";
-import { cn } from "@/lib/utils";
 
 interface QuickPasteDialogProps {
   isOpen: boolean;

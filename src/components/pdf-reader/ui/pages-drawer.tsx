@@ -85,8 +85,8 @@ export function PagesDrawer({
                 <SheetTitle className="text-sm sm:text-base font-bold text-foreground">
                   Índice de Páginas
                 </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground">
-                  {totalPages} {totalPages === 1 ? "página" : "páginas"} no documento
+                <SheetDescription className="text-xs text-muted-foreground truncate max-w-[280px]">
+                  {title ? `${title} • ` : ""}{totalPages} {totalPages === 1 ? "página" : "páginas"} no documento
                 </SheetDescription>
               </div>
             </div>

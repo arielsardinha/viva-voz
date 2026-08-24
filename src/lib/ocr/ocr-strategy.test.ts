@@ -1,4 +1,4 @@
-import { IOcrEngineStrategy, OcrProgressCallback } from "./ocr-strategy.interface";
+import { OcrProgressCallback } from "./ocr-strategy.interface";
 import { TesseractOcrStrategy } from "./tesseract-ocr.strategy";
 import { GeminiVisionOcrStrategy } from "./gemini-vision-ocr.strategy";
 
@@ -14,7 +14,7 @@ describe("OCR Strategies (GoF Strategy Pattern - Tier 3)", () => {
     it("deve emitir callbacks de progresso e retornar texto reconhecido", async () => {
       const strategy = new TesseractOcrStrategy({
         // Injeção de mock worker para testes determinísticos
-        customRecognizer: async (blob: Blob, onProgress?: OcrProgressCallback) => {
+        customRecognizer: async (_blob: Blob, onProgress?: OcrProgressCallback) => {
           onProgress?.(50, "Processando imagem no worker local...");
           onProgress?.(100, "Concluído");
           return "Texto extraído localmente pelo Tesseract.";

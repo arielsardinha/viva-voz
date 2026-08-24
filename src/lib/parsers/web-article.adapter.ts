@@ -18,7 +18,7 @@ export class WebArticleAdapter implements IDocumentParserAdapter {
    * Detecta se o arquivo é na verdade uma URL HTTP/HTTPS.
    * (Não aplicável ao fluxo padrão de File — este adapter é invocado diretamente pelo ViewModel.)
    */
-  public canHandle(file: File): boolean {
+  public canHandle(_file: File): boolean {
     // URLs não chegam como File — este método retorna false intencionalmente
     // para não capturar uploads regulares no AdapterRegistry.
     return false;

@@ -71,7 +71,7 @@ if (typeof window !== "undefined") {
 
   // Polyfill para URL.createObjectURL / revokeObjectURL
   if (!URL.createObjectURL) {
-    URL.createObjectURL = jest.fn((blob: Blob) => `blob:mock-url-${Math.random()}`);
+    URL.createObjectURL = jest.fn((_blob: Blob) => `blob:mock-url-${Math.random()}`);
   }
   if (!URL.revokeObjectURL) {
     URL.revokeObjectURL = jest.fn();

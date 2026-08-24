@@ -9,7 +9,7 @@ export default defineConfig({
     viewportWidth: 1280,
     viewportHeight: 800,
     video: false,
-    setupNodeEvents(on, config) {
+    setupNodeEvents(on, _config) {
       on("before:browser:launch", (_browser, launchOptions) => {
         prepareAudit(launchOptions);
       });

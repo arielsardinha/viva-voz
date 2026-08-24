@@ -7,8 +7,6 @@ import {
   Trash2,
   Edit3,
   ExternalLink,
-  X,
-  FileText,
   Calendar,
 } from "lucide-react";
 import {

@@ -1,5 +1,4 @@
-import React, { act } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { QuickPasteDialog } from "./quick-paste-dialog";
 
 describe("QuickPasteDialog Component", () => {
