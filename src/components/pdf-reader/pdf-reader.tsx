@@ -30,7 +30,6 @@ import {
   DEFAULT_VOICE,
   GOOGLE_VOICES,
   listSystemVoices,
-  selectBestPtBrVoice,
   type TtsEngine,
   type VoiceOption,
 } from "@/lib/tts-engines";
@@ -307,20 +306,10 @@ export function PdfReader() {
     }
   }, [hasApiKey, prefs.disabledEngines, patchPrefs]);
 
-  // System voices — carrega e seleciona a melhor voz PT-BR automaticamente
+  // System voices
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
-    const load = () => {
-      setSystemVoices(listSystemVoices());
-      // Se nenhuma voz de sistema estiver salva nas preferências, seleciona a melhor PT-BR automaticamente
-      setPrefs((current) => {
-        if (current.voice.system) return current;
-        const rawVoices = window.speechSynthesis.getVoices();
-        const bestUri = selectBestPtBrVoice(rawVoices);
-        if (!bestUri) return current;
-        return { ...current, voice: { ...current.voice, system: bestUri } };
-      });
-    };
+    const load = () => setSystemVoices(listSystemVoices());
     load();
     window.speechSynthesis.addEventListener("voiceschanged", load);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
