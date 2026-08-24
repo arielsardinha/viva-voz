@@ -5,7 +5,8 @@ import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { GeminiApiKeyProvider } from "@/hooks/use-gemini-api-key";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
-
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from '@vercel/speed-insights/next';
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -124,10 +125,13 @@ export default function RootLayout({
           id="vivavoz-theme-init"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
+
         <ReaderSettingsProvider>
           <GeminiApiKeyProvider>
             <PwaRegister />
             {children}
+            <Analytics />
+            <SpeedInsights />
             <Toaster />
           </GeminiApiKeyProvider>
         </ReaderSettingsProvider>
