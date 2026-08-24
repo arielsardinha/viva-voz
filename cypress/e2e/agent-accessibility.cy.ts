@@ -194,6 +194,7 @@ describe("Agent Accessibility & WebMCP Audits", () => {
       cy.get('header[data-hydrated="true"]').should("exist");
 
       cy.get("form[data-webmcp-tool='searchLibrary']")
+        .first()
         .should("exist")
         .and("have.attr", "data-webmcp-action", "filterReadings")
         .within(() => {

@@ -7,7 +7,7 @@ describe("LeadInterestForm Component", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /comece a ouvir seus livros e documentos agora/i,
+        name: /pronto para transformar a maneira como você lê\?/i,
       })
     ).toBeInTheDocument();
 

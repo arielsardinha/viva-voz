@@ -1,4 +1,3 @@
-import { Sparkles, ShieldCheck, Zap, AudioLines } from "lucide-react";
 import { HeroCtaActions } from "./hero-cta-actions";
 
 export function HeroSection() {
@@ -6,7 +5,7 @@ export function HeroSection() {
     <section
       id="hero"
       aria-labelledby="hero-title"
-      className="relative overflow-hidden pt-8 pb-16 sm:pt-14 sm:pb-24"
+      className="relative overflow-hidden pt-8 pb-16 sm:pt-14 sm:pb-20"
     >
       {/* Background Glows & Grid Pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
@@ -14,39 +13,50 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center space-y-6">
+          {/* Badge superior */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-extrabold text-accent shadow-sm">
+            <span>⚡ Leitor Inteligente de Texto para Voz com IA</span>
+          </div>
+
           {/* H1 Value Proposition */}
           <h1
             id="hero-title"
             className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.15] sm:leading-[1.12]"
           >
-            Leitura Neural, Áudio Sincronizado e{" "}
-            <span className="bg-gradient-to-r from-accent via-indigo-500 to-purple-500 bg-clip-text text-transparent">
-              IA Contextual
-            </span>
+            Ouça qualquer documento como se fosse um audiolivro.
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            Transforme PDFs, livros e artigos em narrações neurais fluidas com realce de sentenças
-            em tempo real, tira-dúvidas via Gemini e privacidade absoluta com backup no Google Drive.
-          </p>
+          {/* Subtitle (H2) */}
+          <h2 className="text-sm sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto font-normal">
+            Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.
+          </h2>
 
           {/* Dual CTAs */}
           <HeroCtaActions />
 
-          {/* Trust Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 text-xs font-semibold text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-emerald-500" aria-hidden="true" />
-              <span>Privacidade Local (IndexedDB)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Zap className="size-4 text-amber-500" aria-hidden="true" />
-              <span>Google Gemini 2.5 BYOK</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <AudioLines className="size-4 text-accent" aria-hidden="true" />
-              <span>Sincronismo Neural PT-BR</span>
+          {/* Texto de Apoio / Confiança */}
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground pt-1">
+            ✓ Gratuito para testar • Sem instalação • 100% privado no seu Google Drive
+          </p>
+
+          {/* 2. BARRA DE FORMATOS SUPORTADOS */}
+          <div className="pt-6 border-t border-border/60 mt-8 space-y-3">
+            <p className="text-xs sm:text-sm font-semibold text-muted-foreground">
+              Compatível com tudo o que você precisa ler:
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-secondary/80 px-3.5 py-1.5 text-xs font-bold text-foreground backdrop-blur-xs shadow-xs hover:border-accent/40 transition-colors">
+                📄 Arquivos PDF
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-secondary/80 px-3.5 py-1.5 text-xs font-bold text-foreground backdrop-blur-xs shadow-xs hover:border-accent/40 transition-colors">
+                📚 Livros EPUB
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-secondary/80 px-3.5 py-1.5 text-xs font-bold text-foreground backdrop-blur-xs shadow-xs hover:border-accent/40 transition-colors">
+                🌐 Artigos Web & Links
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-secondary/80 px-3.5 py-1.5 text-xs font-bold text-foreground backdrop-blur-xs shadow-xs hover:border-accent/40 transition-colors">
+                📝 Textos Digitados
+              </span>
             </div>
           </div>
         </div>

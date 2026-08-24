@@ -11,15 +11,15 @@ export function HeroCtaActions() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2">
-        {/* CTA Primário: Iniciar Gratuito */}
+        {/* CTA Primário: Começar a Ouvir Gratuitamente */}
         <Link
           href="/leitor"
           data-cy="hero-cta-primary"
           data-testid="hero-cta-primary"
-          aria-label="Iniciar Gratuito - Abrir o leitor VivaVoz"
+          aria-label="Começar a Ouvir Gratuitamente - Abrir o leitor VivaVoz"
           className="group relative inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-accent via-indigo-600 to-indigo-700 px-6 sm:px-8 py-3.5 sm:py-4 text-sm sm:text-base font-extrabold text-accent-foreground shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
         >
-          <span>Iniciar Gratuito</span>
+          <span>Começar a Ouvir Gratuitamente</span>
           <ArrowRight className="size-4 sm:size-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
         </Link>
 

@@ -3,14 +3,16 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { HeroSection } from "@/components/landing/hero-section";
 import { BentoGridFeatures } from "@/components/landing/bento-grid-features";
 import { HeroGraphFlow } from "@/components/landing/hero-graph-flow";
+import { UseCasesSection } from "@/components/landing/use-cases-section";
+import { FaqSection } from "@/components/landing/faq-section";
 import { LeadInterestForm } from "@/components/landing/lead-interest-form";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { JsonLdSchema } from "@/components/landing/json-ld-schema";
 
 export const metadata: Metadata = {
-  title: "VivaVoz — Leitor de Texto em Áudio, Narração Neural & IA Contextual",
+  title: "VivaVoz — Ouça qualquer documento como se fosse um audiolivro",
   description:
-    "Landing page oficial do VivaVoz: converta PDFs, livros e documentos em áudio neural sincronizado em tempo real com Google Gemini e privacidade total.",
+    "Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.",
   keywords: [
     "leitor de pdf em audio",
     "tts portugues",
@@ -24,9 +26,9 @@ export const metadata: Metadata = {
   authors: [{ name: "VivaVoz Open Source" }],
   creator: "VivaVoz",
   openGraph: {
-    title: "VivaVoz — Leitor de Texto em Áudio, Narração Neural & IA Contextual",
+    title: "VivaVoz — Ouça qualquer documento como se fosse um audiolivro",
     description:
-      "Transforme PDFs, artigos e documentos em áudio fluido com sincronização de sentenças e assistência inteligente por IA.",
+      "Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.",
     type: "website",
     locale: "pt_BR",
     url: "https://vivavoz.com",
@@ -34,9 +36,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "VivaVoz — Leitor de Texto em Áudio & Narração Inteligente",
+    title: "VivaVoz — Ouça qualquer documento como se fosse um audiolivro",
     description:
-      "Transforme PDFs, artigos e documentos em áudio fluido com sincronização de sentenças e assistência inteligente por IA.",
+      "Transforme PDFs, artigos e livros em vozes ultra-realistas. Acompanhe a leitura com frases destacadas em tempo real e tire dúvidas com o assistente Gemini integrado.",
   },
   alternates: {
     canonical: "https://vivavoz.com",
@@ -54,13 +56,13 @@ export default function HomePage() {
 
       {/* Conteúdo Principal Landmark */}
       <main id="main-content" className="flex-1 w-full overflow-x-hidden">
-        {/* 1. Hero Section com Proposta de Valor e CTAs */}
+        {/* 1. Hero Section com Proposta de Valor, CTAs e 2. Formatos Suportados */}
         <HeroSection />
 
-        {/* 2. Bento Grid com Recursos Principais do Usuário */}
+        {/* 3. Pilares e Recursos Principais (Cards de Funcionalidades) */}
         <BentoGridFeatures />
 
-        {/* 3. Fluxo de Processamento de Documentos e Áudio */}
+        {/* 4. Como Funciona (3 Passos) */}
         <section
           id="como-funciona"
           aria-label="Como o VivaVoz Funciona"
@@ -71,7 +73,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 4. Chamada para Ação e Experimentação Direta */}
+        {/* 5. Casos de Uso / Público */}
+        <UseCasesSection />
+
+        {/* 6. Perguntas Frequentes (FAQ) */}
+        <FaqSection />
+
+        {/* 7. Banner Final (CTA de Rodapé) */}
         <LeadInterestForm />
       </main>
 

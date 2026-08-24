@@ -37,12 +37,11 @@ export function LeadInterestForm() {
               id="conversao-heading"
               className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground"
             >
-              Comece a Ouvir Seus Livros e Documentos Agora
+              Pronto para transformar a maneira como você lê?
             </h2>
 
             <p className="text-xs sm:text-base text-muted-foreground leading-relaxed">
-              Abra o leitor no seu navegador, faça upload de um PDF, EPUB ou cole seu texto.
-              Sem necessidade de cadastro, 100% gratuito e com privacidade total.
+              Experimente a união entre voz neural, inteligência artificial e privacidade total.
             </p>
           </div>
 
@@ -59,14 +58,14 @@ export function LeadInterestForm() {
                   <AudioLines className="size-4.5" />
                 </div>
                 <h3 className="text-sm font-bold text-foreground group-hover:text-accent transition-colors">
-                  Abrir o Leitor
+                  Começar a Usar o Viva-Voz Agora
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Carregue arquivos ou cole links para leitura em áudio com vozes neurais.
                 </p>
               </div>
               <div className="mt-4 flex items-center gap-1 text-xs font-bold text-accent">
-                <span>Iniciar Agora</span>
+                <span>Começar a Usar o Viva-Voz Agora</span>
                 <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>

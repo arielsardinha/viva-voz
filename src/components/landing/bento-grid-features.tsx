@@ -32,74 +32,38 @@ const BENTO_FEATURES: BentoItem[] = [
   {
     id: "feature-tts",
     descId: "desc-feature-tts",
-    title: "Narração Neural com Sincronismo em Tempo Real",
-    category: "Áudio & Síntese",
+    title: "Escuta Fluida com Realce em Tempo Real",
+    category: "Voz e Foco Bimodal",
     description:
-      "Sintetização ultra-realista em português brasileiro com realce visual da sentença ativa. Acompanhe a leitura com o olho e o ouvido simultaneamente.",
+      "Supere as vozes robóticas. Nossos modelos neurais leem com entonação natural enquanto a frase atual é iluminada na tela, aumentando sua retenção.",
     icon: AudioLines,
     gradient: "from-accent/20 via-indigo-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-2 lg:col-span-2",
-    badge: "Tempo Real",
+    colSpan: "col-span-1",
+    badge: "Voz e Foco Bimodal",
   },
   {
     id: "feature-ai",
     descId: "desc-feature-ai",
-    title: "Chat Inteligente com Gemini 2.5 & BYOK",
-    category: "Inteligência Artificial",
+    title: "Converse com o seu Documento via Gemini",
+    category: "IA Contextual",
     description:
-      "Envie perguntas sobre o documento, solicite resumos estruturados e explicações conceituais com streaming instantâneo e sua própria API key.",
+      "Tire dúvidas, peça resumos de capítulos e simplifique termos difíceis diretamente no texto, sem trocar de aba.",
     icon: Sparkles,
     gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-1 lg:col-span-1",
-    badge: "Google Gemini",
-  },
-  {
-    id: "feature-ocr",
-    descId: "desc-feature-ocr",
-    title: "Multi-Formato Universal & OCR Visual",
-    category: "Processamento de Documentos",
-    description:
-      "Carregue PDFs, EPUBs, DOCX, ODT, PPTX, TXT, Markdown ou extraia artigos da web. Detecta e lê até mesmo páginas escaneadas via OCR inteligente.",
-    icon: Layers,
-    gradient: "from-cyan-500/20 via-blue-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-1 lg:col-span-1",
-    badge: "Universal",
-  },
-  {
-    id: "feature-themes",
-    descId: "desc-feature-themes",
-    title: "Modos de Leitura Ergonômicos",
-    category: "Ergonomia Visual",
-    description:
-      "Alternância fluida entre temas Clean (Claro), Papel Zen (Sépia) e Midnight (Escuro), com tipografias consagradas (Inter, Merriweather, Lora, Roboto e Literata).",
-    icon: Palette,
-    gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-1 lg:col-span-1",
-    badge: "Conforto Óptico",
+    colSpan: "col-span-1",
+    badge: "IA Contextual",
   },
   {
     id: "feature-sync",
     descId: "desc-feature-sync",
-    title: "Privacidade Local & Google Drive Sync",
-    category: "Segurança & Armazenamento",
+    title: "Seus Arquivos Salvos no Seu Google Drive",
+    category: "Privacidade e Armazenamento",
     description:
-      "Seus documentos nunca são salvos em servidores de terceiros. Armazenamento local no IndexedDB e sincronização opcional na pasta oculta do Google Drive.",
+      "Privacidade total: seus documentos, histórico e áudios em cache ficam salvos na sua própria nuvem pessoal, sem intermediários.",
     icon: ShieldCheck,
-    gradient: "from-violet-500/20 via-fuchsia-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-1 lg:col-span-1",
-    badge: "100% Privado",
-  },
-  {
-    id: "feature-agentic",
-    descId: "desc-feature-agentic",
-    title: "Agent-Ready & WebMCP Compliant",
-    category: "Automação & IA",
-    description:
-      "Arquitetura acessível com llms.txt, ferramentas WebMCP semânticas e Schema.org JSON-LD para operação perfeita por agentes de IA e humanos.",
-    icon: Bot,
-    gradient: "from-rose-500/20 via-pink-500/10 to-transparent",
-    colSpan: "col-span-1 md:col-span-2 lg:col-span-2",
-    badge: "WebMCP",
+    gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
+    colSpan: "col-span-1",
+    badge: "Privacidade e Armazenamento",
   },
 ];
 
@@ -117,24 +81,23 @@ export function BentoGridFeatures() {
         <div className="mx-auto max-w-3xl text-center space-y-4 mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1 text-xs font-bold text-accent">
             <Cpu className="size-3.5" aria-hidden="true" />
-            <span>Recursos de Alta Precisão</span>
+            <span>Pilares e Recursos Principais</span>
           </div>
 
           <h2
             id="features-heading"
             className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground"
           >
-            Arquitetura Desenvolvida para Leitura Imersiva
+            Pilares e Recursos Principais
           </h2>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            Cada recurso foi desenhado com foco em desempenho, conforto visual prolongado e
-            inteligência aumentada para transformar sua relação com os textos.
+            Desenvolvido para oferecer máxima retenção, assistência inteligente e controle absoluto sobre sua privacidade.
           </p>
         </div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {BENTO_FEATURES.map((item) => {
             const IconComponent = item.icon;
             const isHovered = hoveredCard === item.id;

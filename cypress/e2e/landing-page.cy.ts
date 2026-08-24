@@ -6,8 +6,7 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
   describe("@ui @visual @hero - Cenário: Renderização do Hero Section com diagrama de fluxo e CTA duplo", () => {
     it("deve carregar a landing page na rota '/' com elemento main e título H1 acolhedor", () => {
       cy.get("main#main-content").should("be.visible");
-      cy.get("h1").should("be.visible").and("contain.text", "Leitura Neural");
-      cy.get("h1").should("contain.text", "Áudio Sincronizado");
+      cy.get("h1").should("be.visible").and("contain.text", "Ouça qualquer documento como se fosse um audiolivro");
     });
 
     it("deve exibir navegação limpa sem o link 'Início'", () => {
@@ -24,7 +23,7 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
       // CTA Primário
       cy.get('[data-cy="hero-cta-primary"]')
         .should("be.visible")
-        .and("contain.text", "Iniciar Gratuito")
+        .and("contain.text", "Começar a Ouvir Gratuitamente")
         .and("have.attr", "href", "/leitor");
 
       // CTA Secundário
@@ -52,10 +51,7 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
       const features = [
         { id: "feature-tts", descId: "desc-feature-tts" },
         { id: "feature-ai", descId: "desc-feature-ai" },
-        { id: "feature-ocr", descId: "desc-feature-ocr" },
-        { id: "feature-themes", descId: "desc-feature-themes" },
         { id: "feature-sync", descId: "desc-feature-sync" },
-        { id: "feature-agentic", descId: "desc-feature-agentic" },
       ];
 
       features.forEach((feature) => {
@@ -69,16 +65,30 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
   });
 
   describe("@fluxo @processamento - Cenário: Visualização do fluxo de processamento", () => {
-    it("deve renderizar o fluxo de processamento inteligente com nós descritivos", () => {
+    it("deve renderizar o fluxo de Como Funciona com 3 passos descritivos", () => {
       cy.get("#como-funciona").scrollIntoView().should("be.visible");
       cy.get('[data-cy="hero-graph-flow-container"]').should("be.visible");
       cy.get("svg").should("exist");
 
-      cy.get('[data-cy="graph-node-doc-input"]').should("be.visible");
-      cy.get('[data-cy="graph-node-splitter-ocr"]').should("be.visible");
-      cy.get('[data-cy="graph-node-ai-engine"]').should("be.visible");
-      cy.get('[data-cy="graph-node-tts-stream"]').should("be.visible");
-      cy.get('[data-cy="graph-node-storage-sync"]').should("be.visible");
+      cy.get('[data-cy="graph-node-step-1"]').should("be.visible");
+      cy.get('[data-cy="graph-node-step-2"]').should("be.visible");
+      cy.get('[data-cy="graph-node-step-3"]').should("be.visible");
+    });
+  });
+
+  describe("@casos-de-uso - Cenário: Exibição de casos de uso e FAQ", () => {
+    it("deve renderizar seções de Casos de Uso e FAQ", () => {
+      cy.get("#casos-de-uso").scrollIntoView().should("be.visible");
+      cy.contains("Estudantes & Concurseiros").should("be.visible");
+      cy.contains("Pesquisadores & Profissionais").should("be.visible");
+      cy.contains("Foco & Acessibilidade (TDAH e Dislexia)").should("be.visible");
+
+      cy.get("#faq").scrollIntoView().should("be.visible");
+      cy.contains("Perguntas Frequentes (FAQ)").should("be.visible");
+      cy.get('[data-cy="faq-item-faq-mobile"]').should("be.visible");
+      cy.get('[data-cy="faq-item-faq-security"]').should("be.visible");
+      cy.get('[data-cy="faq-item-faq-gemini"]').should("be.visible");
+      cy.get('[data-cy="faq-item-faq-pricing"]').should("be.visible");
     });
   });
 
@@ -87,7 +97,8 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
       cy.get("#conversao").scrollIntoView().should("be.visible");
       cy.get('[data-cy="cta-open-reader"]')
         .should("be.visible")
-        .and("have.attr", "href", "/leitor");
+        .and("have.attr", "href", "/leitor")
+        .and("contain.text", "Começar a Usar o Viva-Voz Agora");
 
       cy.get('[data-cy="cta-open-library"]')
         .should("be.visible")
@@ -111,7 +122,7 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
       cy.title().should("include", "VivaVoz");
       cy.get('meta[name="description"]')
         .should("have.attr", "content")
-        .and("include", "VivaVoz");
+        .and("include", "Transforme PDFs");
 
       cy.get('meta[property="og:title"]').should("exist");
       cy.get('meta[property="og:description"]').should("exist");
