@@ -146,7 +146,7 @@ describe("Landing Page Moderna, Otimização SEO 100/100 e Navegação Agêntica
 
         const org = json["@graph"].find((i: any) => i["@type"] === "Organization");
         expect(org.name).to.eq("VivaVoz Open Source");
-        expect(org.url).to.eq("https://vivavoz.com");
+        expect(org.url).to.eq("https://www.viva-voz.com");
 
         const webpage = json["@graph"].find((i: any) => i["@type"] === "WebPage");
         expect(webpage.inLanguage).to.eq("pt-BR");
