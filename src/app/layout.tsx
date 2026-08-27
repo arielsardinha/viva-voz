@@ -7,7 +7,7 @@ import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import Clarity from "@/components/Clarity";
+import Clarity from "@/components/clarity";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
