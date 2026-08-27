@@ -7,6 +7,7 @@ import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import Clarity from "@/components/Clarity";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -130,6 +131,7 @@ export default function RootLayout({
           <GeminiApiKeyProvider>
             <PwaRegister />
             {children}
+            <Clarity />
             <Analytics />
             <SpeedInsights />
             <Toaster />
