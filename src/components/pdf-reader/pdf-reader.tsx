@@ -28,11 +28,12 @@ import {
 } from "@/lib/library-db";
 import {
   DEFAULT_VOICE,
-  GOOGLE_VOICES,
+  getVoicesForEngine,
   listSystemVoices,
   type TtsEngine,
   type VoiceOption,
 } from "@/lib/tts-engines";
+import { useLocalAi } from "@/context/local-ai-context";
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 import { useDocumentUploader } from "@/hooks/use-document-uploader";
@@ -63,6 +64,7 @@ export function PdfReader() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const { apiKey: userApiKey, hasApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
+  const { isModelReady, openDrawer } = useLocalAi();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
   const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
@@ -152,7 +154,7 @@ export function PdfReader() {
 
   const engine = prefs.engine;
   const speed = prefs.speed;
-  const voices: VoiceOption[] = engine === "system" ? systemVoices : GOOGLE_VOICES;
+  const voices: VoiceOption[] = getVoicesForEngine(engine, systemVoices);
   const voice = prefs.voice[engine] ?? DEFAULT_VOICE[engine] ?? "";
 
   const patchPrefs = useCallback((patch: Partial<Preferences>) => {
@@ -170,6 +172,11 @@ export function PdfReader() {
 
   const handleEngineUnavailable = useCallback(
     (failed: TtsEngine, message: string) => {
+      if (failed === "litert") {
+        openDrawer("kokoro-82m-tts");
+        toast.info(message);
+        return;
+      }
       if (readerSettings.template === "zen") {
         setZenQuotaDialogOpen(true);
       } else {
@@ -187,7 +194,7 @@ export function PdfReader() {
         });
       }
     },
-    [readerSettings.template]
+    [openDrawer, readerSettings.template]
   );
 
   const player = useTtsPlayer({
@@ -293,9 +300,16 @@ export function PdfReader() {
         patchPrefs({ engine: "system" });
         return;
       }
+      if (next === "litert" && !isModelReady("kokoro-82m-tts")) {
+        openDrawer("kokoro-82m-tts");
+        toast.info(
+          "Baixe o modelo Kokoro 82M (~281 MB) no painel lateral ou em Modelos para usar a voz neural offline."
+        );
+        return;
+      }
       patchPrefs({ engine: next });
     },
-    [patchPrefs, hasApiKey]
+    [patchPrefs, hasApiKey, isModelReady, openDrawer]
   );
 
   // Se o motor estiver configurado como Google mas não houver chave, volta para a seleção padrão gratuita (sistema)

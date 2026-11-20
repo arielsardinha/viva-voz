@@ -1,0 +1,197 @@
+import { getLocalModelById } from "../domain/local-model-catalog";
+import type { ModelDownloadProgress } from "../domain/local-model.types";
+import {
+  deleteCachedModel,
+  detectLocalRuntimeSupport,
+  downloadAndCacheModel,
+  getCachedModelBlob,
+  getCachedModelMeta,
+  getCachedModelStreamReader,
+  getStorageQuotaEstimate,
+} from "./model-storage.service";
+
+interface MockCacheEntry {
+  buffer: ArrayBuffer;
+  status: number;
+  headers: Headers;
+}
+
+function installMockCacheStorage() {
+  const stores = new Map<string, Map<string, MockCacheEntry>>();
+
+  const getStore = (name: string): Map<string, MockCacheEntry> => {
+    let store = stores.get(name);
+    if (!store) {
+      store = new Map<string, MockCacheEntry>();
+      stores.set(name, store);
+    }
+    return store;
+  };
+
+  const mockCaches: CacheStorage = {
+    open: jest.fn(async (cacheName: string) => {
+      const store = getStore(cacheName);
+      const cache: Cache = {
+        match: jest.fn(async (req: RequestInfo | URL) => {
+          const key = typeof req === "string" ? req : req.toString();
+          const entry = store.get(key);
+          if (!entry) return undefined;
+          return new Response(entry.buffer.slice(0), {
+            status: entry.status,
+            headers: new Headers(entry.headers),
+          });
+        }),
+        put: jest.fn(async (req: RequestInfo | URL, res: Response) => {
+          const key = typeof req === "string" ? req : req.toString();
+          const buffer = await res.arrayBuffer();
+          store.set(key, {
+            buffer,
+            status: res.status,
+            headers: new Headers(res.headers),
+          });
+        }),
+        delete: jest.fn(async (req: RequestInfo | URL) => {
+          const key = typeof req === "string" ? req : req.toString();
+          return store.delete(key);
+        }),
+        add: jest.fn(),
+        addAll: jest.fn(),
+        keys: jest.fn(async () => []),
+        matchAll: jest.fn(async () => []),
+      };
+      return cache;
+    }),
+    has: jest.fn(async (name: string) => stores.has(name)),
+    delete: jest.fn(async (name: string) => stores.delete(name)),
+    keys: jest.fn(async () => Array.from(stores.keys())),
+    match: jest.fn(async () => undefined),
+  };
+
+  Object.defineProperty(globalThis, "caches", {
+    value: mockCaches,
+    writable: true,
+    configurable: true,
+  });
+
+  return { stores, mockCaches };
+}
+
+describe("model-storage.service", () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    installMockCacheStorage();
+    jest.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("deve detectar suporte de runtime no navegador com segurança", () => {
+    const support = detectLocalRuntimeSupport();
+    expect(support.cacheApiSupported).toBe(true);
+    expect(support.wasmSupported).toBe(typeof WebAssembly !== "undefined");
+    expect(typeof support.webGpuSupported).toBe("boolean");
+  });
+
+  it("deve baixar modelo em streaming, emitir progresso e persistir na Cache API sem usar IndexedDB", async () => {
+    const kokoro = getLocalModelById("kokoro-82m-tts")!;
+    const chunkA = new Uint8Array([1, 2, 3, 4]);
+    const chunkB = new Uint8Array([5, 6, 7, 8, 9, 10]);
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(chunkA);
+        controller.enqueue(chunkB);
+        controller.close();
+      },
+    });
+
+    globalThis.fetch = jest.fn(async () => {
+      return new Response(stream, {
+        status: 200,
+        headers: { "Content-Length": "10" },
+      });
+    }) as unknown as typeof fetch;
+
+    const progressUpdates: ModelDownloadProgress[] = [];
+    const result = await downloadAndCacheModel(kokoro, {
+      hasWebGpu: true,
+      onProgress: (p) => progressUpdates.push(p),
+    });
+
+    expect(result.sizeBytes).toBe(10);
+    expect(result.cachedAt).toBeGreaterThan(0);
+    expect(progressUpdates.length).toBeGreaterThan(0);
+    expect(progressUpdates[progressUpdates.length - 1]?.progressPercent).toBe(100);
+
+    const meta = await getCachedModelMeta("kokoro-82m-tts");
+    expect(meta.cached).toBe(true);
+    expect(meta.sizeBytes).toBe(10);
+
+    const blob = await getCachedModelBlob("kokoro-82m-tts");
+    expect(blob).not.toBeNull();
+    expect(blob?.size).toBe(10);
+
+    const reader = await getCachedModelStreamReader("kokoro-82m-tts");
+    expect(reader).not.toBeNull();
+    await reader?.cancel();
+
+    const deleted = await deleteCachedModel("kokoro-82m-tts");
+    expect(deleted).toBe(true);
+    expect((await getCachedModelMeta("kokoro-82m-tts")).cached).toBe(false);
+  });
+
+  it("deve limpar qualquer entrada parcial e rejeitar se ocorrer erro HTTP >= 400", async () => {
+    const kokoro = getLocalModelById("kokoro-82m-tts")!;
+    globalThis.fetch = jest.fn(async () => {
+      return new Response("Not Found", { status: 404 });
+    }) as unknown as typeof fetch;
+
+    await expect(
+      downloadAndCacheModel(kokoro, { hasWebGpu: false }),
+    ).rejects.toThrow(/não foi possível baixar/i);
+
+    const meta = await getCachedModelMeta("kokoro-82m-tts");
+    expect(meta.cached).toBe(false);
+  });
+
+  it("deve interromper o download limpo ao acionar AbortController", async () => {
+    const kokoro = getLocalModelById("kokoro-82m-tts")!;
+    const controller = new AbortController();
+
+    globalThis.fetch = jest.fn((_url, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        if (init?.signal?.aborted) {
+          reject(new DOMException("Aborted", "AbortError"));
+          return;
+        }
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        });
+      });
+    }) as unknown as typeof fetch;
+
+    const promise = downloadAndCacheModel(kokoro, {
+      hasWebGpu: true,
+      signal: controller.signal,
+    });
+    await Promise.resolve();
+    controller.abort();
+
+    await expect(promise).rejects.toThrow();
+    expect((await getCachedModelMeta("kokoro-82m-tts")).cached).toBe(false);
+  });
+
+  it("deve retornar estimativa de cota quando navigator.storage.estimate estiver disponível", async () => {
+    Object.defineProperty(navigator, "storage", {
+      value: {
+        estimate: jest.fn().mockResolvedValue({ usage: 1000, quota: 50000 }),
+      },
+      configurable: true,
+    });
+    const quota = await getStorageQuotaEstimate();
+    expect(quota).toEqual({ usageBytes: 1000, quotaBytes: 50000 });
+  });
+});

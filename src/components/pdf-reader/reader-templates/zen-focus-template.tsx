@@ -13,7 +13,6 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Sparkles,
 } from "lucide-react";
 import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
@@ -29,9 +28,12 @@ import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import { TtsModelIndicator } from "../ui/tts-model-indicator";
 import {
+  TtsEngineMenuItems,
+  getEngineVoicesHeading,
+} from "../ui/tts-engine-menu-items";
+import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -430,41 +432,17 @@ export function ZenFocusTemplate({
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
               Motor ({engineLabel})
             </DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={engine}
-              onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
-            >
-              {TTS_ENGINES.map((eng) => (
-                <DropdownMenuRadioItem
-                  key={eng.id}
-                  value={eng.id}
-                  disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
-                  className="cursor-pointer text-xs"
-                >
-                  <div className="flex flex-col">
-                    <span>{eng.label}</span>
-                    <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
-                  </div>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-
-            {!hasApiKey && (
-              <>
-                <DropdownMenuSeparator className="my-1.5" />
-                <DropdownMenuItem
-                  onClick={() => setGeminiDialogOpen(true)}
-                  className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>Conectar chave Gemini (IA)</span>
-                </DropdownMenuItem>
-              </>
-            )}
+            <TtsEngineMenuItems
+              engine={engine}
+              hasApiKey={hasApiKey}
+              disabledEngines={disabledEngines}
+              onSelectEngine={handleSelectEngine}
+              onOpenGeminiDialog={() => setGeminiDialogOpen(true)}
+            />
 
             <DropdownMenuSeparator className="my-1.5" />
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-              Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
+              Vozes ({getEngineVoicesHeading(engine, activeTtsModel)})
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
               {voices.map((v) => (

@@ -16,6 +16,7 @@
 // Import commands.js using ES2015 syntax:
 import './commands';
 import '@cypress-audit/lighthouse/commands';
+import 'cypress-axe';
 
 
 // Ignora hydration mismatch benigno originado pelo React em modo DEV durante testes Cypress

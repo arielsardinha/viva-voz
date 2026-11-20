@@ -11,7 +11,7 @@ export const ManifestMetadataSchema = z.object({
 });
 
 export const ManifestPreferencesSchema = z.object({
-  engine: z.enum(["system", "google"]).default("system"),
+  engine: z.enum(["system", "google", "litert"]).default("system"),
   voice: z.record(z.string(), z.string()).default({}),
   speed: z.string().default("1"),
   lastReadingId: z.string().nullable().default(null),

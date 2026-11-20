@@ -59,4 +59,17 @@ describe("TtsModelIndicator", () => {
     expect(badge).toHaveTextContent("3.8 Lite");
     expect(badge).not.toHaveTextContent("Alternativo");
   });
+
+  it("deve renderizar o badge Kokoro Local quando engine='litert'", () => {
+    render(<TtsModelIndicator engine="litert" activeModel={null} />);
+
+    const badge = screen.getByTestId("tts-model-indicator");
+    expect(badge).toHaveAttribute("data-tts-model", "kokoro-82m");
+    expect(badge).toHaveAttribute("data-tts-fallback", "false");
+    expect(badge).toHaveAttribute(
+      "aria-label",
+      "Narração IA local ativa: Kokoro 82M (Offline)",
+    );
+    expect(badge).toHaveTextContent("Kokoro Local");
+  });
 });

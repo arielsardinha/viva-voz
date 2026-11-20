@@ -7,6 +7,7 @@
 - [Leitor de Documentos](/): Ambiente principal de leitura e narração em áudio, com suporte a upload de múltiplos formatos, sincronização de trechos, seleção de templates e interação com assistente de IA.
 - [Leitor Dedicado](/leitor): Rota direta para o leitor e player completo de documentos.
 - [Biblioteca de Leituras](/leituras): Painel local (IndexedDB) para gerenciar documentos arquivados, retomar posições de leitura, buscar títulos, gerenciar favoritos e baixar arquivos originais.
+- [Modelos de IA Local](/modelos): Central para baixar, acompanhar o progresso em tempo real e gerenciar modelos LiteRT-LM (Kokoro 82M TTS e Gemma 4 E2B Chat Multimodal) offline no navegador.
 - [Apoio e Contribuição Voluntária](/apoiar): Página com QR Code Pix, chave Pix direta e canais de apoio comunitário ao VivaVoz.
 
 ## Endpoints e Serviços Estruturados
@@ -27,3 +28,4 @@
 - **supportProject** (`data-webmcp-tool="supportProject"`): Disponibiliza dados e QR Code Pix para contribuição voluntária e links de apoio ao desenvolvimento comunitário no GitHub.
 - **contactDeveloper** (`data-webmcp-tool="contactDeveloper"`): Permite envio direto de sugestões de novos recursos, relatórios de bugs, feedback de usabilidade e contato direto com o desenvolvedor.
 - **installVivaVozPwa** (`data-webmcp-tool="installVivaVozPwa"`): Abre o diálogo de instalação e orientações de PWA para execução nativa e leitura offline do VivaVoz.
+- **manageLocalAiModels** (`data-webmcp-tool="manageLocalAiModels"`): Permite baixar, cancelar download, ativar no leitor e remover modelos LiteRT-LM armazenados localmente na Cache API do navegador.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BotMessageSquare } from "lucide-react";
+import { AudioLines, BotMessageSquare, Image as ImageIcon } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -22,6 +22,8 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import type { Sentence } from "@/lib/pdf-text";
+import type { ChatAttachment } from "@/lib/local-ai/domain/local-model.types";
+import { ChatMultimodalBar } from "@/components/local-ai/chat-multimodal-bar";
 import { useFirebaseAI } from "@/hooks/useFirebaseAI";
 
 interface ChatPanelProps {
@@ -32,6 +34,7 @@ interface ChatPanelProps {
 export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
   const { messages, sendPrompt, isLoading, status, activeEngine, apiKey, setApiKey } = useFirebaseAI();
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [open, setOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -48,9 +51,11 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
 
   const handleSubmit = ({ text }: { text?: string }) => {
     const value = (text ?? "").trim();
-    if (!value || isLoading) return;
+    if ((!value && attachments.length === 0) || isLoading) return;
+    const currentAttachments = attachments;
     setInput("");
-    void sendPrompt(value, { context, fileName });
+    setAttachments([]);
+    void sendPrompt(value, { context, fileName, attachments: currentAttachments });
   };
 
   const surface = (
@@ -80,12 +85,35 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
                 <div key={message.id} className="flex flex-col gap-1">
                   <Message from={message.role}>
                     <MessageContent>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-1.5 flex flex-wrap gap-1.5">
+                          {message.attachments.map((att) => (
+                            <span
+                              key={att.id}
+                              className="inline-flex items-center gap-1 rounded-md bg-background/60 px-2 py-0.5 text-[10px]"
+                            >
+                              {att.type === "image" ? (
+                                <ImageIcon className="size-3" aria-hidden="true" />
+                              ) : (
+                                <AudioLines className="size-3" aria-hidden="true" />
+                              )}
+                              <span>{att.name}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <MessageResponse>{message.content}</MessageResponse>
                     </MessageContent>
                   </Message>
                   <span className="text-[10px] text-muted-foreground px-2">
                     {isAssistant
-                      ? `VivaVoz AI - ${message.source === "vertex" ? "vertex" : "nano"}`
+                      ? `VivaVoz AI - ${
+                          message.source === "vertex"
+                            ? "vertex"
+                            : message.source === "litert-lm"
+                              ? "LiteRT-LM (Local)"
+                              : "nano"
+                        }`
                       : "Você"}
                   </span>
                 </div>
@@ -97,7 +125,16 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-border border-t p-3">
+      <div className="border-border border-t p-3 space-y-2">
+        <ChatMultimodalBar
+          attachments={attachments}
+          onAddAttachment={(att) => setAttachments((prev) => [...prev, att])}
+          onRemoveAttachment={(id) =>
+            setAttachments((prev) => prev.filter((item) => item.id !== id))
+          }
+          activeEngine={activeEngine}
+          disabled={isLoading}
+        />
         <PromptInput
           data-webmcp-tool="askDocumentAI"
           data-webmcp-action="queryPdfContext"
@@ -115,13 +152,13 @@ export function ChatPanel({ sentences, fileName }: ChatPanelProps) {
           <PromptInputFooter className="justify-end">
             <PromptInputSubmit
               status={status === "idle" ? undefined : status}
-              disabled={!input.trim() || isLoading}
+              disabled={(!input.trim() && attachments.length === 0) || isLoading}
               aria-label="Enviar pergunta para o assistente IA"
             />
           </PromptInputFooter>
         </PromptInput>
-        <p className="text-muted-foreground mt-2 text-[11px]">
-          Motor de IA Híbrida VivaVoz (On-Device & Nuvem com Firebase AI Logic).
+        <p className="text-muted-foreground text-[11px]">
+          Motor de IA Híbrida VivaVoz (Nuvem BYOK, Gemini Nano & LiteRT-LM Local).
         </p>
       </div>
     </section>

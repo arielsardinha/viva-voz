@@ -68,4 +68,13 @@ describe("ChromeAiBadge", () => {
     expect(screen.getByText("IA Não Conectada")).toBeInTheDocument();
     unmount();
   });
+
+  it("deve renderizar 'Gemma 4 Local' quando activeEngine='litert-lm'", () => {
+    const { unmount } = render(
+      <ChromeAiBadge hasCloudKey={true} activeEngine="litert-lm" />,
+    );
+
+    expect(screen.getByText("Gemma 4 Local")).toBeInTheDocument();
+    unmount();
+  });
 });

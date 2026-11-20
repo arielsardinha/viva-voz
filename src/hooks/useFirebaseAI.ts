@@ -6,11 +6,21 @@ import {
   streamHybridPrompt,
   checkOnDeviceAvailability,
   InferenceMode,
-  type GenerativeModel,
 } from "@/lib/ai/firebase-ai";
 import { useGeminiApiKey } from "./use-gemini-api-key";
+import { useLocalAi } from "@/context/local-ai-context";
+import {
+  LocalModelNotDownloadedError,
+  type ChatAttachment,
+  type ChatEnginePreference,
+} from "@/lib/local-ai/domain/local-model.types";
+import { getLocalChatEngine } from "@/lib/local-ai/engines/local-chat.engine";
 
-export type AIEngineType = "vertex" | "gemini-nano" | "disconnected";
+export type AIEngineType = "vertex" | "gemini-nano" | "litert-lm" | "disconnected";
+
+// `window.ai` já é tipado globalmente em lib/client/chrome-ai.ts; aqui só
+// acrescentamos o namespace legado `window.model` usado por builds antigos do Chrome.
+type WindowWithBrowserAi = Window & { model?: unknown };
 
 export interface UseFirebaseAIOptions {
   initialApiKey?: string;
@@ -22,7 +32,14 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   createdAt?: Date;
-  source?: "vertex" | "nano" | string;
+  source?: "vertex" | "nano" | "litert-lm" | string;
+  attachments?: ChatAttachment[];
+}
+
+export interface SendPromptOptions {
+  context?: string;
+  fileName?: string | null;
+  attachments?: ChatAttachment[];
 }
 
 export interface UseFirebaseAIReturn {
@@ -31,6 +48,9 @@ export interface UseFirebaseAIReturn {
   isOnline: boolean;
   onDeviceStatus: "available" | "downloadable" | "unavailable" | "checking";
   activeEngine: AIEngineType;
+  preferredChatEngine: ChatEnginePreference;
+  setPreferredChatEngine: (pref: ChatEnginePreference) => void;
+  isLiteRtChatReady: boolean;
   inferenceSource: "ON_DEVICE" | "IN_CLOUD" | null;
   isLoading: boolean;
   status: "idle" | "submitted" | "streaming" | "error";
@@ -39,13 +59,13 @@ export interface UseFirebaseAIReturn {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   sendPrompt: (
     promptText: string,
-    options?: { context?: string; fileName?: string | null },
+    options?: SendPromptOptions,
   ) => Promise<void>;
   clearMessages: () => void;
   refreshStatus: () => Promise<void>;
   sendMessage: (
     prompt: string,
-    options?: { context?: string; fileName?: string | null },
+    options?: SendPromptOptions,
   ) => AsyncIterable<string>;
   abortCurrentRequest: () => void;
 }
@@ -59,10 +79,18 @@ export function sanitizeClientAIError(err: unknown): string {
     return "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes.";
   }
 
+  if (err instanceof LocalModelNotDownloadedError) {
+    return "Para analisar imagens, áudios ou conversar offline com o Gemma 4, baixe o modelo local na central Modelos IA Local.";
+  }
+
   const raw = err instanceof Error ? err.message : String(err);
 
   // Log seguro no console para diagnóstico de desenvolvimento
   console.error("[VivaVoz AI Client Error]", err);
+
+  if (/WebGPU/i.test(raw)) {
+    return "Seu navegador não possui WebGPU ativo para executar o chat multimodal local.";
+  }
 
   if (/403|unauthorized|api key|api_key|invalid.*key|blocked|referrer/i.test(raw)) {
     return "Acesso não autorizado ou chave de API recusada. Por favor, verifique sua chave do Google AI Studio nas configurações de IA.";
@@ -86,6 +114,13 @@ export function sanitizeClientAIError(err: unknown): string {
 export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAIReturn {
   const isMountedRef = useRef(true);
   const { apiKey: unifiedApiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
+  const {
+    isModelReady,
+    preferredChatEngine,
+    setPreferredChatEngine,
+    openDrawer,
+  } = useLocalAi();
+  const isLiteRtChatReady = isModelReady("gemma-4-e2b-chat");
 
   // Inicialização determinística para SSR e hidratação sem mismatch
   const apiKey = options.initialApiKey || unifiedApiKey;
@@ -125,7 +160,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         setIsOnline(navigator.onLine);
       }
 
-      if ((window as any).ai || (window as any).model) {
+      const winAi = window as WindowWithBrowserAi;
+      if (winAi.ai || winAi.model) {
         checkOnDeviceAvailability()
           .then((status) => {
             if (active && isMountedRef.current) {
@@ -147,7 +183,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     window.addEventListener("offline", handleOffline);
 
     const handleFocus = () => {
-      if (typeof window !== "undefined" && ((window as any).ai || (window as any).model)) {
+      const winAi = typeof window !== "undefined" ? (window as WindowWithBrowserAi) : null;
+      if (winAi && (winAi.ai || winAi.model)) {
         checkOnDeviceAvailability()
           .then((status) => {
             if (active && isMountedRef.current) {
@@ -177,17 +214,38 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     [updateApiKey]
   );
 
-  // Determina o motor ativo com base nas regras do Firebase AI Logic
+  // Determina o motor ativo com suporte a nuvem BYOK, Gemini Nano e LiteRT-LM local
   const activeEngine: AIEngineType = (() => {
+    const cloudAvailable = isOnline && (hasApiKey || Boolean(apiKey && apiKey.length > 5));
+    const nanoAvailable = onDeviceStatus === "available";
+
+    if (preferredChatEngine === "litert-lm") {
+      if (isLiteRtChatReady) return "litert-lm";
+      if (cloudAvailable) return "vertex";
+      if (nanoAvailable) return "gemini-nano";
+      return "disconnected";
+    }
+    if (preferredChatEngine === "cloud") {
+      if (cloudAvailable) return "vertex";
+      if (nanoAvailable) return "gemini-nano";
+      if (isLiteRtChatReady) return "litert-lm";
+      return "disconnected";
+    }
+    if (preferredChatEngine === "gemini-nano") {
+      if (nanoAvailable) return "gemini-nano";
+      if (isLiteRtChatReady) return "litert-lm";
+      if (cloudAvailable) return "vertex";
+      return "disconnected";
+    }
+
     if (!isOnline) {
-      return onDeviceStatus === "available" ? "gemini-nano" : "disconnected";
+      if (nanoAvailable) return "gemini-nano";
+      if (isLiteRtChatReady) return "litert-lm";
+      return "disconnected";
     }
-    if (hasApiKey || (apiKey && apiKey.length > 5)) {
-      return "vertex";
-    }
-    if (onDeviceStatus === "available") {
-      return "gemini-nano";
-    }
+    if (cloudAvailable) return "vertex";
+    if (nanoAvailable) return "gemini-nano";
+    if (isLiteRtChatReady) return "litert-lm";
     return "disconnected";
   })();
 
@@ -202,7 +260,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
   const sendMessage = useCallback(
     async function* (
       prompt: string,
-      msgOptions?: { context?: string; fileName?: string | null },
+      msgOptions?: SendPromptOptions,
     ): AsyncIterable<string> {
       setIsLoading(true);
       setError(null);
@@ -211,30 +269,46 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      // Seleção do modo de inferência com base no estado de conexão e credenciais
-      let mode: InferenceMode = InferenceMode.PREFER_ON_DEVICE;
-      if (isOnline && apiKey && apiKey.length > 5) {
-        mode = InferenceMode.PREFER_IN_CLOUD;
-      } else if (!isOnline) {
-        mode = InferenceMode.ONLY_ON_DEVICE;
-      }
+      const hasAttachments = Boolean(
+        msgOptions?.attachments && msgOptions.attachments.length > 0,
+      );
+      const useLiteRt =
+        (hasAttachments && isLiteRtChatReady) || activeEngine === "litert-lm";
 
-      let model: GenerativeModel;
       try {
-        model = createHybridGenerativeModel({
+        if (hasAttachments && !isLiteRtChatReady) {
+          openDrawer("gemma-4-e2b-chat");
+          throw new LocalModelNotDownloadedError("gemma-4-e2b-chat");
+        }
+
+        if (useLiteRt) {
+          setInferenceSource("ON_DEVICE");
+          const localStream = getLocalChatEngine().streamMultimodalPrompt({
+            prompt,
+            attachments: msgOptions?.attachments,
+            context: msgOptions?.context,
+            fileName: msgOptions?.fileName,
+            signal: controller.signal,
+          });
+          for await (const chunk of localStream) {
+            yield chunk;
+          }
+          return;
+        }
+
+        let mode: InferenceMode = InferenceMode.PREFER_ON_DEVICE;
+        if (isOnline && apiKey && apiKey.length > 5) {
+          mode = InferenceMode.PREFER_IN_CLOUD;
+        } else if (!isOnline) {
+          mode = InferenceMode.ONLY_ON_DEVICE;
+        }
+
+        const model = createHybridGenerativeModel({
           apiKey,
           mode,
           systemInstruction: options.systemInstruction,
         });
-      } catch (err: unknown) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Erro ao inicializar modelo do Firebase AI.";
-        setError(errorMsg);
-        setIsLoading(false);
-        throw err;
-      }
 
-      try {
         const stream = streamHybridPrompt({
           model,
           prompt,
@@ -251,11 +325,10 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         }
       } catch (err: unknown) {
         if ((err as Error)?.name === "AbortError" || controller.signal.aborted) {
-          // Requisição cancelada normalmente
           return;
         }
         const errorMsg =
-          err instanceof Error ? err.message : "Erro durante a geração com Firebase AI.";
+          err instanceof Error ? err.message : "Erro durante a geração com IA.";
         setError(errorMsg);
         throw err;
       } finally {
@@ -263,7 +336,15 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         abortControllerRef.current = null;
       }
     },
-    [apiKey, isOnline, onDeviceStatus, activeEngine, options.systemInstruction, abortCurrentRequest],
+    [
+      apiKey,
+      isOnline,
+      activeEngine,
+      isLiteRtChatReady,
+      openDrawer,
+      options.systemInstruction,
+      abortCurrentRequest,
+    ],
   );
 
   const clearMessages = useCallback(() => {
@@ -275,21 +356,33 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
   const sendPrompt = useCallback(
     async (
       promptText: string,
-      msgOptions?: { context?: string; fileName?: string | null },
+      msgOptions?: SendPromptOptions,
     ) => {
       const cleanPrompt = promptText.trim();
-      if (!cleanPrompt) return;
+      const attachments = msgOptions?.attachments ?? [];
+      const hasAttachments = attachments.length > 0;
+      if (!cleanPrompt && !hasAttachments) return;
 
       const userMsgId = `user-${Date.now()}`;
       const assistantMsgId = `assistant-${Date.now()}`;
 
-      const expectedSource = isOnline && apiKey && apiKey.length > 5 ? "vertex" : "nano";
+      const useLiteRt =
+        (hasAttachments && isLiteRtChatReady) || activeEngine === "litert-lm";
+
+      const expectedSource: ChatMessage["source"] = useLiteRt
+        ? "litert-lm"
+        : isOnline && apiKey && apiKey.length > 5
+          ? "vertex"
+          : "nano";
 
       const userMessage: ChatMessage = {
         id: userMsgId,
         role: "user",
-        content: cleanPrompt,
+        content:
+          cleanPrompt ||
+          `Anexo(s): ${attachments.map((a) => a.name).join(", ")}`,
         createdAt: new Date(),
+        attachments: hasAttachments ? attachments : undefined,
       };
 
       const assistantMessage: ChatMessage = {
@@ -306,9 +399,38 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
       setError(null);
 
       try {
+        if (hasAttachments && !isLiteRtChatReady) {
+          openDrawer("gemma-4-e2b-chat");
+          throw new LocalModelNotDownloadedError("gemma-4-e2b-chat");
+        }
+
         let accumulated = "";
         const controller = new AbortController();
         abortControllerRef.current = controller;
+        setStatus("streaming");
+
+        if (useLiteRt) {
+          setInferenceSource("ON_DEVICE");
+          const localStream = getLocalChatEngine().streamMultimodalPrompt({
+            prompt: cleanPrompt,
+            attachments,
+            context: msgOptions?.context,
+            fileName: msgOptions?.fileName,
+            signal: controller.signal,
+          });
+          for await (const textChunk of localStream) {
+            accumulated += textChunk;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, content: accumulated, source: "litert-lm" }
+                  : msg,
+              ),
+            );
+          }
+          setStatus("idle");
+          return;
+        }
 
         let mode: InferenceMode = InferenceMode.PREFER_ON_DEVICE;
         if (isOnline && apiKey && apiKey.length > 5) {
@@ -331,8 +453,6 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
           signal: controller.signal,
         });
 
-        setStatus("streaming");
-
         for await (const chunk of stream) {
           if (chunk.text) {
             accumulated += chunk.text;
@@ -341,8 +461,8 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
             ? chunk.source === "IN_CLOUD"
               ? "vertex"
               : chunk.source === "ON_DEVICE"
-              ? "nano"
-              : chunk.source
+                ? "nano"
+                : chunk.source
             : undefined;
 
           if (chunk.source) {
@@ -383,7 +503,14 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         setIsLoading(false);
       }
     },
-    [sendMessage],
+    [
+      activeEngine,
+      apiKey,
+      isLiteRtChatReady,
+      isOnline,
+      openDrawer,
+      options.systemInstruction,
+    ],
   );
 
   return {
@@ -392,6 +519,9 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     isOnline,
     onDeviceStatus,
     activeEngine,
+    preferredChatEngine,
+    setPreferredChatEngine,
+    isLiteRtChatReady,
     inferenceSource,
     isLoading,
     status,

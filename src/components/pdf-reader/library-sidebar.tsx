@@ -1,7 +1,18 @@
 "use client";
 
-import { FolderArchive, Bookmark, HardDrive, KeyRound, Sparkles, VolumeX } from "lucide-react";
+import Link from "next/link";
+import {
+  Bookmark,
+  Cpu,
+  DownloadCloud,
+  FolderArchive,
+  HardDrive,
+  KeyRound,
+  Sparkles,
+  VolumeX,
+} from "lucide-react";
 import { GoogleDriveSyncButton } from "@/components/sync/google-drive-sync-button";
+import { useLocalAi } from "@/context/local-ai-context";
 import { cn } from "@/lib/utils";
 
 interface AudioCacheStats {
@@ -43,6 +54,10 @@ export function LibrarySidebar({
   onConnectGemini,
   onDisconnectGemini,
 }: LibrarySidebarProps) {
+  const { models, activeDownloadsCount, openDrawer } = useLocalAi();
+  const modelList = Object.values(models);
+  const readyCount = modelList.filter((m) => m.status === "ready").length;
+
   return (
     <aside className="space-y-3 sm:space-y-4">
       {/* Navegação: Biblioteca / Favoritos */}
@@ -185,6 +200,44 @@ export function LibrarySidebar({
               <span>Conectar Chave Gemini</span>
             </button>
           )}
+        </div>
+
+        {/* Seção de Modelos IA Local (Offline / LiteRT-LM) */}
+        <div className="pt-2.5 border-t border-border/50 space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+            <div className="flex items-center gap-1.5">
+              <Cpu className="size-3.5 text-accent" aria-hidden="true" />
+              <span>Modelos IA Local</span>
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {activeDownloadsCount > 0
+                ? "Baixando..."
+                : `${readyCount}/${modelList.length} prontos`}
+            </span>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            Voz neural (Kokoro 82M) e chat multimodal offline no navegador sem chave de API.
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              data-cy="sidebar-open-local-models-drawer"
+              onClick={() => openDrawer()}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-[11px] font-semibold text-accent transition-colors cursor-pointer"
+            >
+              <DownloadCloud className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>Gerenciar / Baixar</span>
+            </button>
+            <Link
+              href="/modelos"
+              data-cy="sidebar-models-page-link"
+              className="px-2.5 py-2 rounded-xl border border-border bg-secondary/70 hover:bg-secondary text-[11px] font-semibold text-foreground transition-colors"
+            >
+              Tela
+            </Link>
+          </div>
         </div>
       </div>
     </aside>

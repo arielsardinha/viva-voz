@@ -6,8 +6,8 @@
 
 - **Framework**: Next.js (App Router) + React Server Components (RSC) + Tailwind CSS
 - **Gerenciamento de Estado Local**: IndexedDB via `idb` / armazenamento seguro no cliente
-- **Síntese de Fala (TTS)**: Web Speech API (Vozes nativas do sistema) e Google Cloud TTS (Vozes neurais Studio/Wavenet)
-- **IA Generativa**: `@ai-sdk/react` integrado aos modelos Google Gemini para análise de documentos
+- **Síntese de Fala (TTS)**: Web Speech API (Vozes nativas do sistema), IA Local Offline via `@mediapipe/tasks-audio` (Kokoro 82M `.litertlm`) e Google Cloud TTS (Gemini TTS)
+- **IA Generativa**: `@ai-sdk/react`, Firebase AI Logic (Gemini Cloud + Gemini Nano) e `@litert-lm/core` (Gemma 4 E2B multimodal offline: texto, imagem e áudio → texto)
 
 ## Rotas da Aplicação
 
@@ -28,6 +28,9 @@
 ### 3. `/apoiar` (Apoio e Contribuição Voluntária Pix)
 - Página com QR Code Pix gerado dinamicamente em SVG, chave Pix EVP (`d1b12e3a-a8db-4164-a580-91b6a172e77a`) e nome do beneficiário (`Ariel Sardinha Moraes Santiago`).
 - Ações para cópia de código BR Code, chave direta e compartilhamento.
+
+### 4. `/modelos` (Central de Modelos de IA Local)
+- Gerencia download, cancelamento, remoção e ativação de modelos `.litertlm` (Kokoro 82M e Gemma 4 E2B) armazenados na Cache API do navegador, com espelho no menu lateral `LocalModelsDrawer`.
 
 ## Esquemas das Ferramentas WebMCP
 
@@ -105,6 +108,11 @@
           "default": "d1b12e3a-a8db-4164-a580-91b6a172e77a"
         }
       }
+    },
+    {
+      "name": "manageLocalAiModels",
+      "selector": "[data-webmcp-tool='manageLocalAiModels']",
+      "actions": ["downloadModel", "cancelDownload", "deleteModel"]
     }
   ]
 }

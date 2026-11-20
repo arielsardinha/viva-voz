@@ -1,11 +1,35 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useFirebaseAI, sanitizeClientAIError } from "./useFirebaseAI";
+import { LocalModelNotDownloadedError } from "@/lib/local-ai/domain/local-model.types";
 
 let mockApiKey: string | null = null;
 const mockUpdateApiKey = jest.fn((key: string | null) => {
   mockApiKey = key;
   return Promise.resolve(true);
 });
+
+let mockLiteRtReady = false;
+let mockPreferredChatEngine: "auto" | "cloud" | "gemini-nano" | "litert-lm" = "auto";
+const mockSetPreferredChatEngine = jest.fn((pref: typeof mockPreferredChatEngine) => {
+  mockPreferredChatEngine = pref;
+});
+const mockOpenDrawer = jest.fn();
+const mockStreamMultimodalPrompt = jest.fn();
+
+jest.mock("@/context/local-ai-context", () => ({
+  useLocalAi: () => ({
+    isModelReady: (id: string) => id === "gemma-4-e2b-chat" && mockLiteRtReady,
+    preferredChatEngine: mockPreferredChatEngine,
+    setPreferredChatEngine: mockSetPreferredChatEngine,
+    openDrawer: mockOpenDrawer,
+  }),
+}));
+
+jest.mock("@/lib/local-ai/engines/local-chat.engine", () => ({
+  getLocalChatEngine: () => ({
+    streamMultimodalPrompt: mockStreamMultimodalPrompt,
+  }),
+}));
 
 jest.mock("./use-gemini-api-key", () => ({
   useGeminiApiKey: () => ({
@@ -36,12 +60,14 @@ jest.mock("@/lib/ai/firebase-ai", () => {
 describe("useFirebaseAI hook", () => {
   beforeEach(() => {
     mockApiKey = null;
+    mockLiteRtReady = false;
+    mockPreferredChatEngine = "auto";
     jest.clearAllMocks();
-    (window as any).ai = { languageModel: {} };
+    (window as unknown as { ai?: unknown }).ai = { languageModel: {} };
   });
 
   afterEach(() => {
-    delete (window as any).ai;
+    delete (window as unknown as { ai?: unknown }).ai;
   });
 
   it("deve inicializar com activeEngine 'gemini-nano' quando disponível e sem chave cloud", async () => {
@@ -191,5 +217,76 @@ describe("useFirebaseAI hook", () => {
       "Não foi possível processar sua solicitação no momento. Já registramos este evento para análise e correção. Por favor, tente novamente em instantes."
     );
     consoleErrorSpy.mockRestore();
+  });
+
+  it("deve selecionar 'litert-lm' e transmitir resposta multimodal com anexos de imagem e áudio", async () => {
+    mockLiteRtReady = true;
+    mockPreferredChatEngine = "litert-lm";
+    mockStreamMultimodalPrompt.mockImplementation(async function* () {
+      yield "Análise ";
+      yield "multimodal local.";
+    });
+
+    const { result } = renderHook(() => useFirebaseAI());
+
+    await waitFor(() => {
+      expect(result.current.activeEngine).toBe("litert-lm");
+    });
+
+    const attachment = {
+      id: "att-1",
+      type: "image" as const,
+      file: new Blob(["img"], { type: "image/png" }),
+      name: "pagina.png",
+      mimeType: "image/png",
+    };
+
+    await act(async () => {
+      await result.current.sendPrompt("Explique esta página", {
+        context: "[p.1] Texto",
+        fileName: "doc.pdf",
+        attachments: [attachment],
+      });
+    });
+
+    expect(mockStreamMultimodalPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "Explique esta página",
+        attachments: [attachment],
+      }),
+    );
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[1]?.content).toBe("Análise multimodal local.");
+    expect(result.current.messages[1]?.source).toBe("litert-lm");
+  });
+
+  it("deve abrir o drawer de modelos locais e exibir mensagem amigável ao enviar anexo sem Gemma 4 baixado", async () => {
+    mockLiteRtReady = false;
+    const { result } = renderHook(() => useFirebaseAI());
+
+    await act(async () => {
+      await result.current.sendPrompt("Veja esta imagem", {
+        attachments: [
+          {
+            id: "att-2",
+            type: "audio",
+            file: new Blob(["wav"], { type: "audio/wav" }),
+            name: "voz.wav",
+            mimeType: "audio/wav",
+          },
+        ],
+      });
+    });
+
+    expect(mockOpenDrawer).toHaveBeenCalledWith("gemma-4-e2b-chat");
+    expect(result.current.status).toBe("error");
+    expect(result.current.messages[1]?.content).toContain("Gemma 4");
+  });
+
+  it("deve sanitizar LocalModelNotDownloadedError sem expor detalhes internos", () => {
+    const msg = sanitizeClientAIError(
+      new LocalModelNotDownloadedError("gemma-4-e2b-chat"),
+    );
+    expect(msg).toContain("Modelos IA Local");
   });
 });

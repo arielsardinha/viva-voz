@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   AudioLines,
   Check,
+  Cpu,
+  DownloadCloud,
   FolderArchive,
   GraduationCap,
   Heart,
@@ -33,19 +35,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useReaderSettings } from "@/context/reader-settings-context";
 import { useGeminiApiKey } from "@/hooks/use-gemini-api-key";
+import { useLocalAi } from "@/context/local-ai-context";
 import { cn } from "@/lib/utils";
 
 export function AppHeader() {
   const pathname = usePathname();
   const isReader = pathname === "/leitor" || pathname === "/";
   const isLibrary = pathname === "/leituras";
+  const isModels = pathname === "/modelos";
 
   const { apiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
+  const { openDrawer, activeDownloadsCount, models } = useLocalAi();
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
   const { settings, setTheme, openOnboarding, isInitialized } = useReaderSettings();
+
+  const downloadingModels = Object.values(models).filter(
+    (m) => m.status === "downloading",
+  );
+  const avgProgress =
+    downloadingModels.length > 0
+      ? Math.round(
+          downloadingModels.reduce((acc, m) => acc + m.progressPercent, 0) /
+            downloadingModels.length,
+        )
+      : 0;
 
   const ThemeIcon =
     settings.theme === "dark"
@@ -136,7 +152,55 @@ export function AppHeader() {
               />
               <span>Biblioteca</span>
             </Link>
+
+            <Link
+              href="/modelos"
+              data-cy="nav-link-models"
+              aria-current={isModels ? "page" : undefined}
+              className={cn(
+                "hidden sm:flex group relative items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                isModels
+                  ? "bg-gradient-to-r from-accent to-indigo-600 text-accent-foreground shadow-sm shadow-accent/25 font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/80"
+              )}
+            >
+              <Cpu
+                className={cn(
+                  "size-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                  isModels
+                    ? "text-accent-foreground"
+                    : "text-muted-foreground group-hover:text-accent"
+                )}
+                aria-hidden="true"
+              />
+              <span>IA Local</span>
+            </Link>
           </nav>
+
+          {/* Botão do Menu Lateral de Modelos e Downloads de IA Local (Desktop) */}
+          <button
+            type="button"
+            data-cy="local-models-drawer-trigger"
+            onClick={() => openDrawer()}
+            aria-label="Abrir painel de modelos e downloads de IA local"
+            className={cn(
+              "hidden sm:flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border text-xs font-semibold transition-all shadow-xs cursor-pointer",
+              activeDownloadsCount > 0
+                ? "border-accent/40 bg-accent/15 text-accent"
+                : "border-border/80 bg-background/80 hover:bg-secondary text-foreground"
+            )}
+          >
+            <DownloadCloud
+              className={cn(
+                "size-3.5 text-accent",
+                activeDownloadsCount > 0 && "animate-bounce"
+              )}
+              aria-hidden="true"
+            />
+            <span className="hidden lg:inline">
+              {activeDownloadsCount > 0 ? `Baixando ${avgProgress}%` : "Modelos"}
+            </span>
+          </button>
 
           {/* Botão de Sincronização e Backup no Google Drive */}
           <GoogleDriveSyncButton hideWhenConnected={true} />
@@ -373,6 +437,32 @@ export function AppHeader() {
                 >
                   <MessageSquarePlus className="size-4 text-accent" aria-hidden="true" />
                   <span>Falar com o Desenvolvedor</span>
+                </DropdownMenuItem>
+
+                {/* Modelos de IA Local (Tela completa & Menu Lateral) */}
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/modelos"
+                    data-cy="mobile-models-page-item"
+                    className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-foreground hover:bg-secondary py-2 px-2.5"
+                  >
+                    <Cpu className="size-4 text-accent" aria-hidden="true" />
+                    <span>Modelos de IA Local</span>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  data-cy="mobile-models-drawer-item"
+                  onClick={() => openDrawer()}
+                  className="flex items-center justify-between gap-2 cursor-pointer rounded-lg text-xs font-medium text-foreground hover:bg-secondary py-2 px-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <DownloadCloud className="size-4 text-accent" aria-hidden="true" />
+                    <span>Acompanhar Downloads IA</span>
+                  </div>
+                  {activeDownloadsCount > 0 && (
+                    <span className="text-[10px] font-bold text-accent">{avgProgress}%</span>
+                  )}
                 </DropdownMenuItem>
 
                 {/* Chave Gemini */}

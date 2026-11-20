@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import {
+  AudioLines,
   BotMessageSquare,
   ChevronLeft,
   ChevronRight,
   Gauge,
   Headphones,
+  Image as ImageIcon,
   Loader2,
   Mic,
   Pause,
@@ -17,6 +19,8 @@ import {
 } from "lucide-react";
 import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
+import type { ChatAttachment } from "@/lib/local-ai/domain/local-model.types";
+import { ChatMultimodalBar } from "@/components/local-ai/chat-multimodal-bar";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
 import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
@@ -31,9 +35,12 @@ import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import { TtsModelIndicator } from "../ui/tts-model-indicator";
 import {
+  TtsEngineMenuItems,
+  getEngineVoicesHeading,
+} from "../ui/tts-engine-menu-items";
+import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -119,6 +126,7 @@ export function AIStudyTemplate({
   const updateApiKey = (key: string | null) => setApiKey(key || "");
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,10 +168,16 @@ export function AIStudyTemplate({
 
   const handleSendPrompt = (promptText: string) => {
     const clean = promptText.trim();
-    if (!clean || isLoadingAI) return;
+    if ((!clean && attachments.length === 0) || isLoadingAI) return;
+    const currentAttachments = attachments;
     setInput("");
+    setAttachments([]);
     setMobileTab("chat");
-    void sendPrompt(clean, { context, fileName: title });
+    void sendPrompt(clean, {
+      context,
+      fileName: title,
+      attachments: currentAttachments,
+    });
   };
 
   const handleSelectEngine = (nextEngine: TtsEngine) => {
@@ -352,41 +366,17 @@ export function AIStudyTemplate({
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
                   Motor ({engineLabel})
                 </DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={engine}
-                  onValueChange={(val) => handleSelectEngine(val as TtsEngine)}
-                >
-                  {TTS_ENGINES.map((eng) => (
-                    <DropdownMenuRadioItem
-                      key={eng.id}
-                      value={eng.id}
-                      disabled={eng.id === "google" ? !hasApiKey : disabledEngines.includes(eng.id)}
-                      className="cursor-pointer text-xs"
-                    >
-                      <div className="flex flex-col">
-                        <span>{eng.label}</span>
-                        <span className="text-[10px] text-muted-foreground">{eng.hint}</span>
-                      </div>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-
-                {!hasApiKey && (
-                  <>
-                    <DropdownMenuSeparator className="my-1.5" />
-                    <DropdownMenuItem
-                      onClick={() => setGeminiDialogOpen(true)}
-                      className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-                    >
-                      <Sparkles className="size-3.5" />
-                      <span>Conectar chave Gemini (IA)</span>
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <TtsEngineMenuItems
+                  engine={engine}
+                  hasApiKey={hasApiKey}
+                  disabledEngines={disabledEngines}
+                  onSelectEngine={handleSelectEngine}
+                  onOpenGeminiDialog={() => setGeminiDialogOpen(true)}
+                />
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
+                  Vozes ({getEngineVoicesHeading(engine, activeTtsModel)})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                   {voices.map((v) => (
@@ -534,12 +524,35 @@ export function AIStudyTemplate({
                         : "bg-secondary/90 text-secondary-foreground rounded-bl-none border border-border/80 shadow-xs"
                     )}
                   >
+                    {m.attachments && m.attachments.length > 0 && (
+                      <div className="mb-1.5 flex flex-wrap gap-1.5">
+                        {m.attachments.map((att) => (
+                          <span
+                            key={att.id}
+                            className="inline-flex items-center gap-1 rounded-md bg-background/20 px-2 py-0.5 text-[10px]"
+                          >
+                            {att.type === "image" ? (
+                              <ImageIcon className="size-3" aria-hidden="true" />
+                            ) : (
+                              <AudioLines className="size-3" aria-hidden="true" />
+                            )}
+                            <span>{att.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {m.content}
                   </div>
                   <span className="text-[10px] text-muted-foreground px-1">
                     {isUser
                       ? "Você"
-                      : `VivaVoz AI - ${m.source === "vertex" ? "vertex" : "nano"}`}
+                      : `VivaVoz AI - ${
+                          m.source === "vertex"
+                            ? "vertex"
+                            : m.source === "litert-lm"
+                              ? "LiteRT-LM (Local)"
+                              : "nano"
+                        }`}
                   </span>
                 </div>
               );
@@ -570,7 +583,16 @@ export function AIStudyTemplate({
         </div>
 
         {/* Input de Pergunta */}
-        <div className="p-2.5 sm:p-3 border-t border-border bg-card/80">
+        <div className="p-2.5 sm:p-3 border-t border-border bg-card/80 space-y-2">
+          <ChatMultimodalBar
+            attachments={attachments}
+            onAddAttachment={(att) => setAttachments((prev) => [...prev, att])}
+            onRemoveAttachment={(id) =>
+              setAttachments((prev) => prev.filter((item) => item.id !== id))
+            }
+            activeEngine={activeEngine}
+            disabled={isLoadingAI}
+          />
           <form
             data-webmcp-tool="askDocumentAI"
             data-webmcp-action="queryPdfContext"
@@ -599,15 +621,15 @@ export function AIStudyTemplate({
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoadingAI}
+              disabled={(!input.trim() && attachments.length === 0) || isLoadingAI}
               className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-xs cursor-pointer"
               aria-label="Enviar pergunta sobre o documento"
             >
               <Send className="size-4" aria-hidden="true" />
             </button>
           </form>
-          <p className="text-[10px] text-muted-foreground mt-1 text-center">
-            Motor de IA Híbrida VivaVoz (Firebase AI Logic)
+          <p className="text-[10px] text-muted-foreground text-center">
+            Motor de IA Híbrida VivaVoz (Nuvem, Gemini Nano & LiteRT-LM Local)
           </p>
         </div>
       </div>

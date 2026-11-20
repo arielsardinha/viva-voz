@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface ChromeAiBadgeProps {
   hasCloudKey?: boolean;
-  activeEngine?: "gemini-nano" | "vertex" | "disconnected";
+  activeEngine?: "gemini-nano" | "vertex" | "litert-lm" | "disconnected";
   chromeAiStatus?: ChromeAiAvailability;
   onStatusChange?: (status: ChromeAiAvailability) => void;
   className?: string;
@@ -28,14 +28,34 @@ export function ChromeAiBadge({
   });
 
   const effectiveStatus = externalStatus ?? internalStatus;
-  const hasKey = Boolean(propHasCloudKey || activeEngine === "vertex");
+  const isLiteRtActive = activeEngine === "litert-lm";
+  const hasKey =
+    activeEngine === "vertex" ||
+    (Boolean(propHasCloudKey) && activeEngine !== "litert-lm" && activeEngine !== "gemini-nano");
 
   const isLocalActive =
     activeEngine === "gemini-nano" ||
-    (!hasKey && (effectiveStatus === "readily" || (typeof window !== "undefined" && Boolean((window as unknown as { LanguageModel?: unknown; ai?: { languageModel?: unknown } }).LanguageModel || (window as unknown as { ai?: { languageModel?: unknown } }).ai?.languageModel))));
+    (!isLiteRtActive &&
+      !hasKey &&
+      (effectiveStatus === "readily" ||
+        (typeof window !== "undefined" &&
+          Boolean(
+            (
+              window as unknown as {
+                LanguageModel?: unknown;
+                ai?: { languageModel?: unknown };
+              }
+            ).LanguageModel ||
+              (
+                window as unknown as {
+                  ai?: { languageModel?: unknown };
+                }
+              ).ai?.languageModel,
+          ))));
 
-  const isCloudActive = hasKey;
-  const isPendingDownload = !isCloudActive && !isLocalActive && effectiveStatus === "after-download";
+  const isCloudActive = !isLiteRtActive && hasKey;
+  const isPendingDownload =
+    !isLiteRtActive && !isCloudActive && !isLocalActive && effectiveStatus === "after-download";
 
   return (
     <div
@@ -44,7 +64,15 @@ export function ChromeAiBadge({
       aria-label="Status do motor de inteligência artificial ativo"
       className={cn("inline-flex items-center select-none", className)}
     >
-      {isCloudActive ? (
+      {isLiteRtActive ? (
+        <Badge
+          variant="outline"
+          className="bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 text-[10px] font-medium gap-1 py-0.5 px-2 shadow-xs"
+        >
+          <Cpu className="size-3" aria-hidden="true" />
+          <span>Gemma 4 Local</span>
+        </Badge>
+      ) : isCloudActive ? (
         <Badge
           variant="outline"
           className="bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30 text-[10px] font-medium gap-1 py-0.5 px-2"

@@ -68,6 +68,15 @@ describe("AppHeader Component", () => {
     expect(screen.getByText("AI Studio")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /leitor/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /biblioteca/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ia local/i })).toHaveAttribute(
+      "href",
+      "/modelos"
+    );
+    expect(
+      screen.getByRole("button", {
+        name: /abrir painel de modelos e downloads de ia local/i,
+      })
+    ).toBeInTheDocument();
   });
 
   it("deve renderizar os botões principais de ação (apoio Pix, contato com dev e tema) e não exibir botões de tutorial ou chave Gemini fixos", () => {

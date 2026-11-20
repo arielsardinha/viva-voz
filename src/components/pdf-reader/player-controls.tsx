@@ -10,7 +10,6 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
-  Sparkles,
   Speech,
 } from "lucide-react";
 import {
@@ -23,16 +22,15 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import { TtsModelIndicator } from "./ui/tts-model-indicator";
+import { TtsEngineMenuItems } from "./ui/tts-engine-menu-items";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
 
 export const SPEEDS = ["0.8", "1", "1.25", "1.5"];
@@ -99,37 +97,13 @@ export function PlayerControls({
   const engineMenu = (
     <>
       <DropdownMenuLabel>Motor de narração</DropdownMenuLabel>
-      <DropdownMenuRadioGroup
-        value={engine}
-        onValueChange={(value) => handleSelectEngine(value as TtsEngine)}
-      >
-        {TTS_ENGINES.map((item) => (
-          <DropdownMenuRadioItem
-            key={item.id}
-            value={item.id}
-            disabled={item.id === "google" ? !hasApiKey : disabledEngines.includes(item.id)}
-          >
-            <div className="flex flex-col">
-              <span>{item.label}</span>
-              <span className="text-[10px] text-muted-foreground">{item.hint}</span>
-            </div>
-            {disabledEngines.includes(item.id) && item.id !== "google" ? " — indisponível" : ""}
-          </DropdownMenuRadioItem>
-        ))}
-      </DropdownMenuRadioGroup>
-
-      {!hasApiKey && (
-        <>
-          <DropdownMenuSeparator className="my-1.5" />
-          <DropdownMenuItem
-            onClick={() => setGeminiDialogOpen(true)}
-            className="cursor-pointer text-xs flex items-center gap-1.5 text-accent font-medium"
-          >
-            <Sparkles className="size-3.5" />
-            <span>Conectar chave Gemini (IA)</span>
-          </DropdownMenuItem>
-        </>
-      )}
+      <TtsEngineMenuItems
+        engine={engine}
+        hasApiKey={hasApiKey}
+        disabledEngines={disabledEngines}
+        onSelectEngine={handleSelectEngine}
+        onOpenGeminiDialog={() => setGeminiDialogOpen(true)}
+      />
     </>
   );
 
@@ -313,7 +287,13 @@ export function PlayerControls({
                 <SelectItem
                   key={item.id}
                   value={item.id}
-                  disabled={item.id === "google" ? !hasApiKey : disabledEngines.includes(item.id)}
+                  disabled={
+                    item.id === "google"
+                      ? !hasApiKey
+                      : item.id === "litert"
+                        ? false
+                        : disabledEngines.includes(item.id)
+                  }
                 >
                   {item.label}
                 </SelectItem>

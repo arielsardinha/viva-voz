@@ -3,6 +3,7 @@
  * Guarda o PDF original (Blob), o título editável e as frases extraídas.
  */
 import type { Sentence } from "@/lib/pdf-text";
+import type { TtsEngine } from "@/lib/tts-engines";
 import { deleteAudioCacheByDocument, AUDIO_CACHE_STORE } from "./tts-audio-cache";
 
 const DB_NAME = "pdf-audio-library";
@@ -27,7 +28,7 @@ export interface Reading {
 export type ReadingSummary = Omit<Reading, "sentences" | "file">;
 
 export interface Preferences {
-  engine: "system" | "google";
+  engine: TtsEngine;
   voice: Record<string, string>;
   speed: string;
   lastReadingId: string | null;
@@ -88,7 +89,11 @@ export async function getPreferences(): Promise<Preferences> {
       PREFS_STORE,
     );
     const prefs = { ...DEFAULT_PREFERENCES, ...(stored ?? {}) };
-    if (prefs.engine !== "system" && prefs.engine !== "google") {
+    if (
+      prefs.engine !== "system" &&
+      prefs.engine !== "google" &&
+      prefs.engine !== "litert"
+    ) {
       prefs.engine = "system";
     }
     return prefs;

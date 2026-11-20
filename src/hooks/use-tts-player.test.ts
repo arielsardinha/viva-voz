@@ -2,11 +2,25 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTtsPlayer } from "./use-tts-player";
 import type { Sentence } from "@/lib/pdf-text";
 import { clearAllAudioCache } from "@/lib/tts-audio-cache";
+import { LocalModelNotDownloadedError } from "@/lib/local-ai/domain/local-model.types";
+import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
 import {
   TTS_FALLBACK_HEADER,
   TTS_MODEL_HEADER,
   TTS_MODEL_LABEL_HEADER,
 } from "@/lib/tts-models";
+
+const mockSynthesizeToWavBlob = jest.fn();
+const mockLocalTtsCancel = jest.fn();
+
+jest.mock("@/lib/local-ai/engines/local-tts.engine", () => ({
+  getLocalTtsEngine: jest.fn(() => ({
+    synthesizeToWavBlob: mockSynthesizeToWavBlob,
+    cancel: mockLocalTtsCancel,
+    dispose: jest.fn(),
+    ensureReady: jest.fn(),
+  })),
+}));
 
 const mockSentences: Sentence[] = [
   { index: 0, page: 1, text: "Primeira frase para testar." },
@@ -685,6 +699,71 @@ describe("useTtsPlayer Hook", () => {
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith(expect.stringContaining("Erro interno no servidor"));
         expect(result.current.isBuffering).toBe(false);
+      });
+    });
+  });
+
+  describe("Motor Local IA Offline (litert / Kokoro 82M)", () => {
+    it("deve sintetizar áudio em memória com LocalTtsEngine e atualizar activeTtsModel para Kokoro Local", async () => {
+      mockSynthesizeToWavBlob.mockResolvedValueOnce({
+        blob: new Blob(["wav-bytes"], { type: "audio/wav" }),
+        sampleRateHz: 24000,
+      });
+
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "litert",
+          voice: "pf_dora",
+          speed: 1.25,
+        }),
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(getLocalTtsEngine).toHaveBeenCalled();
+        expect(mockSynthesizeToWavBlob).toHaveBeenCalledWith(
+          expect.stringContaining("Primeira frase para testar."),
+          "pf_dora",
+        );
+        expect(result.current.activeTtsModel).toEqual({
+          id: "kokoro-82m",
+          label: "Kokoro 82M (Offline)",
+          shortLabel: "Kokoro Local",
+          isFallback: false,
+        });
+      });
+    });
+
+    it("deve disparar onEngineUnavailable quando o modelo Kokoro não estiver baixado", async () => {
+      const onEngineUnavailable = jest.fn();
+      mockSynthesizeToWavBlob.mockRejectedValueOnce(
+        new LocalModelNotDownloadedError("kokoro-82m-tts"),
+      );
+
+      const { result } = renderHook(() =>
+        useTtsPlayer({
+          sentences: mockSentences,
+          engine: "litert",
+          voice: "pf_dora",
+          speed: 1,
+          onEngineUnavailable,
+        }),
+      );
+
+      act(() => {
+        result.current.play();
+      });
+
+      await waitFor(() => {
+        expect(onEngineUnavailable).toHaveBeenCalledWith(
+          "litert",
+          expect.stringContaining("Kokoro 82M"),
+        );
+        expect(result.current.isPlaying).toBe(false);
       });
     });
   });

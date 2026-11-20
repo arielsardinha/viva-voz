@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Sentence } from "@/lib/pdf-text";
 import type { TtsEngine } from "@/lib/tts-engines";
+import { LocalModelNotDownloadedError } from "@/lib/local-ai/domain/local-model.types";
+import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
 import {
   TTS_FALLBACK_HEADER,
   TTS_MODEL_HEADER,
@@ -263,10 +265,13 @@ export function useTtsPlayer({
 
   const stopAll = useCallback(() => {
     audioRef.current?.pause();
+    if (engine === "litert") {
+      getLocalTtsEngine().cancel();
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
-  }, []);
+  }, [engine]);
 
   const applyActiveModel = useCallback((model: ActiveTtsModelInfo | null) => {
     if (!model) return;
@@ -296,6 +301,24 @@ export function useTtsPlayer({
 
       const promise = (async () => {
         try {
+          if (targetEngine === "litert") {
+            const { blob } = await getLocalTtsEngine().synthesizeToWavBlob(
+              block.text,
+              targetVoice || "pf_dora",
+            );
+            const entry: CachedBlockAudio = {
+              url: URL.createObjectURL(blob),
+              model: {
+                id: "kokoro-82m",
+                label: "Kokoro 82M (Offline)",
+                shortLabel: "Kokoro Local",
+                isFallback: false,
+              },
+            };
+            cacheRef.current.set(cacheKey, entry);
+            return entry;
+          }
+
           const { blob, model } = await fetchAudioBlock(
             block.text,
             targetEngine,
@@ -483,7 +506,12 @@ export function useTtsPlayer({
         setIsPlaying(false);
         const message =
           error instanceof Error ? error.message : "Não foi possível narrar este trecho.";
-        if (error instanceof TtsHttpError && [402, 403, 404, 429].includes(error.status)) {
+        if (error instanceof LocalModelNotDownloadedError) {
+          onEngineUnavailable?.(
+            "litert",
+            "Baixe o modelo Kokoro 82M para narrar offline com IA Local.",
+          );
+        } else if (error instanceof TtsHttpError && [402, 403, 404, 429].includes(error.status)) {
           onEngineUnavailable?.(engine, message);
         } else {
           onError?.(message);

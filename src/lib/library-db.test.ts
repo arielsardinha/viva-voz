@@ -44,6 +44,10 @@ describe("library-db (IndexedDB persistence)", () => {
       const updated = await getPreferences();
       expect(updated.speed).toBe("1.5");
       expect(updated.engine).toBe("google");
+
+      await savePreferences({ engine: "litert" });
+      const litertPrefs = await getPreferences();
+      expect(litertPrefs.engine).toBe("litert");
     });
 
     it("deve fazer fallback para 'system' caso o motor gravado seja inválido", async () => {

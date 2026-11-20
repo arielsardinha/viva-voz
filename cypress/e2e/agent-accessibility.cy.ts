@@ -16,6 +16,7 @@ describe("Agent Accessibility & WebMCP Audits", () => {
         // Deve mapear as rotas principais em links Markdown
         expect(response.body).to.include("- [Leitor de Documentos](/)");
         expect(response.body).to.include("- [Biblioteca de Leituras](/leituras)");
+        expect(response.body).to.include("- [Modelos de IA Local](/modelos)");
 
         // Deve listar os endpoints e ferramentas WebMCP
         expect(response.body).to.include("/api/tts");
@@ -25,6 +26,7 @@ describe("Agent Accessibility & WebMCP Audits", () => {
         expect(response.body).to.include("ttsPlaybackControl");
         expect(response.body).to.include("askDocumentAI");
         expect(response.body).to.include("searchLibrary");
+        expect(response.body).to.include("manageLocalAiModels");
       });
     });
 
@@ -105,6 +107,37 @@ describe("Agent Accessibility & WebMCP Audits", () => {
       );
       cy.get("main").should("exist");
       cy.get("form[role='search']").should("exist");
+    });
+
+    it("deve possuir landmarks semânticos válidos na Central de Modelos (/modelos)", () => {
+      cy.visit("/modelos", {
+        onBeforeLoad(win) {
+          win.localStorage.setItem(
+            "vivavoz-reader-settings",
+            JSON.stringify({
+              template: "modern",
+              theme: "light",
+              font: "inter",
+              fontSize: 16,
+              lineHeight: 1.8,
+              hasCompletedOnboarding: true,
+            })
+          );
+        },
+      });
+      cy.get('header[data-hydrated="true"]').should("exist");
+
+      cy.get("header[role='banner']").should("exist");
+      cy.get("nav[aria-label='Navegação principal'] a[aria-current='page']").should(
+        "contain.text",
+        "IA Local"
+      );
+      cy.get("main").should("exist").and("be.visible");
+      cy.get("main h1").should("contain.text", "Modelos de IA Local");
+      cy.get("section[aria-label='Central de Modelos de IA Local']").should("exist");
+      cy.get("section[aria-label='Catálogo de modelos disponíveis']").should("exist");
+      cy.get("[data-webmcp-tool='manageLocalAiModels'][data-webmcp-action='downloadModel']")
+        .should("have.length.at.least", 2);
     });
   });
 

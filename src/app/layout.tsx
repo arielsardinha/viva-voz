@@ -3,6 +3,8 @@ import { Inter, Merriweather, Lora, Roboto, Literata } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { GeminiApiKeyProvider } from "@/hooks/use-gemini-api-key";
+import { LocalAiProvider } from "@/context/local-ai-context";
+import { LocalModelsDrawer } from "@/components/local-ai/local-models-drawer";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
@@ -129,12 +131,15 @@ export default function RootLayout({
 
         <ReaderSettingsProvider>
           <GeminiApiKeyProvider>
-            <PwaRegister />
-            {children}
-            <Clarity />
-            <Analytics />
-            <SpeedInsights />
-            <Toaster />
+            <LocalAiProvider>
+              <PwaRegister />
+              {children}
+              <LocalModelsDrawer />
+              <Clarity />
+              <Analytics />
+              <SpeedInsights />
+              <Toaster />
+            </LocalAiProvider>
           </GeminiApiKeyProvider>
         </ReaderSettingsProvider>
       </body>
