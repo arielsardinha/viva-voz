@@ -33,6 +33,7 @@ import {
   type TtsEngine,
   type VoiceOption,
 } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 import { useDocumentUploader } from "@/hooks/use-document-uploader";
 import { DocumentProcessingFacade } from "@/lib/facade/document-processing.facade";
@@ -161,6 +162,12 @@ export function PdfReader() {
 
   const handleError = useCallback((message: string) => toast.error(message), []);
 
+  const handleModelFallback = useCallback((model: ActiveTtsModelInfo) => {
+    toast.info(
+      `Alternamos automaticamente para ${model.label} para manter sua narração sem interrupções.`
+    );
+  }, []);
+
   const handleEngineUnavailable = useCallback(
     (failed: TtsEngine, message: string) => {
       if (readerSettings.template === "zen") {
@@ -192,6 +199,7 @@ export function PdfReader() {
     documentId: readingId,
     onError: handleError,
     onEngineUnavailable: handleEngineUnavailable,
+    onModelFallback: handleModelFallback,
   });
 
   const handleContinueZenWithFreeVoice = useCallback(
@@ -612,6 +620,7 @@ export function PdfReader() {
                 voice={voice}
                 speed={speed}
                 engine={engine}
+                activeTtsModel={player.activeTtsModel}
                 voices={voices}
                 disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}
@@ -647,6 +656,7 @@ export function PdfReader() {
                 voice={voice}
                 speed={speed}
                 engine={engine}
+                activeTtsModel={player.activeTtsModel}
                 voices={voices}
                 disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}
@@ -679,6 +689,7 @@ export function PdfReader() {
                 voice={voice}
                 speed={speed}
                 engine={engine}
+                activeTtsModel={player.activeTtsModel}
                 voices={voices}
                 disabledEngines={effectiveDisabledEngines}
                 apiKey={userApiKey}

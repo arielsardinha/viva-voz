@@ -1,5 +1,11 @@
 import { POST } from "./route";
 import * as cookieService from "@/lib/ai/server/gemini-cookie.service";
+import { resetTtsModelCooldowns } from "@/lib/ai/server/tts-fallback.service";
+import {
+  TTS_FALLBACK_HEADER,
+  TTS_MODEL_HEADER,
+  TTS_MODEL_LABEL_HEADER,
+} from "@/lib/tts-models";
 
 jest.mock("@/lib/ai/server/gemini-cookie.service", () => ({
   getGeminiKeyCookie: jest.fn(),
@@ -11,6 +17,7 @@ describe("/api/tts Route Handler", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    resetTtsModelCooldowns();
     process.env = { ...originalEnv };
     (cookieService.getGeminiKeyCookie as jest.Mock).mockResolvedValue(null);
   });
@@ -46,19 +53,19 @@ describe("/api/tts Route Handler", () => {
     expect(data.error).toContain("Chave do Google AI Studio não configurada");
   });
 
-  it("deve utilizar a chave do cookie HttpOnly quando disponível", async () => {
+  it("deve utilizar a chave do cookie HttpOnly quando disponível e expor headers do modelo primário", async () => {
     (cookieService.getGeminiKeyCookie as jest.Mock).mockResolvedValue("cookie_key_valid_12345678");
 
     const mockBase64Pcm = btoa(String.fromCharCode(0, 0, 0, 0));
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: jest.fn().mockResolvedValue({
-        candidates: [
+        steps: [
           {
-            content: {
-              parts: [{ inlineData: { data: mockBase64Pcm } }],
-            },
+            type: "model_output",
+            content: [{ type: "audio", data: mockBase64Pcm }],
           },
         ],
       }),
@@ -70,27 +77,78 @@ describe("/api/tts Route Handler", () => {
       body: JSON.stringify({
         text: "Texto usando cookie seguro",
         voice: "Kore",
-        // sem userApiKey no body
       }),
     });
 
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(res.headers.get(TTS_MODEL_HEADER)).toBe("gemini-3.8-flash-tts");
+    expect(res.headers.get(TTS_MODEL_LABEL_HEADER)).toBe("Gemini 3.8 Flash TTS");
+    expect(res.headers.get(TTS_FALLBACK_HEADER)).toBe("false");
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("generativelanguage.googleapis.com"),
+      expect.stringContaining("generativelanguage.googleapis.com/v1beta/interactions"),
       expect.objectContaining({
         headers: expect.objectContaining({
           "x-goog-api-key": "cookie_key_valid_12345678",
         }),
-      })
+      }),
     );
   });
 
-  it("deve repassar o erro upstream 429 quando a cota do Gemini for excedida", async () => {
-    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+  it("deve realizar fallback automático e marcar X-TTS-Fallback=true quando o modelo primário retornar 429", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const mockBase64Pcm = btoa(String.fromCharCode(1, 2, 3, 4));
+
+    global.fetch = jest.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
+      if (payload.model === "gemini-3.8-flash-tts") {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          headers: new Headers(),
+          text: jest.fn().mockResolvedValue("Rate limit exceeded"),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: jest.fn().mockResolvedValue({
+          steps: [
+            {
+              type: "model_output",
+              content: [{ type: "audio", data: mockBase64Pcm }],
+            },
+          ],
+        }),
+      });
+    });
+
+    const req = new Request("http://localhost/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: "Frase com fallback automático",
+        voice: "Kore",
+        userApiKey: "valid_api_key_longer_than_10_chars",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("audio/wav");
+    expect(res.headers.get(TTS_MODEL_HEADER)).toBe("gemini-3.8-flash-lite-tts");
+    expect(res.headers.get(TTS_MODEL_LABEL_HEADER)).toBe("Gemini 3.8 Flash-Lite TTS");
+    expect(res.headers.get(TTS_FALLBACK_HEADER)).toBe("true");
+    errorSpy.mockRestore();
+  });
+
+  it("deve repassar o erro upstream 429 quando toda a cascata exceder a cota do Gemini", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
+      headers: new Headers(),
       text: jest.fn().mockResolvedValue("Rate limit exceeded"),
     });
 
@@ -112,18 +170,17 @@ describe("/api/tts Route Handler", () => {
   });
 
   it("deve converter o áudio base64 retornado pelo Gemini em arquivo WAV e retornar com status 200", async () => {
-    // 4 bytes de PCM simulados em base64 (AAAAAA==)
     const mockBase64Pcm = btoa(String.fromCharCode(0, 0, 0, 0));
 
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: jest.fn().mockResolvedValue({
-        candidates: [
+        steps: [
           {
-            content: {
-              parts: [{ inlineData: { data: mockBase64Pcm } }],
-            },
+            type: "model_output",
+            content: [{ type: "audio", data: mockBase64Pcm }],
           },
         ],
       }),
@@ -146,18 +203,20 @@ describe("/api/tts Route Handler", () => {
     const arrayBuffer = await res.arrayBuffer();
     expect(arrayBuffer.byteLength).toBeGreaterThan(44); // 44 bytes de cabeçalho WAV + PCM
 
-    // Verifica assinatura RIFF / WAVE
     const headerBytes = new Uint8Array(arrayBuffer.slice(0, 12));
     const headerStr = String.fromCharCode(...headerBytes);
     expect(headerStr.startsWith("RIFF")).toBe(true);
     expect(headerStr.includes("WAVE")).toBe(true);
   });
 
-  it("deve retornar status 502 se a resposta do Gemini não contiver dados de áudio", async () => {
+  it("deve retornar status 502 se nenhum modelo da cascata retornar dados de áudio", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: jest.fn().mockResolvedValue({
+        steps: [],
         candidates: [],
       }),
     });
@@ -176,6 +235,7 @@ describe("/api/tts Route Handler", () => {
     expect(res.status).toBe(502);
     const data = await res.json();
     expect(data.error).toContain("A IA não retornou áudio");
+    errorSpy.mockRestore();
   });
 
   it("deve ignorar chaves no servidor e exigir que o userApiKey seja enviado na requisição ou em cookie (BYOK)", async () => {
@@ -188,7 +248,6 @@ describe("/api/tts Route Handler", () => {
       body: JSON.stringify({
         text: "Texto de teste",
         voice: "Kore",
-        // userApiKey ausente e cookie null
       }),
     });
 

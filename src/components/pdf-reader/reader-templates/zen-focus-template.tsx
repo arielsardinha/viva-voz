@@ -26,6 +26,8 @@ import { GeminiKeyDialog } from "../gemini-key-dialog";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
+import { TtsModelIndicator } from "../ui/tts-model-indicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +50,7 @@ interface ZenFocusTemplateProps {
   voice: string;
   speed: string;
   engine: TtsEngine;
+  activeTtsModel?: ActiveTtsModelInfo | null;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
   apiKey?: string | null;
@@ -79,6 +82,7 @@ export function ZenFocusTemplate({
   voice,
   speed: _speed,
   engine,
+  activeTtsModel = null,
   voices,
   disabledEngines,
   apiKey: propApiKey,
@@ -199,6 +203,7 @@ export function ZenFocusTemplate({
         <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground italic font-sans">
           Modo Focado & Leitura Imersiva • {totalPages} páginas
         </p>
+        <TtsModelIndicator engine={engine} activeModel={activeTtsModel} className="mt-2" />
       </header>
 
       {/* Conteúdo com Tipografia Arejada */}
@@ -459,7 +464,7 @@ export function ZenFocusTemplate({
 
             <DropdownMenuSeparator className="my-1.5" />
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-              Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
+              Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
               {voices.map((v) => (

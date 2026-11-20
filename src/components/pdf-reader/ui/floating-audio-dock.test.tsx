@@ -112,4 +112,44 @@ describe("FloatingAudioDock Component", () => {
     expect(screen.queryByText(/Gerenciar chave Gemini/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Conectar chave Gemini/i)).not.toBeInTheDocument();
   });
+
+  it("deve exibir o indicador discreto de modelo alternativo quando ocorrer fallback sem expor códigos HTTP", () => {
+    render(
+      <FloatingAudioDock
+        isPlaying={true}
+        isBuffering={false}
+        currentIndex={0}
+        total={10}
+        title="Documento de Teste"
+        currentPage={1}
+        voice="Kore"
+        speed="1"
+        engine="google"
+        activeTtsModel={{
+          id: "gemini-3.8-flash-lite-tts",
+          label: "Gemini 3.8 Flash-Lite TTS",
+          shortLabel: "3.8 Lite",
+          isFallback: true,
+        }}
+        voices={mockVoices}
+        disabledEngines={[]}
+        apiKey="AIzaSyTestValidKey12345"
+        onApiKeyChange={onApiKeyChangeMock}
+        onEngineChange={onEngineChangeMock}
+        onToggle={onToggleMock}
+        onPrevious={onPreviousMock}
+        onNext={onNextMock}
+        onRestart={onRestartMock}
+        onVoiceChange={onVoiceChangeMock}
+        onSpeedChange={onSpeedChangeMock}
+      />
+    );
+
+    const indicators = screen.getAllByTestId("tts-model-indicator");
+    expect(indicators.length).toBeGreaterThan(0);
+    expect(indicators[0]).toHaveAttribute("data-tts-model", "gemini-3.8-flash-lite-tts");
+    expect(indicators[0]).toHaveAttribute("data-tts-fallback", "true");
+    expect(indicators[0]).toHaveTextContent("3.8 Lite");
+    expect(indicators[0].textContent).not.toMatch(/429|403|500|env/i);
+  });
 });

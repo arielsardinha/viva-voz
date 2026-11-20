@@ -11,7 +11,7 @@
 
 ## Endpoints e Serviços Estruturados
 
-- [/api/tts](/api/tts): Endpoint POST para sintetização de voz neural (Google Cloud TTS / Gemini TTS) com controle fino de voz, pitch e velocidade de reprodução.
+- [/api/tts](/api/tts): Endpoint POST para sintetização de voz neural (Gemini 3.8 TTS com fallback automático multi-modelo, agrupamento otimizado em blocos e controle de voz e velocidade de reprodução).
 - [/api/ask](/api/ask): Endpoint POST para streaming de respostas e análises contextuais sobre documentos via Google Gemini.
 - [/api/sync/backup](/api/sync/backup): Endpoint POST para backup seguro de documentos e notas na pasta oculta Google Drive appDataFolder.
 - [/api/sync/restore](/api/sync/restore): Endpoint GET para restauração de dados cross-device a partir do Google Drive.

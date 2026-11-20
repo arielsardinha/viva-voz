@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
+import { TtsModelIndicator } from "./tts-model-indicator";
 import { WaveformVisualizer } from "./waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,7 @@ interface FloatingAudioDockProps {
   voice: string;
   speed: string;
   engine: TtsEngine;
+  activeTtsModel?: ActiveTtsModelInfo | null;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
   apiKey?: string | null;
@@ -63,6 +66,7 @@ export function FloatingAudioDock({
   voice,
   speed,
   engine,
+  activeTtsModel = null,
   voices,
   disabledEngines,
   apiKey = null,
@@ -200,6 +204,8 @@ export function FloatingAudioDock({
 
         {/* Controles de Voz, IA & Velocidade (Direita) */}
         <div className="flex items-center gap-1.5 justify-end">
+          <TtsModelIndicator engine={engine} activeModel={activeTtsModel} />
+
           {/* Botão de Conectar/Gerenciar IA TTS */}
           {!hasApiKey && (
             <GeminiKeyDialog
@@ -283,7 +289,7 @@ export function FloatingAudioDock({
 
               <DropdownMenuSeparator className="my-1.5" />
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
+                Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
               </DropdownMenuLabel>
               <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                 {voices.map((v) => (
@@ -309,9 +315,12 @@ export function FloatingAudioDock({
               <p className="truncate text-xs font-semibold text-foreground">
                 {title ?? "Documento"}
               </p>
-              <p className="text-[10px] text-muted-foreground">
-                Pág. {currentPage} • {currentIndex + 1}/{total} ({progressPercent}%)
-              </p>
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <p className="text-[10px] text-muted-foreground">
+                  Pág. {currentPage} • {currentIndex + 1}/{total} ({progressPercent}%)
+                </p>
+                <TtsModelIndicator engine={engine} activeModel={activeTtsModel} compact />
+              </div>
             </div>
           </div>
 
@@ -398,7 +407,7 @@ export function FloatingAudioDock({
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
+                  Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                   {voices.map((v) => (

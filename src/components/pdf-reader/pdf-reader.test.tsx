@@ -84,6 +84,8 @@ jest.mock("@/hooks/use-tts-player", () => ({
     currentIndex: 0,
     isPlaying: false,
     isBuffering: false,
+    activeTtsModel: null,
+    activeBlockRange: null,
     play: mockPlay,
     pause: mockPause,
     toggle: jest.fn(),

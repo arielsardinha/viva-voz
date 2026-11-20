@@ -23,6 +23,7 @@ import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 
 interface ModernStudioTemplateProps {
   sentences: Sentence[];
@@ -34,6 +35,7 @@ interface ModernStudioTemplateProps {
   voice: string;
   speed: string;
   engine: TtsEngine;
+  activeTtsModel?: ActiveTtsModelInfo | null;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
   apiKey?: string | null;
@@ -65,6 +67,7 @@ export function ModernStudioTemplate({
   voice,
   speed,
   engine,
+  activeTtsModel = null,
   voices,
   disabledEngines,
   apiKey,
@@ -446,6 +449,7 @@ export function ModernStudioTemplate({
         voice={voice}
         speed={speed}
         engine={engine}
+        activeTtsModel={activeTtsModel}
         voices={voices}
         disabledEngines={disabledEngines}
         apiKey={apiKey}

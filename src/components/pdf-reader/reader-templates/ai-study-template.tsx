@@ -28,6 +28,8 @@ import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
+import { TtsModelIndicator } from "../ui/tts-model-indicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +53,7 @@ interface AIStudyTemplateProps {
   voice: string;
   speed: string;
   engine: TtsEngine;
+  activeTtsModel?: ActiveTtsModelInfo | null;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
   apiKey?: string | null;
@@ -82,6 +85,7 @@ export function AIStudyTemplate({
   voice,
   speed,
   engine,
+  activeTtsModel = null,
   voices,
   disabledEngines,
   apiKey: propApiKey,
@@ -331,6 +335,7 @@ export function AIStudyTemplate({
             </button>
 
             {/* Seletor de Voz & Motor no Leitor */}
+            <TtsModelIndicator engine={engine} activeModel={activeTtsModel} compact />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -381,7 +386,7 @@ export function AIStudyTemplate({
 
                 <DropdownMenuSeparator className="my-1.5" />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Vozes ({engine === "google" ? "Google Gemini" : "Sistema"})
+                  Vozes ({engine === "google" ? (activeTtsModel?.label ?? "Google Gemini") : "Sistema"})
                 </DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
                   {voices.map((v) => (

@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import type { ActiveTtsModelInfo } from "@/lib/tts-models";
+import { TtsModelIndicator } from "./ui/tts-model-indicator";
 import { GeminiKeyDialog } from "./gemini-key-dialog";
 
 export const SPEEDS = ["0.8", "1", "1.25", "1.5"];
@@ -44,6 +46,7 @@ interface PlayerControlsProps {
   voice: string;
   speed: string;
   engine: TtsEngine;
+  activeTtsModel?: ActiveTtsModelInfo | null;
   voices: VoiceOption[];
   disabledEngines: TtsEngine[];
   apiKey?: string | null;
@@ -66,6 +69,7 @@ export function PlayerControls({
   voice,
   speed,
   engine,
+  activeTtsModel = null,
   voices,
   disabledEngines,
   apiKey = null,
@@ -283,9 +287,12 @@ export function PlayerControls({
           </div>
         </div>
 
-        <div className="text-muted-foreground order-last min-w-0 text-center text-xs sm:text-sm md:order-none md:text-left">
-          Trecho <span className="text-foreground font-semibold">{total > 0 ? currentIndex + 1 : 0}</span>{" "}
-          de {total} · Página {page}
+        <div className="order-last flex flex-wrap items-center justify-center gap-2 min-w-0 text-xs sm:text-sm md:order-none md:justify-start">
+          <div className="text-muted-foreground text-center md:text-left">
+            Trecho <span className="text-foreground font-semibold">{total > 0 ? currentIndex + 1 : 0}</span>{" "}
+            de {total} · Página {page}
+          </div>
+          <TtsModelIndicator engine={engine} activeModel={activeTtsModel} compact />
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
