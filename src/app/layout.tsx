@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Merriweather, Lora, Roboto, Literata } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { GeminiApiKeyProvider } from "@/hooks/use-gemini-api-key";
@@ -8,39 +7,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Clarity from "@/components/clarity";
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const merriweather = Merriweather({
-  subsets: ["latin"],
-  weight: ["300", "400", "700"],
-  variable: "--font-merriweather",
-  display: "swap",
-});
-
-const lora = Lora({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-lora",
-  display: "swap",
-});
-
-const roboto = Roboto({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-roboto",
-  display: "swap",
-});
-
-const literata = Literata({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-literata",
-  display: "swap",
-});
+import { ROOT_FONT_VARIABLE_CLASSES } from "./fonts";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -118,7 +85,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${merriweather.variable} ${lora.variable} ${roboto.variable} ${literata.variable}`}
+      className={ROOT_FONT_VARIABLE_CLASSES}
       suppressHydrationWarning
     >
       <body className="antialiased bg-background text-foreground transition-colors" suppressHydrationWarning>
