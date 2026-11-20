@@ -203,4 +203,124 @@ describe("LocalChatEngine", () => {
     expect(received).toEqual(["Início..."]);
     expect(cancelSpy).toHaveBeenCalled();
   });
+  function setupReadyRuntime() {
+    mockedStorage.detectLocalRuntimeSupport.mockReturnValue({
+      webGpuSupported: true,
+      cacheApiSupported: true,
+      wasmSupported: true,
+    });
+    mockedStorage.getCachedModelBlob.mockResolvedValue(
+      new Blob([new Uint8Array([1])]),
+    );
+  }
+
+  function makeConversation(
+    chunks: string[],
+    failWith?: Error,
+  ): LiteRtConversation {
+    return {
+      sendMessageStreaming: jest.fn(
+        () =>
+          {
+            const queue = [...chunks];
+            return new ReadableStream<LiteRtMessage>({
+              pull(ctrl) {
+                const text = queue.shift();
+                if (text !== undefined) {
+                  ctrl.enqueue({ role: "model", content: [{ type: "text", text }] });
+                } else if (failWith) {
+                  ctrl.error(failWith);
+                } else {
+                  ctrl.close();
+                }
+              },
+            });
+          },
+      ),
+      cancel: jest.fn(),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  async function collect(iterable: AsyncIterable<string>): Promise<string> {
+    let out = "";
+    for await (const chunk of iterable) out += chunk;
+    return out;
+  }
+
+  it("deve usar uma conversa nova a cada pergunta para não estourar a janela de contexto", async () => {
+    setupReadyRuntime();
+    const first = makeConversation(["Resposta 1"]);
+    const second = makeConversation(["Resposta 2"]);
+    const createConversation = jest
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+
+    const engine = new LocalChatEngine({
+      loadModule: async () => ({
+        Backend: { CPU: 3, GPU: 4 },
+        Engine: {
+          create: jest.fn().mockResolvedValue({
+            createConversation,
+            delete: jest.fn().mockResolvedValue(undefined),
+          }),
+        },
+      }),
+    });
+
+    const params = { context: "[p.1] Texto.", fileName: "doc.pdf" };
+    expect(await collect(engine.streamMultimodalPrompt({ prompt: "A", ...params }))).toBe("Resposta 1");
+    expect(await collect(engine.streamMultimodalPrompt({ prompt: "B", ...params }))).toBe("Resposta 2");
+
+    expect(createConversation).toHaveBeenCalledTimes(2);
+    expect(first.delete).toHaveBeenCalled();
+    expect(second.delete).toHaveBeenCalled();
+  });
+
+  it("deve encerrar sem erro quando a janela enche após já ter respondido parcialmente", async () => {
+    setupReadyRuntime();
+    const conv = makeConversation(
+      ["Parte da resposta"],
+      new Error("Max number of tokens reached, the context window is full."),
+    );
+    const engine = new LocalChatEngine({
+      loadModule: async () => ({
+        Backend: { CPU: 3, GPU: 4 },
+        Engine: {
+          create: jest.fn().mockResolvedValue({
+            createConversation: jest.fn().mockResolvedValue(conv),
+            delete: jest.fn().mockResolvedValue(undefined),
+          }),
+        },
+      }),
+    });
+
+    await expect(collect(engine.streamMultimodalPrompt({ prompt: "X" }))).resolves.toBe(
+      "Parte da resposta",
+    );
+  });
+
+  it("deve lançar erro amigável quando a janela enche antes de qualquer texto", async () => {
+    setupReadyRuntime();
+    const conv = makeConversation(
+      [],
+      new Error("Max number of tokens reached, the context window is full."),
+    );
+    const engine = new LocalChatEngine({
+      loadModule: async () => ({
+        Backend: { CPU: 3, GPU: 4 },
+        Engine: {
+          create: jest.fn().mockResolvedValue({
+            createConversation: jest.fn().mockResolvedValue(conv),
+            delete: jest.fn().mockResolvedValue(undefined),
+          }),
+        },
+      }),
+    });
+
+    await expect(collect(engine.streamMultimodalPrompt({ prompt: "X" }))).rejects.toThrow(
+      /grande demais para o modelo local/,
+    );
+  });
 });

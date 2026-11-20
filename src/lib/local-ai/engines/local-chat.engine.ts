@@ -61,6 +61,19 @@ const defaultModuleLoader: ILocalChatModuleLoader = {
   },
 };
 
+/** Janela de contexto (tokens) configurada para o Gemma 4 E2B local. */
+const LOCAL_MAX_NUM_TOKENS = 4096;
+/**
+ * Limite de caracteres do documento no prompt de sistema. ~8000 chars em PT-BR
+ * ficam em torno de 2000-2500 tokens, deixando espaço para pergunta e resposta.
+ */
+const LOCAL_MAX_CONTEXT_CHARS = 8000;
+
+function isContextWindowFullError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return /context window is full|max number of tokens/i.test(message);
+}
+
 function extractChunkText(chunk: LiteRtMessage): string {
   if (typeof chunk.content === "string") return chunk.content;
   if (!Array.isArray(chunk.content)) return "";
@@ -89,7 +102,6 @@ function buildUserContentParts(
 export class LocalChatEngine {
   private engine: LiteRtEngineInstance | null = null;
   private conversation: LiteRtConversation | null = null;
-  private activeContextKey: string | null = null;
   private initPromise: Promise<LiteRtEngineInstance> | null = null;
 
   constructor(
@@ -128,19 +140,19 @@ export class LocalChatEngine {
         backend: Backend.GPU,
         visionBackend: Backend.GPU,
         audioBackend: Backend.GPU,
-        mainExecutorSettings: { maxNumTokens: 4096, maxNumImages: 4 },
+        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS, maxNumImages: 4 },
       },
       {
         model: modelBlob,
         backend: Backend.GPU,
         visionBackend: Backend.CPU,
         audioBackend: Backend.CPU,
-        mainExecutorSettings: { maxNumTokens: 4096, maxNumImages: 4 },
+        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS, maxNumImages: 4 },
       },
       {
         model: modelBlob,
         backend: Backend.GPU,
-        mainExecutorSettings: { maxNumTokens: 4096 },
+        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS },
       },
     ];
 
@@ -160,26 +172,17 @@ export class LocalChatEngine {
       : new Error("Não foi possível inicializar o motor de chat local.");
   }
 
-  private async getOrCreateConversation(
+  private async createFreshConversation(
     context?: string,
     fileName?: string | null,
   ): Promise<LiteRtConversation> {
     const engine = await this.ensureEngine();
-    const nextKey = `${fileName ?? ""}::${context?.slice(0, 200) ?? ""}::${context?.length ?? 0}`;
-
-    if (this.conversation && this.activeContextKey === nextKey) {
-      return this.conversation;
-    }
-
-    if (this.conversation) {
-      await this.conversation.delete().catch(() => undefined);
-      this.conversation = null;
-    }
+    await this.resetConversation();
 
     const systemPrompt = buildDocumentSystemPrompt({
       context,
       fileName,
-      maxContextChars: 12000,
+      maxContextChars: LOCAL_MAX_CONTEXT_CHARS,
     });
 
     const conv = await engine.createConversation({
@@ -188,10 +191,15 @@ export class LocalChatEngine {
       },
     });
     this.conversation = conv;
-    this.activeContextKey = nextKey;
     return conv;
   }
 
+  /**
+   * Cada pergunta usa uma conversa nova (apenas o prompt de sistema + documento).
+   * A janela do Gemma local é de LOCAL_MAX_NUM_TOKENS tokens e o documento sozinho
+   * já ocupa boa parte dela; reaproveitar a conversa acumulava o histórico e
+   * estourava o limite logo na segunda pergunta ("context window is full").
+   */
   async *streamMultimodalPrompt(params: {
     prompt: string;
     attachments?: ChatAttachment[];
@@ -203,7 +211,7 @@ export class LocalChatEngine {
       throw new DOMException("Operação cancelada pelo usuário.", "AbortError");
     }
 
-    const conversation = await this.getOrCreateConversation(
+    const conversation = await this.createFreshConversation(
       params.context,
       params.fileName,
     );
@@ -220,17 +228,38 @@ export class LocalChatEngine {
     };
     params.signal?.addEventListener("abort", handleAbort, { once: true });
 
+    let yieldedAny = false;
     try {
       while (true) {
         if (params.signal?.aborted) break;
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = value ? extractChunkText(value) : "";
-        if (text) yield text;
+        let result: ReadableStreamReadResult<LiteRtMessage>;
+        try {
+          result = await reader.read();
+        } catch (err) {
+          if (isContextWindowFullError(err)) {
+            // Resposta já parcialmente entregue: encerra sem quebrar a UI.
+            if (yieldedAny) break;
+            throw new Error(
+              "O documento é grande demais para o modelo local. Tente uma pergunta mais curta ou use o modo nuvem.",
+              { cause: err },
+            );
+          }
+          throw err;
+        }
+        if (result.done) break;
+        const text = result.value ? extractChunkText(result.value) : "";
+        if (text) {
+          yieldedAny = true;
+          yield text;
+        }
       }
     } finally {
       params.signal?.removeEventListener("abort", handleAbort);
       reader.releaseLock();
+      if (this.conversation === conversation) {
+        this.conversation = null;
+      }
+      await conversation.delete().catch(() => undefined);
     }
   }
 
@@ -238,7 +267,6 @@ export class LocalChatEngine {
     if (this.conversation) {
       await this.conversation.delete().catch(() => undefined);
       this.conversation = null;
-      this.activeContextKey = null;
     }
   }
 
