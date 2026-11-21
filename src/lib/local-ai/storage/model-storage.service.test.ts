@@ -1,4 +1,4 @@
-import { getLocalModelById } from "../domain/local-model-catalog";
+import { getLocalModelById, resolveModelDownloadUrl } from "../domain/local-model-catalog";
 import { reportLocalAiFailure } from "../diagnostics";
 
 jest.mock("../diagnostics", () => ({
@@ -45,7 +45,7 @@ function installMockCacheStorage() {
       const store = getStore(cacheName);
       const cache: Cache = {
         match: jest.fn(async (req: RequestInfo | URL) => {
-          const key = typeof req === "string" ? req : req.toString();
+          const key = typeof req === "string" ? req : req instanceof Request ? req.url : req.toString();
           const entry = store.get(key);
           if (!entry) return undefined;
           return new Response(entry.buffer.slice(0), {
@@ -54,7 +54,7 @@ function installMockCacheStorage() {
           });
         }),
         put: jest.fn(async (req: RequestInfo | URL, res: Response) => {
-          const key = typeof req === "string" ? req : req.toString();
+          const key = typeof req === "string" ? req : req instanceof Request ? req.url : req.toString();
           const buffer = await res.arrayBuffer();
           store.set(key, {
             buffer,
@@ -63,12 +63,12 @@ function installMockCacheStorage() {
           });
         }),
         delete: jest.fn(async (req: RequestInfo | URL) => {
-          const key = typeof req === "string" ? req : req.toString();
+          const key = typeof req === "string" ? req : req instanceof Request ? req.url : req.toString();
           return store.delete(key);
         }),
         add: jest.fn(),
         addAll: jest.fn(),
-        keys: jest.fn(async () => []),
+        keys: jest.fn(async () => Array.from(store.keys()).map((url) => new Request(url))),
         matchAll: jest.fn(async () => []),
       };
       return cache;
@@ -405,6 +405,93 @@ describe("model-storage.service", () => {
       expect(bytes).toEqual([1, 2, 3, 4]);
       const meta = await getCachedModelMeta("gemma-4-e2b-chat");
       expect(meta.sourceUrl).toContain("gemma-4-E2B-it-gpu.litertlm");
+    });
+  });
+
+  describe("integridade dos blocos", () => {
+    const key = "https://local-models.vivavoz.internal/models/gemma-4-e2b-chat";
+    const gpuUrl = resolveModelDownloadUrl(getLocalModelById("gemma-4-e2b-chat")!, true);
+    const CHUNK = 32 * 1024 * 1024;
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, "storage", { value: undefined, configurable: true });
+    });
+
+    async function putPart(index: number, total: number) {
+      const cache = await caches.open("vivavoz-local-ai-models-v1");
+      await cache.put(
+        `${key}/part-${index}`,
+        new Response(new Uint8Array([index]), {
+          headers: { "X-VivaVoz-Total-Bytes": String(total), "X-VivaVoz-Source-Url": gpuUrl },
+        }),
+      );
+    }
+
+    it("trata manifesto com blocos ausentes como não baixado e descarta só o manifesto", async () => {
+      const cache = await caches.open("vivavoz-local-ai-models-v1");
+      await cache.put(key, new Response("{}", { headers: { "X-VivaVoz-Chunk-Count": "3" } }));
+      await putPart(1, 3 * CHUNK);
+      await putPart(2, 3 * CHUNK);
+
+      expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(false);
+      expect(await cache.match(key)).toBeUndefined();
+      expect(await cache.match(`${key}/part-2`)).toBeDefined();
+      expect(await getCachedModelBlob("gemma-4-e2b-chat")).toBeNull();
+    });
+
+    it("retoma baixando só os blocos ausentes, inclusive com lacunas no início", async () => {
+      const total = 2 * CHUNK + 4;
+      await putPart(1, total);
+      await putPart(2, total);
+
+      const ranges: string[] = [];
+      globalThis.fetch = jest.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+        ranges.push(new Headers(init?.headers).get("Range") ?? "");
+        return new Response(new Uint8Array(CHUNK), {
+          status: 206,
+          headers: { "Content-Range": `bytes 0-${CHUNK - 1}/${total}` },
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, {
+        hasWebGpu: true,
+      });
+
+      expect(ranges).toEqual([`bytes=0-${CHUNK - 1}`]);
+      expect(result.sizeBytes).toBe(total);
+      expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(true);
+    });
+
+    it("um 200 no meio do download não apaga os blocos já gravados", async () => {
+      const total = CHUNK + 4;
+      await putPart(0, total);
+
+      let calls = 0;
+      globalThis.fetch = jest.fn(async () => {
+        calls += 1;
+        if (calls === 1) {
+          return new Response(new Uint8Array(8), { status: 200 });
+        }
+        return new Response(new Uint8Array(4), {
+          status: 206,
+          headers: { "Content-Range": `bytes ${CHUNK}-${CHUNK + 3}/${total}` },
+        });
+      }) as unknown as typeof fetch;
+      jest.useFakeTimers({ doNotFake: ["queueMicrotask", "nextTick", "setImmediate"] });
+      try {
+        const promise = downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, {
+          hasWebGpu: true,
+        });
+        await jest.runAllTimersAsync();
+        const result = await promise;
+        expect(result.sizeBytes).toBe(total);
+      } finally {
+        jest.useRealTimers();
+      }
+
+      const cache = await caches.open("vivavoz-local-ai-models-v1");
+      expect(await cache.match(`${key}/part-0`)).toBeDefined();
+      expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(true);
     });
   });
 });

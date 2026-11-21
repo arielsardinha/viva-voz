@@ -60,6 +60,16 @@ export async function getCachedModelMeta(
     return { cached: false, sizeBytes: 0, cachedAt: null, sourceUrl: null };
   }
 
+  const chunkCount = getChunkCount(response);
+  if (chunkCount > 0) {
+    const missing = await findMissingChunks(cache, modelId, chunkCount);
+    if (missing.length > 0) {
+      void response.body?.cancel?.().catch(() => undefined);
+      await discardBrokenManifest(cache, modelId, missing);
+      return { cached: false, sizeBytes: 0, cachedAt: null, sourceUrl: null };
+    }
+  }
+
   const sizeHeader =
     response.headers.get(MODEL_CACHE_HEADERS.sizeBytes) ??
     response.headers.get("Content-Length");
@@ -130,7 +140,14 @@ export async function getCachedModelBlob(
 
   void response.body?.cancel?.().catch(() => undefined);
   const parts = await collectChunkBlobs(cache, modelId, chunkCount);
-  if (!parts) return null;
+  if (!parts) {
+    await discardBrokenManifest(
+      cache,
+      modelId,
+      await findMissingChunks(cache, modelId, chunkCount),
+    );
+    return null;
+  }
   // Blobs da Cache API são respaldados em disco: concatená-los não copia 2 GB para a RAM.
   return new Blob(parts, { type: "application/octet-stream" });
 }
@@ -396,11 +413,47 @@ async function storeStreamWithProgress(
   return downloadedBytes;
 }
 
+/** Apaga todos os blocos do modelo, mesmo com lacunas na numeração. */
 async function clearChunks(cache: Cache, modelId: LocalModelId): Promise<void> {
-  for (let i = 0; ; i += 1) {
-    const removed = await cache.delete(buildChunkCacheKey(modelId, i)).catch(() => false);
-    if (!removed) break;
+  const prefix = `${buildModelCacheKey(modelId)}/part-`;
+  const requests = await cache.keys().catch(() => [] as readonly Request[]);
+  for (const request of requests) {
+    if (request.url.startsWith(prefix)) {
+      await cache.delete(request).catch(() => false);
+    }
   }
+}
+
+/** Índices de blocos ausentes: um manifesto só vale se todos os blocos existirem. */
+async function findMissingChunks(
+  cache: Cache,
+  modelId: LocalModelId,
+  chunkCount: number,
+): Promise<number[]> {
+  const missing: number[] = [];
+  for (let i = 0; i < chunkCount; i += 1) {
+    const part = await cache.match(buildChunkCacheKey(modelId, i));
+    if (!part) missing.push(i);
+    else void part.body?.cancel?.().catch(() => undefined);
+  }
+  return missing;
+}
+
+/**
+ * Manifesto sem todos os blocos (download corrompido): remove só o manifesto para
+ * a interface mostrar "não baixado" e o próximo download retomar os blocos que faltam.
+ */
+async function discardBrokenManifest(
+  cache: Cache,
+  modelId: LocalModelId,
+  missing: readonly number[],
+): Promise<void> {
+  traceLocalAi("manifesto com blocos ausentes descartado", {
+    modelId,
+    missingCount: missing.length,
+    firstMissing: missing[0] ?? null,
+  });
+  await cache.delete(buildModelCacheKey(modelId)).catch(() => false);
 }
 
 export async function downloadAndCacheModel(
@@ -444,36 +497,50 @@ export async function downloadAndCacheModel(
       await cache.delete(cacheKey).catch(() => false);
       await clearChunks(cache, descriptor.id);
     }
-    const firstPart = await cache.match(buildChunkCacheKey(descriptor.id, 0));
-    if (firstPart) {
-      const partSource = firstPart.headers.get(MODEL_CACHE_HEADERS.sourceUrl);
-      void firstPart.body?.cancel?.().catch(() => undefined);
-      if (partSource !== downloadUrl) {
-        traceLocalAi("blocos de outra versão descartados", {
-          modelId: descriptor.id,
-          previousSource: partSource ? new URL(partSource).pathname.split("/").pop() : null,
-        });
-        await clearChunks(cache, descriptor.id);
-      }
-    }
-
-    // Retoma a partir dos blocos já gravados numa tentativa anterior.
+    // Retoma a partir dos blocos já gravados, inclusive com lacunas (ex.: blocos
+    // perdidos numa tentativa anterior): só os ausentes são baixados de novo.
+    // Blocos de outra URL de origem ou de outro tamanho total são descartados,
+    // pois juntar pedaços de arquivos diferentes corromperia o modelo.
+    const existingChunks = new Set<number>();
     let totalBytes: number | null = null;
-    let nextIndex = 0;
-    while (true) {
-      const part = await cache.match(buildChunkCacheKey(descriptor.id, nextIndex));
-      if (!part) break;
+    const chunkPrefix = `${cacheKey}/part-`;
+    const cachedRequests = await cache.keys().catch(() => [] as readonly Request[]);
+    let discardedChunks = 0;
+    for (const request of cachedRequests) {
+      if (!request.url.startsWith(chunkPrefix)) continue;
+      const index = Number(request.url.slice(chunkPrefix.length));
+      const part = await cache.match(request);
+      if (!part || !Number.isInteger(index) || index < 0) continue;
+      const partSource = part.headers.get(MODEL_CACHE_HEADERS.sourceUrl);
       const partTotal = Number(part.headers.get(TOTAL_BYTES_HEADER));
       void part.body?.cancel?.().catch(() => undefined);
-      if (!Number.isFinite(partTotal) || partTotal <= 0) break;
+      const sameFile =
+        partSource === downloadUrl &&
+        Number.isFinite(partTotal) &&
+        partTotal > 0 &&
+        (totalBytes === null || partTotal === totalBytes);
+      if (!sameFile) {
+        discardedChunks += 1;
+        await cache.delete(request).catch(() => false);
+        continue;
+      }
       totalBytes = partTotal;
-      nextIndex += 1;
+      existingChunks.add(index);
+    }
+    if (discardedChunks > 0) {
+      traceLocalAi("blocos de outra versão descartados", {
+        modelId: descriptor.id,
+        discardedChunks,
+      });
     }
 
-    const resumedBytes = Math.min(
-      nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES,
-      totalBytes ?? Number.POSITIVE_INFINITY,
-    );
+    const chunkSize = (index: number): number =>
+      totalBytes === null
+        ? MODEL_DOWNLOAD_CHUNK_BYTES
+        : Math.max(0, Math.min(MODEL_DOWNLOAD_CHUNK_BYTES, totalBytes - index * MODEL_DOWNLOAD_CHUNK_BYTES));
+    let resumedBytes = 0;
+    for (const index of existingChunks) resumedBytes += chunkSize(index);
+    let nextIndex = 0;
     let downloadedBytes = resumedBytes;
     let sessionBytes = 0;
     const emit = () => {
@@ -490,7 +557,7 @@ export async function downloadAndCacheModel(
     if (resumedBytes > 0) emit();
     traceLocalAi("download iniciado", {
       modelId: descriptor.id,
-      resumedChunks: nextIndex,
+      resumedChunks: existingChunks.size,
       resumedBytes,
       totalBytes,
       host: new URL(downloadUrl).host,
@@ -508,6 +575,10 @@ export async function downloadAndCacheModel(
     let rangeUrl = downloadUrl;
 
     while (totalBytes === null || nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES < totalBytes) {
+      if (existingChunks.has(nextIndex)) {
+        nextIndex += 1;
+        continue;
+      }
       const rangeStart = nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES;
       const rangeEnd = rangeStart + MODEL_DOWNLOAD_CHUNK_BYTES - 1;
 
@@ -569,8 +640,13 @@ export async function downloadAndCacheModel(
           if (response.status === 200) {
             // Servidor ignorou o Range: cai no download único (sem retomada).
             if (nextIndex > 0) {
-              await clearChunks(cache, descriptor.id);
-              throw new Error("Servidor não suporta retomada de download.");
+              // O servidor já aceitou Range nos blocos anteriores: um 200 aqui é
+              // falha passageira do CDN. Descarta só esta resposta e tenta o mesmo
+              // bloco de novo. Antes os blocos eram apagados e o retry seguia do
+              // bloco atual, gravando um manifesto "completo" sem os primeiros
+              // blocos (o chat local acusava "modelo não baixado").
+              void response.body.cancel().catch(() => undefined);
+              throw new Error("Servidor ignorou o Range neste bloco; tentando de novo.");
             }
             const lengthHeader = Number(response.headers.get("Content-Length"));
             const expected =
@@ -623,9 +699,13 @@ export async function downloadAndCacheModel(
           const rangeTotal = parseContentRangeTotal(response.headers.get("Content-Range"));
           if (rangeTotal === null) throw new Error("Resposta parcial sem Content-Range.");
           if (totalBytes !== null && rangeTotal !== totalBytes) {
-            // O arquivo remoto mudou: descarta os blocos antigos e recomeça.
+            // O arquivo remoto mudou: descarta os blocos antigos e encerra (fatal),
+            // para o retry não continuar do bloco atual sobre um arquivo diferente.
+            void response.body.cancel().catch(() => undefined);
             await clearChunks(cache, descriptor.id);
-            throw new Error("Arquivo do modelo mudou no servidor; reinicie o download.");
+            throw new FatalDownloadError(
+              "O arquivo do modelo mudou no servidor. Toque em baixar de novo para recomeçar.",
+            );
           }
           totalBytes = rangeTotal;
           const expectedChunk = Math.min(MODEL_DOWNLOAD_CHUNK_BYTES, rangeTotal - rangeStart);
@@ -710,6 +790,23 @@ export async function downloadAndCacheModel(
     }
 
     const finalSize = totalBytes ?? 0;
+    const missingBeforeManifest = await findMissingChunks(cache, descriptor.id, nextIndex);
+    if (missingBeforeManifest.length > 0) {
+      // Nunca grava manifesto de um modelo incompleto: os blocos que existem ficam
+      // para a próxima tentativa retomar a partir do primeiro que falta.
+      await reportLocalAiFailure(
+        "download_chunk",
+        new Error("Blocos ausentes ao finalizar o download."),
+        {
+          modelId: descriptor.id,
+          missingCount: missingBeforeManifest.length,
+          firstMissing: missingBeforeManifest[0],
+        },
+      );
+      throw new FatalDownloadError(
+        "O download terminou incompleto. Toque em baixar de novo para completar os blocos que faltam.",
+      );
+    }
     const cachedAt = Date.now();
     traceLocalAi("todos os blocos gravados; gravando manifesto", {
       modelId: descriptor.id,
