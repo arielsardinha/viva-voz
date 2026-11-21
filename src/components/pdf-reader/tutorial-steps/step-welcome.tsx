@@ -28,10 +28,10 @@ export function StepWelcome({ onStart }: StepWelcomeProps) {
         <div className="p-2.5 sm:p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-0.5 sm:space-y-1">
           <div className="flex items-center gap-2 text-accent font-semibold text-xs">
             <Compass className="size-3.5" aria-hidden="true" />
-            <span>3 Modos de Leitura</span>
+            <span>2 Modos de Leitura</span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug">
-            Estúdio Clean, Assistente com IA Gemini ou Modo Zen imersivo.
+            Assistente com IA ou Modo Zen imersivo.
           </p>
         </div>
 

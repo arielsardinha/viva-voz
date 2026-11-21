@@ -16,8 +16,7 @@
 - Divide o texto do PDF em sentenças com metadados de paginação.
 - Sincroniza o áudio reproduzido com destaque visual do trecho corrente.
 - Modos de visualização (Templates):
-  - `modern`: Estúdio Moderno com player flutuante e visualizador de ondas.
-  - `ai-study`: Divisão em painéis com leitor de texto e assistente de chat em tempo real.
+  - `ai-study`: Divisão em painéis com leitor de texto, player flutuante de áudio e assistente de chat em tempo real.
   - `zen`: Modo de foco sem distrações com gerador de sons ambientes.
 
 ### 2. `/leituras` (Biblioteca de Documentos)
@@ -91,7 +90,7 @@
       "selector": "[data-webmcp-tool='configureReaderPreferences']",
       "action": "saveSettings",
       "parameters": {
-        "template": { "enum": ["modern", "ai-study", "zen"] },
+        "template": { "enum": ["ai-study", "zen"] },
         "theme": { "enum": ["light", "sepia", "dark"] },
         "font": { "enum": ["inter", "roboto", "merriweather", "lora", "literata"] },
         "fontSize": { "type": "number", "min": 12, "max": 28 },

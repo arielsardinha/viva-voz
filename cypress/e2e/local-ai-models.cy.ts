@@ -14,7 +14,7 @@ const KOKORO_ID = "kokoro-82m-tts";
 const GEMMA_ID = "gemma-4-e2b-chat";
 const MOCK_MODEL_BODY = "mock-litertlm-16";
 
-type ReaderTemplate = "modern" | "ai-study";
+type ReaderTemplate = "ai-study" | "zen";
 
 function mockModelDownloads() {
   cy.intercept("GET", "https://huggingface.co/**", {
@@ -43,7 +43,7 @@ function resetLocalState() {
   });
 }
 
-function visitWithSettings(path: string, template: ReaderTemplate = "modern") {
+function visitWithSettings(path: string, template: ReaderTemplate = "ai-study") {
   cy.visit(path, {
     onBeforeLoad(win) {
       win.localStorage.setItem(

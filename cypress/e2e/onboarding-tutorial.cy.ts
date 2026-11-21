@@ -34,6 +34,8 @@ describe("Tutorial e Onboarding de Preferências", () => {
 
     // Etapa 1: Modo de Leitura (Template)
     cy.contains("Escolha seu Modo de Leitura Favorito").should("be.visible");
+    cy.get('[data-cy="template-option-modern"]').should("not.exist");
+    cy.contains("Estúdio Moderno").should("not.exist");
     cy.get('[data-cy="template-option-ai-study"]').click();
     cy.get('[data-cy="next-step-btn"]').click();
 
@@ -86,7 +88,7 @@ describe("Tutorial e Onboarding de Preferências", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,

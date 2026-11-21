@@ -3,6 +3,7 @@ import {
   ReaderSettingsProvider,
   useReaderSettings,
   getFontFamilyClass,
+  normalizeReaderTemplate,
   READER_SETTINGS_STORAGE,
 } from "./reader-settings-context";
 
@@ -63,7 +64,7 @@ describe("ReaderSettingsContext", () => {
       </ReaderSettingsProvider>
     );
 
-    expect(screen.getByTestId("template")).toHaveTextContent("modern");
+    expect(screen.getByTestId("template")).toHaveTextContent("ai-study");
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
     expect(screen.getByTestId("font")).toHaveTextContent("source-serif");
     expect(screen.getByTestId("fontSize")).toHaveTextContent("19");
@@ -147,6 +148,38 @@ describe("ReaderSettingsContext", () => {
     expect(screen.getByTestId("theme")).toHaveTextContent("dark");
     expect(screen.getByTestId("template")).toHaveTextContent("ai-study");
     expect(document.documentElement.getAttribute("data-reading-theme")).toBe("dark");
+  });
+
+  it("deve migrar template legado 'modern' no localStorage e no StorageEvent para 'ai-study'", () => {
+    expect(normalizeReaderTemplate("modern")).toBe("ai-study");
+    expect(normalizeReaderTemplate("zen")).toBe("zen");
+    expect(normalizeReaderTemplate(undefined)).toBe("ai-study");
+
+    localStorage.setItem(
+      READER_SETTINGS_STORAGE,
+      JSON.stringify({ theme: "light", fontSize: 18, template: "modern" })
+    );
+
+    render(
+      <ReaderSettingsProvider>
+        <TestConsumer />
+      </ReaderSettingsProvider>
+    );
+
+    expect(screen.getByTestId("template")).toHaveTextContent("ai-study");
+    const persisted = JSON.parse(localStorage.getItem(READER_SETTINGS_STORAGE) ?? "{}");
+    expect(persisted.template).toBe("ai-study");
+
+    act(() => {
+      const storageEvent = new StorageEvent("storage", {
+        key: READER_SETTINGS_STORAGE,
+        newValue: JSON.stringify({ theme: "sepia", template: "modern" }),
+      });
+      window.dispatchEvent(storageEvent);
+    });
+
+    expect(screen.getByTestId("template")).toHaveTextContent("ai-study");
+    expect(screen.getByTestId("theme")).toHaveTextContent("sepia");
   });
 
   it("deve abrir o onboarding para usuário novo e permitir fechamento persistente", () => {

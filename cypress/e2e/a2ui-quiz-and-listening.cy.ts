@@ -29,7 +29,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
   }
 
   function visitReaderWithTemplate(
-    template: "modern" | "ai-study",
+    template: "ai-study" | "zen",
     viewport: [number, number] = [1280, 800],
   ) {
     cy.viewport(viewport[0], viewport[1]);
@@ -128,7 +128,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
     cy.get('[data-cy="a2ui-explanation-card"]').should("be.visible");
 
     cy.get('[data-cy="a2ui-highlight-evidence"]').click();
-    cy.get('[data-cy="a2ui-reader-sync-banner"]').should("be.visible");
+    cy.get('[data-cy="a2ui-reader-sync-banner"]').should("not.exist");
     cy.get('[data-a2ui-evidence="true"]').should("exist");
 
     cy.get('[data-cy="a2ui-voice-command-input"]').type("próxima");

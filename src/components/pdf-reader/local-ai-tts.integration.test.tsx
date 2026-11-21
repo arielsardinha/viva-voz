@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { LocalAiProvider, useLocalAi } from "@/context/local-ai-context";
-import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
+import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 import { getVoicesForEngine, type TtsEngine } from "@/lib/tts-engines";
 import type { Sentence } from "@/lib/pdf-text";
@@ -26,6 +26,21 @@ jest.mock("./ui/text-selection-menu", () => ({
 
 jest.mock("./ui/pages-drawer", () => ({
   PagesDrawer: () => null,
+}));
+
+jest.mock("@/hooks/use-chrome-ai", () => ({
+  useChromeAi: () => ({ status: "unavailable", isSupported: false }),
+}));
+
+jest.mock("@/hooks/use-gemini-api-key", () => ({
+  useGeminiApiKey: () => ({
+    apiKey: null,
+    hasApiKey: false,
+    maskedKey: null,
+    isChecking: false,
+    updateApiKey: jest.fn(),
+    syncKey: jest.fn(),
+  }),
 }));
 
 jest.mock("@/lib/local-ai/storage/model-storage.service", () => ({
@@ -55,7 +70,7 @@ const sampleSentences: Sentence[] = [
 ];
 
 const settings: ReaderSettings = {
-  template: "modern",
+  template: "ai-study",
   theme: "light",
   font: "sans",
   fontSize: 16,
@@ -89,7 +104,7 @@ function LocalTtsReaderHarness() {
 
   return (
     <div data-testid="harness-ready" data-initialized={isInitialized ? "true" : "false"}>
-      <ModernStudioTemplate
+      <AIStudyTemplate
         sentences={sampleSentences}
         currentIndex={player.currentIndex}
         title="Livro Offline"

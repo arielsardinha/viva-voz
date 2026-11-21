@@ -18,7 +18,7 @@ export const ManifestPreferencesSchema = z.object({
   disabledEngines: z.array(z.string()).default([]),
   readerSettings: z
     .object({
-      template: z.enum(["modern", "ai-study", "zen"]).default("modern"),
+      template: z.enum(["ai-study", "zen"]).catch("ai-study").default("ai-study"),
       theme: z.enum(["light", "sepia", "dark"]).default("light"),
       font: z.string().default("inter"),
       fontSize: z.number().default(16),

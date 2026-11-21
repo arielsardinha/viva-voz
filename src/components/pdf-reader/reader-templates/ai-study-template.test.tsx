@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { AIStudyTemplate } from "./ai-study-template";
 import type { ReaderSettings } from "@/context/reader-settings-context";
 
@@ -75,7 +75,7 @@ describe("AIStudyTemplate Component", () => {
     jest.clearAllMocks();
   });
 
-  it("deve renderizar o Assistente de leitura e o botão de voz no header", () => {
+  it("deve renderizar o Assistente de leitura sticky à direita e o FloatingAudioDock fixo na base", () => {
     render(
       <AIStudyTemplate
         sentences={mockSentences}
@@ -102,12 +102,18 @@ describe("AIStudyTemplate Component", () => {
       />
     );
 
-    expect(screen.getByText("Assistente de leitura")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /selecionar voz e motor/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /conectar chave gemini/i })).toBeInTheDocument();
+    const assistantPanel = document.querySelector('[data-cy="ai-assistant-panel"]') as HTMLElement;
+    expect(assistantPanel).toBeInTheDocument();
+    expect(assistantPanel).toHaveClass("lg:sticky");
+    expect(within(assistantPanel).getByText("Assistente de leitura")).toBeInTheDocument();
+    expect(within(assistantPanel).getByRole("button", { name: /conectar chave gemini/i })).toBeInTheDocument();
+
+    const floatingDock = document.querySelector('[data-cy="floating-audio-dock"]') as HTMLElement;
+    expect(floatingDock).toBeInTheDocument();
+    expect(within(floatingDock).getByRole("button", { name: "Selecionar voz e motor" })).toBeInTheDocument();
   });
 
-  it("NÃO deve renderizar o botão de conectar chave Gemini no header quando já conectado", () => {
+  it("NÃO deve renderizar o botão de conectar chave Gemini no header nem no dock quando já conectado", () => {
     render(
       <AIStudyTemplate
         sentences={mockSentences}
@@ -137,6 +143,7 @@ describe("AIStudyTemplate Component", () => {
     expect(screen.getByText("Assistente de leitura")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /conectar chave gemini/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /chave gemini conectada/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /conectar som com ia/i })).not.toBeInTheDocument();
   });
 
   it("deve renderizar o Mini-Card A2UI, abrir o Quiz interativo, pontuar XP, sincronizar evidência e aceitar comando híbrido", () => {
@@ -172,10 +179,11 @@ describe("AIStudyTemplate Component", () => {
     expect(screen.getByText("A2UI · Widget nativo")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
 
-    // Superfície A2UI aberta com barra de protocolo e sincronia com o leitor (2 questões para ~55 palavras)
+    // Superfície A2UI aberta com barra de protocolo e SEM o chip/banner redundante de sincronia
     expect(screen.getByText("A2UI Surface · Catálogo nativo")).toBeInTheDocument();
     expect(screen.getByText("1 de 2")).toBeInTheDocument();
-    expect(screen.getByText(/Superfície A2UI sincronizada/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Superfície A2UI sincronizada/i)).not.toBeInTheDocument();
+    expect(document.querySelector('[data-cy="a2ui-reader-sync-banner"]')).not.toBeInTheDocument();
 
     // Seleciona a alternativa B (correta para Q1: (0 + 1) % 4 = 1 -> B)
     fireEvent.click(screen.getByRole("radio", { name: /B\)/i }));

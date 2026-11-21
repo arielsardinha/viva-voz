@@ -2,7 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-export type ReaderTemplateId = "modern" | "ai-study" | "zen";
+export type ReaderTemplateId = "ai-study" | "zen";
+
+/** Normaliza templates legados (ex.: "modern") ou desconhecidos para o padrão atual. */
+export function normalizeReaderTemplate(template: unknown): ReaderTemplateId {
+  return template === "zen" ? "zen" : "ai-study";
+}
+
 export type ReadingTheme = "light" | "sepia" | "dark";
 export type ReadingFont =
   | "source-serif"
@@ -101,7 +107,7 @@ export interface ReaderSettings {
 }
 
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
-  template: "modern",
+  template: "ai-study",
   theme: "light",
   font: "source-serif",
   fontSize: 19,
@@ -145,8 +151,18 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
     try {
       const saved = localStorage.getItem(READER_SETTINGS_STORAGE);
       if (saved) {
-        const parsed = JSON.parse(saved) as Partial<ReaderSettings>;
-        const merged: ReaderSettings = { ...DEFAULT_READER_SETTINGS, ...parsed };
+        const parsed = JSON.parse(saved) as Partial<ReaderSettings> & { template?: unknown };
+        const normalizedTemplate = normalizeReaderTemplate(parsed.template);
+        const merged: ReaderSettings = {
+          ...DEFAULT_READER_SETTINGS,
+          ...parsed,
+          template: normalizedTemplate,
+        };
+        if (parsed.template !== undefined && parsed.template !== normalizedTemplate) {
+          try {
+            localStorage.setItem(READER_SETTINGS_STORAGE, JSON.stringify(merged));
+          } catch {}
+        }
         setSettings(merged);
         applyThemeToDocument(merged.theme);
         if (!merged.hasCompletedOnboarding) {
@@ -168,7 +184,11 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
 
   const patchSettings = useCallback((patch: Partial<ReaderSettings>) => {
     setSettings((curr) => {
-      const next: ReaderSettings = { ...curr, ...patch };
+      const normalizedPatch =
+        patch.template !== undefined
+          ? { ...patch, template: normalizeReaderTemplate(patch.template) }
+          : patch;
+      const next: ReaderSettings = { ...curr, ...normalizedPatch };
       try {
         localStorage.setItem(READER_SETTINGS_STORAGE, JSON.stringify(next));
       } catch {}
@@ -205,9 +225,16 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
     const handleStorage = (e: StorageEvent) => {
       if (e.key === READER_SETTINGS_STORAGE && e.newValue) {
         try {
-          const updated = JSON.parse(e.newValue) as Partial<ReaderSettings>;
+          const updated = JSON.parse(e.newValue) as Partial<ReaderSettings> & { template?: unknown };
           setSettings((curr) => {
-            const next = { ...curr, ...updated };
+            const next: ReaderSettings = {
+              ...curr,
+              ...updated,
+              template:
+                updated.template !== undefined
+                  ? normalizeReaderTemplate(updated.template)
+                  : normalizeReaderTemplate(curr.template),
+            };
             if (next.theme) {
               applyThemeToDocument(next.theme);
             }
@@ -218,10 +245,20 @@ export function ReaderSettingsProvider({ children }: { children: React.ReactNode
     };
 
     const handleCustomSettingsChange = (e: Event) => {
-      const customEvent = e as CustomEvent<{ settings?: Partial<ReaderSettings> }>;
+      const customEvent = e as CustomEvent<{
+        settings?: Partial<ReaderSettings> & { template?: unknown };
+      }>;
       if (customEvent.detail?.settings) {
+        const incoming = customEvent.detail.settings;
         setSettings((curr) => {
-          const next = { ...curr, ...customEvent.detail.settings };
+          const next: ReaderSettings = {
+            ...curr,
+            ...incoming,
+            template:
+              incoming.template !== undefined
+                ? normalizeReaderTemplate(incoming.template)
+                : normalizeReaderTemplate(curr.template),
+          };
           if (next.theme) {
             applyThemeToDocument(next.theme);
           }

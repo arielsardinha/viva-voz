@@ -176,7 +176,7 @@ describe("PdfReader - Bloco de Notas e Navegação para o trecho", () => {
     localStorage.setItem(
       "vivavoz-reader-settings",
       JSON.stringify({
-        template: "modern",
+        template: "ai-study",
         hasCompletedOnboarding: true,
       })
     );

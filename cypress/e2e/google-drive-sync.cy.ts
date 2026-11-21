@@ -6,7 +6,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,
@@ -71,7 +71,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,
@@ -134,7 +134,7 @@ describe("Google Drive Backup & Sincronização em Nuvem", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,

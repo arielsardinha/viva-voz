@@ -6,14 +6,10 @@ import {
   BotMessageSquare,
   ChevronLeft,
   ChevronRight,
-  Gauge,
   Headphones,
   Image as ImageIcon,
-  Loader2,
-  Mic,
-  Pause,
+  List,
   Play,
-  RotateCcw,
   ArrowUp,
   Sparkles,
 } from "lucide-react";
@@ -21,33 +17,19 @@ import type { Sentence } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 import type { ChatAttachment } from "@/lib/local-ai/domain/local-model.types";
 import { ChatMultimodalBar } from "@/components/local-ai/chat-multimodal-bar";
+import { FloatingAudioDock } from "../ui/floating-audio-dock";
+import { QuickPromptsBar } from "../ui/quick-prompts-bar";
 import { TextSelectionMenu } from "../ui/text-selection-menu";
 import { HighlightedSentenceText } from "../ui/highlighted-sentence-text";
 import type { HighlightColor, TextHighlight } from "@/lib/domain/document-highlight.types";
 import type { DocumentNote } from "@/lib/domain/document-note.types";
-import { WaveformVisualizer } from "../ui/waveform-visualizer";
 import { GeminiKeyDialog } from "../gemini-key-dialog";
 import { ChromeAiBadge } from "../chrome-ai-badge";
 import { PagesDrawer } from "../ui/pages-drawer";
 import type { ReaderSettings } from "../ui/template-switcher";
 import { getFontFamilyClass } from "@/context/reader-settings-context";
-import { TTS_ENGINES, type TtsEngine, type VoiceOption } from "@/lib/tts-engines";
+import type { TtsEngine, VoiceOption } from "@/lib/tts-engines";
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
-import { TtsModelIndicator } from "../ui/tts-model-indicator";
-import {
-  TtsEngineMenuItems,
-  getEngineVoicesHeading,
-} from "../ui/tts-engine-menu-items";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SPEEDS } from "../player-controls";
 import { useFirebaseAI } from "@/hooks/useFirebaseAI";
 import { useA2uiQuiz } from "@/hooks/use-a2ui-quiz";
 import type { A2UIQuizQuestion } from "@/lib/a2ui/a2ui-quiz.types";
@@ -103,12 +85,12 @@ export function AIStudyTemplate({
   voices,
   disabledEngines,
   apiKey: propApiKey,
-  onApiKeyChange: _propOnApiKeyChange,
+  onApiKeyChange: propOnApiKeyChange,
   onEngineChange,
   onSelectSentence,
   onToggle,
-  onPrevious: _onPrevious,
-  onNext: _onNext,
+  onPrevious,
+  onNext,
   onRestart,
   onVoiceChange,
   onSpeedChange,
@@ -131,8 +113,14 @@ export function AIStudyTemplate({
     setApiKey,
   } = useFirebaseAI({ initialApiKey: propApiKey || undefined });
 
-  const updateApiKey = (key: string | null) => setApiKey(key || "");
-  const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
+  const effectiveApiKey = propApiKey ?? apiKey ?? null;
+  const updateApiKey = (key: string | null) => {
+    if (propOnApiKeyChange) {
+      propOnApiKeyChange(key);
+    } else {
+      setApiKey(key || "");
+    }
+  };
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -145,11 +133,6 @@ export function AIStudyTemplate({
   const totalPages = useMemo(() => {
     return sentences.reduce((max, s) => Math.max(max, s.page), 1);
   }, [sentences]);
-
-  const currentVoiceObj = voices.find((v) => v.id === voice);
-  const voiceLabel = currentVoiceObj?.label ?? "Voz Padrão";
-  const engineLabel = TTS_ENGINES.find((e) => e.id === engine)?.label ?? "Sistema";
-  const hasApiKey = Boolean(propApiKey && propApiKey.length >= 10) || Boolean(apiKey && apiKey.length >= 10);
 
   // Group pages for chapter navigation
   const pageList = useMemo(() => {
@@ -237,15 +220,6 @@ export function AIStudyTemplate({
     });
   };
 
-  const handleSelectEngine = (nextEngine: TtsEngine) => {
-    if (nextEngine === "google" && !hasApiKey) {
-      onEngineChange("system");
-      setGeminiDialogOpen(true);
-      return;
-    }
-    onEngineChange(nextEngine);
-  };
-
   const highlightedEvidenceIndex =
     assistantMode === "quiz" ? quiz.surface.dataModelUpdate.highlightedSentenceIndex : null;
 
@@ -272,18 +246,9 @@ export function AIStudyTemplate({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-5 min-h-[calc(100vh-10rem)]"
+      className="relative flex flex-col lg:grid lg:grid-cols-12 lg:items-start gap-4 sm:gap-5 pb-40 sm:pb-32"
       data-reading-theme={settings.theme}
     >
-      {/* Diálogo Centralizado de Chave Gemini */}
-      <GeminiKeyDialog
-        apiKey={apiKey}
-        onChange={updateApiKey}
-        open={geminiDialogOpen}
-        onOpenChange={setGeminiDialogOpen}
-        trigger={<span className="hidden" />}
-      />
-
       {/* Menu flutuante de seleção de texto */}
       <TextSelectionMenu
         containerRef={containerRef}
@@ -341,8 +306,8 @@ export function AIStudyTemplate({
           mobileTab !== "doc" && "hidden lg:flex"
         )}
       >
-        {/* Barra do Leitor com Controles de Áudio, Voz e Conexão de IA */}
-        <div className="glass-panel flex flex-wrap items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
+        {/* Barra Limpa de Navegação de Páginas (Controles de áudio ficam no FloatingAudioDock) */}
+        <div className="glass-panel flex items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
           {/* Navegação de Página */}
           <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/80 px-1.5 sm:px-2 py-1 rounded-xl">
             <button
@@ -374,133 +339,20 @@ export function AIStudyTemplate({
             </button>
           </div>
 
-          {/* Mini Player Control & Conexão de Áudio IA */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              type="button"
-              onClick={onRestart}
-              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="Reiniciar"
-              aria-label="Reiniciar"
-            >
-              <RotateCcw className="size-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={onToggle}
-              aria-label={
-                isBuffering
-                  ? "Carregando áudio..."
-                  : isPlaying
-                  ? "Pausar narração"
-                  : "Ouvir narração"
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95 cursor-pointer"
-            >
-              {isBuffering ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-              ) : isPlaying ? (
-                <Pause className="size-3.5" aria-hidden="true" />
-              ) : (
-                <Play className="size-3.5" aria-hidden="true" />
-              )}
-              <span>{isBuffering ? "Carregando..." : isPlaying ? "Pausar" : "Ouvir"}</span>
-            </button>
-
-            {/* Seletor de Voz & Motor no Leitor */}
-            <TtsModelIndicator engine={engine} activeModel={activeTtsModel} compact />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  title="Selecionar voz e motor"
-                  aria-label="Selecionar voz e motor"
-                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 max-w-[120px] truncate cursor-pointer"
-                >
-                  <Mic className="size-3 text-accent shrink-0" />
-                  <span className="truncate">{voiceLabel}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 max-h-72 overflow-y-auto glass-panel">
-                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Motor ({engineLabel})
-                </DropdownMenuLabel>
-                <TtsEngineMenuItems
-                  engine={engine}
-                  hasApiKey={hasApiKey}
-                  disabledEngines={disabledEngines}
-                  onSelectEngine={handleSelectEngine}
-                  onOpenGeminiDialog={() => setGeminiDialogOpen(true)}
-                />
-
-                <DropdownMenuSeparator className="my-1.5" />
-                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase">
-                  Vozes ({getEngineVoicesHeading(engine, activeTtsModel)})
-                </DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={voice} onValueChange={onVoiceChange}>
-                  {voices.map((v) => (
-                    <DropdownMenuRadioItem key={v.id} value={v.id} className="cursor-pointer text-xs">
-                      {v.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Seletor de Velocidade */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  title="Velocidade"
-                  className="hidden sm:flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-bold bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 cursor-pointer"
-                >
-                  <Gauge className="size-3 text-accent" />
-                  <span>{speed}x</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-panel">
-                <DropdownMenuLabel className="text-xs">Velocidade</DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={speed} onValueChange={onSpeedChange}>
-                  {SPEEDS.map((s) => (
-                    <DropdownMenuRadioItem key={s} value={s} className="cursor-pointer text-xs">
-                      {s}x {s === "1" ? "(Normal)" : ""}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="w-14 hidden md:block">
-              <WaveformVisualizer isPlaying={isPlaying} barCount={10} className="h-6 px-0" />
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowPagesDrawer(true)}
+            title="Índice de Páginas"
+            aria-label="Índice de Páginas"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary cursor-pointer"
+          >
+            <List className="size-3.5" aria-hidden="true" />
+            <span>Páginas</span>
+          </button>
         </div>
 
-        {/* Banners de Simbiose Áudio <-> IA e Evidência A2UI */}
-        {assistantMode === "quiz" && highlightedEvidenceIndex !== null ? (
-          <div
-            data-cy="a2ui-reader-sync-banner"
-            className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-accent/30 bg-accent/10 px-3.5 py-2 text-xs"
-          >
-            <span className="font-semibold text-accent">
-              Superfície A2UI sincronizada · Evidência da Questão (¶{highlightedEvidenceIndex + 1})
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectSentence(highlightedEvidenceIndex);
-                scrollToSentence(highlightedEvidenceIndex);
-                if (!isPlaying) onToggle();
-              }}
-              className="inline-flex items-center gap-1 rounded-full bg-voice px-2.5 py-1 text-[11px] font-bold text-primary cursor-pointer hover:opacity-90"
-            >
-              <Play className="size-3 fill-current" aria-hidden="true" />
-              <span>Ouvir ¶{highlightedEvidenceIndex + 1}</span>
-            </button>
-          </div>
-        ) : pausedBySymbiosis && !isPlaying ? (
+        {/* Banner de Simbiose Áudio <-> IA */}
+        {pausedBySymbiosis && !isPlaying && (
           <div
             data-cy="symbiosis-paused-banner"
             className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-voice/40 bg-voice-soft px-3.5 py-2 text-xs text-voice-ink"
@@ -521,10 +373,10 @@ export function AIStudyTemplate({
               <span>Retomar</span>
             </button>
           </div>
-        ) : null}
+        )}
 
         {/* Visualizador de Texto */}
-        <div className="reader-sheet flex-1 rounded-3xl px-5 py-6 sm:px-10 sm:py-10 h-[calc(100vh-14rem)] overflow-y-auto">
+        <div className="reader-sheet rounded-3xl px-5 py-6 sm:px-10 sm:py-10">
           <div
             style={{
               fontSize: `${settings.fontSize}px`,
@@ -575,10 +427,11 @@ export function AIStudyTemplate({
         </div>
       </div>
 
-      {/* Painel Direito: Assistente de IA de Estudos (5 Colunas no Desktop) */}
+      {/* Painel Direito: Assistente de IA de Estudos (5 Colunas no Desktop, fixo ao rolar) */}
       <div
+        data-cy="ai-assistant-panel"
         className={cn(
-          "lg:col-span-5 flex flex-col rounded-3xl overflow-hidden h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] border border-border bg-card shadow-[0_4px_18px_rgba(30,34,48,0.06)] font-sans",
+          "lg:col-span-5 lg:sticky lg:top-20 lg:self-start flex flex-col rounded-3xl overflow-hidden h-[calc(100dvh-14rem)] min-h-[420px] lg:h-[calc(100dvh-19rem)] border border-border bg-card shadow-[0_4px_18px_rgba(30,34,48,0.06)] font-sans",
           mobileTab !== "chat" && "hidden lg:flex"
         )}
       >
@@ -594,8 +447,8 @@ export function AIStudyTemplate({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <ChromeAiBadge hasCloudKey={Boolean(apiKey)} activeEngine={activeEngine} />
-            {!apiKey && <GeminiKeyDialog apiKey={apiKey} onChange={updateApiKey} compact />}
+            <ChromeAiBadge hasCloudKey={Boolean(effectiveApiKey)} activeEngine={activeEngine} />
+            {!effectiveApiKey && <GeminiKeyDialog apiKey={effectiveApiKey} onChange={updateApiKey} compact />}
           </div>
         </div>
 
@@ -711,20 +564,11 @@ export function AIStudyTemplate({
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 px-4 sm:px-5 pt-1 pb-3 overflow-x-auto no-scrollbar">
-              {quickPrompts.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => handleSendPrompt(q)}
-                  disabled={isLoadingAI}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-full bg-card hover:bg-accent/10 hover:text-accent border border-border text-foreground transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-                >
-                  <Sparkles className="size-3.5 text-accent" aria-hidden="true" />
-                  {q}
-                </button>
-              ))}
-            </div>
+            <QuickPromptsBar
+              prompts={quickPrompts}
+              disabled={isLoadingAI}
+              onSelectPrompt={handleSendPrompt}
+            />
             <div className="mx-3 sm:mx-4 mb-3 sm:mb-4 rounded-2xl border border-input bg-card p-2.5 space-y-2 shadow-[0_4px_18px_rgba(30,34,48,0.06)] focus-within:ring-2 focus-within:ring-ring/40">
               <ChatMultimodalBar
                 attachments={attachments}
@@ -772,6 +616,32 @@ export function AIStudyTemplate({
           </>
         )}
       </div>
+
+      {/* Player Flutuante Fixo na Parte Inferior */}
+      <FloatingAudioDock
+        isPlaying={isPlaying}
+        isBuffering={isBuffering}
+        currentIndex={currentIndex}
+        total={sentences.length}
+        title={title}
+        currentPage={currentPage}
+        voice={voice}
+        speed={speed}
+        engine={engine}
+        activeTtsModel={activeTtsModel}
+        voices={voices}
+        disabledEngines={disabledEngines}
+        apiKey={effectiveApiKey}
+        onApiKeyChange={updateApiKey}
+        onEngineChange={onEngineChange}
+        onToggle={onToggle}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        onRestart={onRestart}
+        onVoiceChange={onVoiceChange}
+        onSpeedChange={onSpeedChange}
+        className={mobileTab === "chat" ? "hidden lg:block" : undefined}
+      />
 
       {/* Drawer de Páginas Overlay */}
       <PagesDrawer

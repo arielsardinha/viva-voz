@@ -12,7 +12,7 @@ describe("Auditoria de Qualidade com Google Lighthouse", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,

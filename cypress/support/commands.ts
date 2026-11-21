@@ -46,7 +46,7 @@ Cypress.Commands.add("clearGeminiKey", () => {
 Cypress.Commands.add("setupPreferences", (patch = {}) => {
   cy.window().then((win) => {
     const current = {
-      template: "modern",
+      template: "ai-study",
       theme: "light",
       font: "inter",
       fontSize: 16,

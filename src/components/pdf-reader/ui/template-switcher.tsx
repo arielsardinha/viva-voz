@@ -3,7 +3,6 @@
 import {
   BookOpen,
   Bot,
-  Compass,
   Maximize2,
   Minimize2,
   Moon,
@@ -47,17 +46,10 @@ interface TemplateSwitcherProps {
 
 export const TEMPLATES = [
   {
-    id: "modern" as const,
-    label: "Estúdio Moderno",
-    shortLabel: "Estúdio",
-    description: "Leitor clean com player flutuante dock e waveform",
-    icon: Compass,
-  },
-  {
     id: "ai-study" as const,
     label: "Assistente IA",
     shortLabel: "Assistente",
-    description: "Split-view com chat inteligente e menu flutuante",
+    description: "Split-view com chat inteligente e player flutuante",
     icon: Bot,
   },
   {
@@ -90,6 +82,7 @@ export function TemplateSwitcher({
             <button
               key={t.id}
               type="button"
+              data-cy={`template-tab-${t.id}`}
               onClick={() => onChangeSettings({ template: t.id })}
               title={t.description}
               className={cn(

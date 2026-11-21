@@ -51,7 +51,6 @@ jest.mock("@/hooks/use-gemini-api-key", () => ({
 }));
 
 import { ZenFocusTemplate } from "./zen-focus-template";
-import { ModernStudioTemplate } from "./modern-studio-template";
 import { AIStudyTemplate } from "./ai-study-template";
 
 const mockSentences: Sentence[] = [
@@ -127,29 +126,6 @@ describe("Comportamento de auto-scroll entre os Modos de Leitura", () => {
     );
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("NÃO deve executar auto-scroll no modo Estúdio Moderno", () => {
-    const { rerender } = render(
-      <ModernStudioTemplate
-        {...defaultProps}
-        settings={{ ...mockSettings, template: "modern" }}
-        currentIndex={0}
-      />
-    );
-
-    expect(scrollIntoViewMock).not.toHaveBeenCalled();
-
-    // Ao avançar o índice de sentença durante a leitura
-    rerender(
-      <ModernStudioTemplate
-        {...defaultProps}
-        settings={{ ...mockSettings, template: "modern" }}
-        currentIndex={1}
-      />
-    );
-
-    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
   it("NÃO deve executar auto-scroll no texto no modo Assistente IA", () => {

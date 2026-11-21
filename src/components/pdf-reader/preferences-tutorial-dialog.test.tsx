@@ -90,6 +90,10 @@ describe("PreferencesTutorialDialog Component", () => {
     // 1. Inicia a jornada
     fireEvent.click(screen.getByTestId("start-journey-btn"));
     expect(screen.getByText("Escolha seu Modo de Leitura Favorito")).toBeInTheDocument();
+    expect(screen.queryByTestId("template-option-modern")).not.toBeInTheDocument();
+    expect(screen.queryByText("Estúdio Moderno")).not.toBeInTheDocument();
+    expect(screen.getByTestId("template-option-ai-study")).toBeInTheDocument();
+    expect(screen.getByTestId("template-option-zen")).toBeInTheDocument();
 
     // Seleciona Modo Zen
     fireEvent.click(screen.getByTestId("template-option-zen"));

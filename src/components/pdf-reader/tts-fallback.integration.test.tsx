@@ -3,7 +3,7 @@ import { POST as ttsPostHandler } from "@/app/api/tts/route";
 import { resetTtsModelCooldowns } from "@/lib/ai/server/tts-fallback.service";
 import * as cookieService from "@/lib/ai/server/gemini-cookie.service";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
-import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
+import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { GOOGLE_VOICES, type TtsEngine } from "@/lib/tts-engines";
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 import type { Sentence } from "@/lib/pdf-text";
@@ -19,6 +19,23 @@ jest.mock("./ui/text-selection-menu", () => ({
 
 jest.mock("./ui/pages-drawer", () => ({
   PagesDrawer: () => null,
+}));
+
+jest.mock("./chrome-ai-badge", () => ({
+  ChromeAiBadge: () => null,
+}));
+
+jest.mock("@/hooks/useFirebaseAI", () => ({
+  useFirebaseAI: () => ({
+    messages: [],
+    sendPrompt: jest.fn(),
+    sendMessage: jest.fn(),
+    isLoading: false,
+    status: "idle",
+    activeEngine: "vertex",
+    apiKey: "AIzaSyIntegrationTestKey12345",
+    setApiKey: jest.fn(),
+  }),
 }));
 
 function createMinimalWavBase64(): string {
@@ -51,7 +68,7 @@ const integrationSentences: Sentence[] = [
 ];
 
 const settings: ReaderSettings = {
-  template: "modern",
+  template: "ai-study",
   theme: "light",
   font: "sans",
   fontSize: 16,
@@ -77,7 +94,7 @@ function ReaderIntegrationHarness({ onModelFallback, onEngineUnavailable }: Read
   });
 
   return (
-    <ModernStudioTemplate
+    <AIStudyTemplate
       sentences={integrationSentences}
       currentIndex={player.currentIndex}
       title="Leitura Integrada"

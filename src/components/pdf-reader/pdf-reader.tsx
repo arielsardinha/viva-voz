@@ -17,7 +17,6 @@ import {
   TemplateSwitcher,
 } from "./ui/template-switcher";
 import { useReaderSettings } from "@/context/reader-settings-context";
-import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
 import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import { ZenFocusTemplate } from "./reader-templates/zen-focus-template";
 import { ZenQuotaDialog } from "./ui/zen-quota-dialog";
@@ -545,7 +544,7 @@ export function PdfReader() {
       <AppHeader />
       <LocalTtsLoadingPopup />
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8 space-y-3 sm:space-y-5">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-5 space-y-3 sm:space-y-4">
         {sentences.length === 0 ? (
           <PdfDropzone
             onFiles={handleFilesUpload}
@@ -692,77 +691,8 @@ export function PdfReader() {
               onOpenNotesDrawer={() => setNotesDrawerOpen(true)}
             />
 
-            {/* Renderização Condicional dos 3 Templates */}
-            {readerSettings.template === "modern" && (
-              <ModernStudioTemplate
-                sentences={sentences}
-                currentIndex={player.currentIndex}
-                title={title}
-                settings={readerSettings}
-                isPlaying={player.isPlaying}
-                isBuffering={player.isBuffering}
-                voice={voice}
-                speed={speed}
-                engine={engine}
-                activeTtsModel={player.activeTtsModel}
-                voices={voices}
-                disabledEngines={effectiveDisabledEngines}
-                apiKey={userApiKey}
-                onApiKeyChange={setUserApiKey}
-                onEngineChange={setEngine}
-                onSelectSentence={player.jumpTo}
-                onToggle={player.toggle}
-                onPrevious={player.previous}
-                onNext={player.next}
-                onRestart={player.restart}
-                onVoiceChange={setVoice}
-                onSpeedChange={setSpeed}
-                onAskAI={() => {
-                  patchSettings({ template: "ai-study" });
-                }}
-                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
-                onHighlight={handleHighlight}
-                onRemoveHighlight={handleRemoveHighlight}
-                getNotesForSentence={docNotes.getNotesForSentence}
-                onAddNote={handleRequestAddNote}
-                onOpenNote={handleOpenNote}
-              />
-            )}
-
-            {readerSettings.template === "ai-study" && (
-              <AIStudyTemplate
-                sentences={sentences}
-                currentIndex={player.currentIndex}
-                title={title}
-                settings={readerSettings}
-                isPlaying={player.isPlaying}
-                isBuffering={player.isBuffering}
-                voice={voice}
-                speed={speed}
-                engine={engine}
-                activeTtsModel={player.activeTtsModel}
-                voices={voices}
-                disabledEngines={effectiveDisabledEngines}
-                apiKey={userApiKey}
-                onApiKeyChange={setUserApiKey}
-                onEngineChange={setEngine}
-                onSelectSentence={player.jumpTo}
-                onToggle={player.toggle}
-                onPrevious={player.previous}
-                onNext={player.next}
-                onRestart={player.restart}
-                onVoiceChange={setVoice}
-                onSpeedChange={setSpeed}
-                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
-                onHighlight={handleHighlight}
-                onRemoveHighlight={handleRemoveHighlight}
-                getNotesForSentence={docNotes.getNotesForSentence}
-                onAddNote={handleRequestAddNote}
-                onOpenNote={handleOpenNote}
-              />
-            )}
-
-            {readerSettings.template === "zen" && (
+            {/* Renderização Condicional dos 2 Templates */}
+            {readerSettings.template === "zen" ? (
               <ZenFocusTemplate
                 sentences={sentences}
                 currentIndex={player.currentIndex}
@@ -789,6 +719,37 @@ export function PdfReader() {
                 onAskAI={() => {
                   patchSettings({ template: "ai-study" });
                 }}
+                getHighlightsForSentence={docHighlights.getHighlightsForSentence}
+                onHighlight={handleHighlight}
+                onRemoveHighlight={handleRemoveHighlight}
+                getNotesForSentence={docNotes.getNotesForSentence}
+                onAddNote={handleRequestAddNote}
+                onOpenNote={handleOpenNote}
+              />
+            ) : (
+              <AIStudyTemplate
+                sentences={sentences}
+                currentIndex={player.currentIndex}
+                title={title}
+                settings={readerSettings}
+                isPlaying={player.isPlaying}
+                isBuffering={player.isBuffering}
+                voice={voice}
+                speed={speed}
+                engine={engine}
+                activeTtsModel={player.activeTtsModel}
+                voices={voices}
+                disabledEngines={effectiveDisabledEngines}
+                apiKey={userApiKey}
+                onApiKeyChange={setUserApiKey}
+                onEngineChange={setEngine}
+                onSelectSentence={player.jumpTo}
+                onToggle={player.toggle}
+                onPrevious={player.previous}
+                onNext={player.next}
+                onRestart={player.restart}
+                onVoiceChange={setVoice}
+                onSpeedChange={setSpeed}
                 getHighlightsForSentence={docHighlights.getHighlightsForSentence}
                 onHighlight={handleHighlight}
                 onRemoveHighlight={handleRemoveHighlight}

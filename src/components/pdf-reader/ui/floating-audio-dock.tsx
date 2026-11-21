@@ -100,6 +100,8 @@ export function FloatingAudioDock({
 
   return (
     <div
+      data-cy="floating-audio-dock"
+      data-webmcp-tool="ttsPlaybackControl"
       className={cn(
         "glass-panel fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-5xl rounded-[28px] sm:rounded-full border border-border p-2.5 sm:py-2 sm:pl-2.5 sm:pr-4 shadow-[0_18px_48px_-8px_rgba(30,34,48,0.22)] backdrop-blur-md transition-all duration-300",
         className

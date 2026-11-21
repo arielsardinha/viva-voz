@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Compass, Moon, ScrollText, Sun } from "lucide-react";
+import { BookOpen, Bot, Moon, ScrollText, Sun } from "lucide-react";
 import type { ReaderTemplateId, ReadingTheme } from "@/context/reader-settings-context";
 
 export const TEMPLATE_CHOICES: {
@@ -7,22 +7,14 @@ export const TEMPLATE_CHOICES: {
   badge: string;
   description: string;
   features: string[];
-  icon: typeof Compass;
+  icon: typeof Bot;
 }[] = [
-  {
-    id: "modern",
-    title: "Estúdio Moderno",
-    badge: "Mais Popular",
-    description: "Leitor minimalista com dock flutuante, waveform interativa e controles dinâmicos.",
-    features: ["Player dock flutuante", "Waveform de áudio", "Foco visual em sentença"],
-    icon: Compass,
-  },
   {
     id: "ai-study",
     title: "Assistente IA & Estudos",
-    badge: "Produtividade",
-    description: "Split-view integrado com IA para tirar dúvidas, resumir trechos e gerar insights.",
-    features: ["Chat inteligente Gemini", "Resumos e explicações", "Visualização lado a lado"],
+    badge: "Recomendado",
+    description: "Split-view integrado com IA, player flutuante, resumos e quiz interativo.",
+    features: ["Chat inteligente Gemini", "Player flutuante fixo", "Visualização lado a lado"],
     icon: Bot,
   },
   {

@@ -5,7 +5,7 @@ describe("Fluxo de Contribuição Voluntária & Apoio Pix", () => {
         win.localStorage.setItem(
           "vivavoz-reader-settings",
           JSON.stringify({
-            template: "modern",
+            template: "ai-study",
             theme: "light",
             font: "inter",
             fontSize: 16,
