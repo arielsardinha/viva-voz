@@ -360,3 +360,26 @@
 }
 
 
+
+/* Barra indeterminada do popup de carregamento da voz local */
+@keyframes local-tts-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.local-tts-indeterminate-bar {
+  animation: local-tts-indeterminate 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .local-tts-indeterminate-bar {
+    animation: none;
+    transform: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}

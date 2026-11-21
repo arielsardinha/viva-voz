@@ -1,187 +1,335 @@
-import { resolveLiteRtVoiceLocale } from "@/lib/tts-engines";
 import { encodeFloat32PcmToWavBlob } from "../domain/pcm-wav-encoder";
-import { LocalModelNotDownloadedError } from "../domain/local-model.types";
 import {
-  detectLocalRuntimeSupport,
-  getCachedModelBlob,
-  getCachedModelMeta,
-  getCachedModelStreamReader,
-} from "../storage/model-storage.service";
+  INITIAL_LOCAL_TTS_LOAD_STATE,
+  applyLocalTtsProgress,
+  isLocalTtsLoading,
+  type LocalTtsLoadPhase,
+  type LocalTtsLoadState,
+  type LocalTtsProgressEvent,
+} from "../domain/local-tts-load-state";
+import {
+  deserializeLocalTtsError,
+  isModelMissingError,
+  type LocalTtsWorkerRequest,
+  type LocalTtsWorkerResponse,
+  type SerializedLocalTtsError,
+} from "./local-tts.protocol";
+import type { LocalTtsRuntime } from "./local-tts.runtime";
 
-export const MEDIAPIPE_AUDIO_WASM_URL =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-audio@1.2.3/wasm";
+export { MEDIAPIPE_AUDIO_WASM_URL } from "./local-tts.runtime";
 
-export interface MediaPipeTextToSpeechInstance {
-  synthesize(
-    text: string,
-    options?: { voiceId?: string; locale?: string },
-  ): Promise<{ samples: Float32Array; sampleRateHz: number }>;
-  cancel(): void;
-  close(): void;
+const DEFAULT_VOICE_ID = "pf_dora";
+const DEFAULT_SAMPLE_RATE_HZ = 24000;
+
+/** Subconjunto de `Worker` usado pelo engine (facilita testes com fakes). */
+export interface LocalTtsWorkerLike {
+  postMessage(message: LocalTtsWorkerRequest): void;
+  addEventListener(
+    type: "message",
+    listener: (event: MessageEvent<LocalTtsWorkerResponse>) => void,
+  ): void;
+  addEventListener(type: "error", listener: (event: Event) => void): void;
+  terminate(): void;
 }
 
-export interface MediaPipeAudioModule {
-  FilesetResolver: {
-    forAudioTasks(basePath?: string): Promise<unknown>;
-  };
-  TextToSpeech: {
-    createFromOptions(
-      wasmFileset: unknown,
-      options: {
-        baseOptions: {
-          modelAssetBuffer: Uint8Array | ReadableStreamDefaultReader<Uint8Array>;
-          delegate: "CPU" | "GPU";
-        };
-        defaultVoiceId?: string;
-        defaultLocale?: string;
-      },
-    ): Promise<MediaPipeTextToSpeechInstance>;
-  };
+export interface LocalTtsEngineOptions {
+  /** Cria o worker; `null` força a execução na thread principal. */
+  createWorker?: () => Promise<LocalTtsWorkerLike | null>;
+  /** Cria o runtime de fallback na thread principal. */
+  createMainThreadRuntime?: (
+    onProgress: (event: LocalTtsProgressEvent) => void,
+  ) => Promise<LocalTtsRuntime>;
 }
 
-export interface ILocalTtsModuleLoader {
-  loadModule(): Promise<MediaPipeAudioModule>;
+interface PendingSynthesis {
+  text: string;
+  voiceId: string;
+  resolve: (value: { blob: Blob; sampleRateHz: number }) => void;
+  reject: (reason: unknown) => void;
 }
 
-const defaultModuleLoader: ILocalTtsModuleLoader = {
-  async loadModule(): Promise<MediaPipeAudioModule> {
-    const mod = await import("@mediapipe/tasks-audio");
-    return mod as unknown as MediaPipeAudioModule;
-  },
+const defaultCreateWorker = async (): Promise<LocalTtsWorkerLike | null> => {
+  const { createLocalTtsWorker } = await import("./create-local-tts-worker");
+  return createLocalTtsWorker();
 };
 
-async function readBlobAsArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
-  if (typeof blob.arrayBuffer === "function") {
-    return blob.arrayBuffer();
-  }
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result instanceof ArrayBuffer) {
-        resolve(reader.result);
-      } else {
-        reject(new Error("Não foi possível ler os bytes do modelo local."));
-      }
-    };
-    reader.onerror = () =>
-      reject(reader.error ?? new Error("Erro ao ler modelo em cache."));
-    reader.readAsArrayBuffer(blob);
-  });
+const defaultCreateMainThreadRuntime = async (
+  onProgress: (event: LocalTtsProgressEvent) => void,
+): Promise<LocalTtsRuntime> => {
+  const { LocalTtsRuntime } = await import("./local-tts.runtime");
+  return new LocalTtsRuntime({ onProgress });
+};
+
+function wavBlob(buffer: ArrayBuffer): Blob {
+  return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function readModelBuffer(): Promise<
-  Uint8Array | ReadableStreamDefaultReader<Uint8Array>
-> {
-  const reader = await getCachedModelStreamReader("kokoro-82m-tts");
-  if (reader) return reader;
-
-  const blob = await getCachedModelBlob("kokoro-82m-tts");
-  if (blob) {
-    return new Uint8Array(await readBlobAsArrayBuffer(blob));
-  }
-
-  throw new LocalModelNotDownloadedError("kokoro-82m-tts");
-}
-
+/**
+ * Fachada do TTS local usada pela UI. Roda o Kokoro em um Web Worker e expõe
+ * o estado do carregamento inicial para o popup de progresso. Se o worker não
+ * puder ser criado (ou o MediaPipe falhar dentro dele), cai para a thread
+ * principal com a mesma API.
+ */
 export class LocalTtsEngine {
-  private instance: MediaPipeTextToSpeechInstance | null = null;
-  private initPromise: Promise<MediaPipeTextToSpeechInstance> | null = null;
-  private synthQueue: Promise<void> = Promise.resolve();
+  private state: LocalTtsLoadState = INITIAL_LOCAL_TTS_LOAD_STATE;
+  private readonly listeners = new Set<() => void>();
+  private worker: LocalTtsWorkerLike | null = null;
+  private workerPromise: Promise<LocalTtsWorkerLike | null> | null = null;
+  private mainThreadRuntime: Promise<LocalTtsRuntime> | null = null;
+  private useMainThread = false;
+  /** Última etapa (sem erro) reportada pelo worker atual. */
+  private workerPhase: LocalTtsLoadPhase = "idle";
+  private readonly pending = new Map<number, PendingSynthesis>();
+  private nextRequestId = 1;
+  private readonly createWorker: () => Promise<LocalTtsWorkerLike | null>;
+  private readonly createMainThreadRuntime: NonNullable<
+    LocalTtsEngineOptions["createMainThreadRuntime"]
+  >;
 
-  constructor(
-    private readonly moduleLoader: ILocalTtsModuleLoader = defaultModuleLoader,
-  ) {}
-
-  async ensureReady(): Promise<MediaPipeTextToSpeechInstance> {
-    if (this.instance) return this.instance;
-    if (this.initPromise) return this.initPromise;
-
-    this.initPromise = this.initializeInstance().finally(() => {
-      this.initPromise = null;
-    });
-    return this.initPromise;
+  constructor(options: LocalTtsEngineOptions = {}) {
+    this.createWorker = options.createWorker ?? defaultCreateWorker;
+    this.createMainThreadRuntime =
+      options.createMainThreadRuntime ?? defaultCreateMainThreadRuntime;
   }
 
-  private async initializeInstance(): Promise<MediaPipeTextToSpeechInstance> {
-    const meta = await getCachedModelMeta("kokoro-82m-tts");
-    if (!meta.cached) {
-      throw new LocalModelNotDownloadedError("kokoro-82m-tts");
-    }
+  // ---- Estado observável (useSyncExternalStore) ----
 
-    const mod = await this.moduleLoader.loadModule();
-    const fileset = await mod.FilesetResolver.forAudioTasks(
-      MEDIAPIPE_AUDIO_WASM_URL,
-    );
-    const preferGpu = detectLocalRuntimeSupport().webGpuSupported;
+  getLoadState = (): LocalTtsLoadState => this.state;
 
-    if (preferGpu) {
-      try {
-        const buffer = await readModelBuffer();
-        const gpuInstance = await mod.TextToSpeech.createFromOptions(fileset, {
-          baseOptions: { modelAssetBuffer: buffer, delegate: "GPU" },
-          defaultVoiceId: "pf_dora",
-          defaultLocale: "pt-BR",
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  private setState(next: LocalTtsLoadState): void {
+    if (next === this.state) return;
+    this.state = next;
+    for (const listener of this.listeners) listener();
+  }
+
+  private handleProgress = (event: LocalTtsProgressEvent): void => {
+    this.setState(applyLocalTtsProgress(this.state, event));
+  };
+
+  // ---- Worker ----
+
+  private async getWorker(): Promise<LocalTtsWorkerLike | null> {
+    if (this.useMainThread) return null;
+    if (this.worker) return this.worker;
+    if (!this.workerPromise) {
+      this.workerPromise = this.createWorker()
+        .then((worker) => {
+          if (!worker) {
+            this.useMainThread = true;
+            return null;
+          }
+          worker.addEventListener("message", (event) =>
+            this.handleWorkerMessage(worker, event.data),
+          );
+          worker.addEventListener("error", (event) =>
+            this.fallBackToMainThread(
+              worker,
+              event instanceof ErrorEvent ? event.message : "erro ao carregar o worker",
+            ),
+          );
+          this.worker = worker;
+          this.workerPhase = "idle";
+          return worker;
+        })
+        .catch(() => {
+          this.useMainThread = true;
+          return null;
+        })
+        .finally(() => {
+          this.workerPromise = null;
         });
-        this.instance = gpuInstance;
-        return gpuInstance;
-      } catch {
-        // Fallback automático para CPU (WASM SIMD) se o delegate GPU falhar
+    }
+    return this.workerPromise;
+  }
+
+  private handleWorkerMessage(
+    worker: LocalTtsWorkerLike,
+    message: LocalTtsWorkerResponse,
+  ): void {
+    if (worker !== this.worker) return;
+
+    switch (message.type) {
+      case "progress":
+        // Erros são tratados abaixo, para decidir antes se vale o fallback.
+        if (message.event.phase !== "error") {
+          this.workerPhase = message.event.phase;
+          this.handleProgress(message.event);
+        }
+        return;
+      case "result": {
+        const request = this.pending.get(message.id);
+        if (!request) return;
+        this.pending.delete(message.id);
+        request.resolve({ blob: wavBlob(message.buffer), sampleRateHz: message.sampleRateHz });
+        return;
       }
+      case "error":
+        this.handleWorkerError(worker, message.id, message.stage, message.error);
+        return;
+    }
+  }
+
+  private handleWorkerError(
+    worker: LocalTtsWorkerLike,
+    id: number | null,
+    stage: "init" | "synthesize",
+    serialized: SerializedLocalTtsError,
+  ): void {
+    if (
+      stage === "init" &&
+      !isModelMissingError(serialized) &&
+      (this.workerPhase === "idle" || this.workerPhase === "runtime")
+    ) {
+      // O runtime do MediaPipe não subiu no worker: tenta na thread principal.
+      // Falhas depois disso (modelo inválido, por exemplo) se repetiriam lá e
+      // ainda travariam a UI, então são reportadas como erro.
+      this.fallBackToMainThread(worker, serialized.message);
+      return;
     }
 
-    const cpuBuffer = await readModelBuffer();
-    const cpuInstance = await mod.TextToSpeech.createFromOptions(fileset, {
-      baseOptions: { modelAssetBuffer: cpuBuffer, delegate: "CPU" },
-      defaultVoiceId: "pf_dora",
-      defaultLocale: "pt-BR",
-    });
-    this.instance = cpuInstance;
-    return cpuInstance;
+    if (isModelMissingError(serialized)) {
+      this.handleProgress({ phase: "idle" });
+    } else if (isLocalTtsLoading(this.state)) {
+      this.handleProgress({ phase: "error", errorMessage: serialized.message });
+    }
+
+    if (id === null) return;
+    const request = this.pending.get(id);
+    if (!request) return;
+    this.pending.delete(id);
+    request.reject(deserializeLocalTtsError(serialized));
   }
+
+  private fallBackToMainThread(worker: LocalTtsWorkerLike, reason: string): void {
+    if (worker !== this.worker) return;
+    console.warn(`[TTS local] Worker indisponível, usando a thread principal: ${reason}`);
+    try {
+      worker.terminate();
+    } catch {
+      // Worker já encerrado
+    }
+    this.worker = null;
+    this.useMainThread = true;
+
+    const retry = Array.from(this.pending.values());
+    this.pending.clear();
+    if (retry.length === 0 && isLocalTtsLoading(this.state)) {
+      // Era só um warmup: refaz na thread principal para o progresso não travar.
+      void this.getMainThreadRuntime()
+        .then((runtime) => runtime.warmup())
+        .catch(() => undefined);
+    }
+    for (const request of retry) {
+      this.synthesizeOnMainThread(request.text, request.voiceId).then(
+        request.resolve,
+        request.reject,
+      );
+    }
+  }
+
+  // ---- Thread principal (fallback) ----
+
+  private getMainThreadRuntime(): Promise<LocalTtsRuntime> {
+    if (!this.mainThreadRuntime) {
+      this.mainThreadRuntime = this.createMainThreadRuntime(this.handleProgress);
+    }
+    return this.mainThreadRuntime;
+  }
+
+  private async synthesizeOnMainThread(
+    text: string,
+    voiceId: string,
+  ): Promise<{ blob: Blob; sampleRateHz: number }> {
+    const runtime = await this.getMainThreadRuntime();
+    const { buffer, sampleRateHz } = await runtime.synthesizeToWav(text, voiceId);
+    return { blob: wavBlob(buffer), sampleRateHz };
+  }
+
+  // ---- API pública ----
 
   async synthesizeToWavBlob(
     text: string,
-    voiceId = "pf_dora",
+    voiceId = DEFAULT_VOICE_ID,
   ): Promise<{ blob: Blob; sampleRateHz: number }> {
-    const cleanText = text.trim();
-    if (!cleanText) {
+    if (!text.trim()) {
       return {
-        blob: encodeFloat32PcmToWavBlob(new Float32Array(0), 24000),
-        sampleRateHz: 24000,
+        blob: encodeFloat32PcmToWavBlob(new Float32Array(0), DEFAULT_SAMPLE_RATE_HZ),
+        sampleRateHz: DEFAULT_SAMPLE_RATE_HZ,
       };
     }
 
-    const runSynthesis = async (): Promise<{ blob: Blob; sampleRateHz: number }> => {
-      const tts = await this.ensureReady();
-      const result = await tts.synthesize(cleanText, {
-        voiceId,
-        locale: resolveLiteRtVoiceLocale(voiceId),
-      });
-      const sampleRateHz = result.sampleRateHz || 24000;
-      const blob = encodeFloat32PcmToWavBlob(result.samples, sampleRateHz);
-      return { blob, sampleRateHz };
-    };
+    const worker = await this.getWorker();
+    if (!worker) return this.synthesizeOnMainThread(text, voiceId);
 
-    const nextTask = this.synthQueue.then(runSynthesis, runSynthesis);
-    this.synthQueue = nextTask.then(
-      () => undefined,
-      () => undefined,
-    );
-    return nextTask;
+    const id = this.nextRequestId++;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { text, voiceId, resolve, reject });
+      worker.postMessage({ type: "synthesize", id, text, voiceId });
+    });
+  }
+
+  /**
+   * Pré-carrega o modelo em segundo plano (com uma síntese curta descartável).
+   * Seguro chamar várias vezes; falhas não são propagadas, só refletidas no estado.
+   */
+  async warmup(voiceId = DEFAULT_VOICE_ID): Promise<void> {
+    if (this.state.phase === "ready" || isLocalTtsLoading(this.state)) return;
+
+    const worker = await this.getWorker();
+    if (worker) {
+      worker.postMessage({ type: "warmup", voiceId });
+      return;
+    }
+    try {
+      const runtime = await this.getMainThreadRuntime();
+      await runtime.warmup(voiceId);
+    } catch {
+      // Estado de erro já foi emitido pelo runtime
+    }
+  }
+
+  /** Fecha o aviso de erro do carregamento (volta ao estado ocioso). */
+  dismissLoadError(): void {
+    if (this.state.phase === "error") this.handleProgress({ phase: "idle" });
   }
 
   cancel(): void {
-    this.instance?.cancel();
+    this.worker?.postMessage({ type: "cancel" });
+    void this.mainThreadRuntime?.then((runtime) => runtime.cancel()).catch(() => undefined);
   }
 
   dispose(): void {
-    try {
-      this.instance?.cancel();
-      this.instance?.close();
-    } finally {
-      this.instance = null;
-      this.initPromise = null;
+    const worker = this.worker;
+    this.worker = null;
+    this.workerPromise = null;
+    this.useMainThread = false;
+    if (worker) {
+      try {
+        worker.postMessage({ type: "dispose" });
+        worker.terminate();
+      } catch {
+        // Worker já encerrado
+      }
     }
+
+    const runtime = this.mainThreadRuntime;
+    this.mainThreadRuntime = null;
+    void runtime?.then((r) => r.dispose()).catch(() => undefined);
+
+    const aborted = Array.from(this.pending.values());
+    this.pending.clear();
+    for (const request of aborted) {
+      request.reject(new DOMException("Motor de voz local encerrado.", "AbortError"));
+    }
+
+    this.setState(INITIAL_LOCAL_TTS_LOAD_STATE);
   }
 }
 
@@ -195,11 +343,9 @@ export function getLocalTtsEngine(): LocalTtsEngine {
 }
 
 export function resetLocalTtsEngineForTests(
-  customLoader?: ILocalTtsModuleLoader,
+  options?: LocalTtsEngineOptions,
 ): LocalTtsEngine {
   singletonInstance?.dispose();
-  singletonInstance = customLoader
-    ? new LocalTtsEngine(customLoader)
-    : null;
-  return singletonInstance ?? getLocalTtsEngine();
+  singletonInstance = new LocalTtsEngine(options);
+  return singletonInstance;
 }
