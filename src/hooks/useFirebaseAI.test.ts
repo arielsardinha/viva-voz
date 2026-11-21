@@ -289,4 +289,128 @@ describe("useFirebaseAI hook", () => {
     );
     expect(msg).toContain("Modelos IA Local");
   });
+
+  describe("fallback do modo Automático (nuvem → navegador → local)", () => {
+    const { createHybridGenerativeModel, InferenceMode } = jest.requireMock(
+      "@/lib/ai/firebase-ai",
+    ) as {
+      createHybridGenerativeModel: jest.Mock;
+      InferenceMode: Record<string, string>;
+    };
+
+    function mockModelsByMode(behavior: Record<string, "fail" | string>) {
+      createHybridGenerativeModel.mockImplementation(
+        ({ mode }: { mode: string }) => ({
+          generateContentStream: jest.fn().mockImplementation(async () => {
+            const outcome = behavior[mode];
+            if (!outcome || outcome === "fail") {
+              throw new Error(`falha simulada em ${mode}`);
+            }
+            return {
+              stream: (async function* () {
+                yield { text: () => outcome };
+              })(),
+              response: Promise.resolve({}),
+            };
+          }),
+        }),
+      );
+    }
+
+    beforeEach(() => {
+      mockApiKey = "AIzaSyValidTestKey123";
+      mockLiteRtReady = true;
+      mockPreferredChatEngine = "auto";
+      jest.spyOn(console, "warn").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      (console.warn as jest.Mock).mockRestore();
+    });
+
+    async function renderReadyHook() {
+      const hook = renderHook(() => useFirebaseAI());
+      await waitFor(() => {
+        expect(hook.result.current.onDeviceStatus).toBe("available");
+      });
+      return hook;
+    }
+
+    it("usa a nuvem quando ela responde", async () => {
+      mockModelsByMode({ [InferenceMode.ONLY_IN_CLOUD]: "Resposta nuvem" });
+      const { result } = await renderReadyHook();
+
+      await act(async () => {
+        await result.current.sendPrompt("Pergunta");
+      });
+
+      expect(result.current.messages[1]?.content).toBe("Resposta nuvem");
+      expect(result.current.messages[1]?.source).toBe("vertex");
+      expect(mockStreamMultimodalPrompt).not.toHaveBeenCalled();
+    });
+
+    it("cai para o Gemini Nano quando a nuvem falha", async () => {
+      mockModelsByMode({
+        [InferenceMode.ONLY_IN_CLOUD]: "fail",
+        [InferenceMode.ONLY_ON_DEVICE]: "Resposta Nano",
+      });
+      const { result } = await renderReadyHook();
+
+      await act(async () => {
+        await result.current.sendPrompt("Pergunta");
+      });
+
+      expect(result.current.messages[1]?.content).toBe("Resposta Nano");
+      expect(result.current.messages[1]?.source).toBe("nano");
+    });
+
+    it("cai para o Gemma local quando nuvem e Nano falham", async () => {
+      mockModelsByMode({
+        [InferenceMode.ONLY_IN_CLOUD]: "fail",
+        [InferenceMode.ONLY_ON_DEVICE]: "fail",
+      });
+      mockStreamMultimodalPrompt.mockImplementation(async function* () {
+        yield "Resposta local";
+      });
+      const { result } = await renderReadyHook();
+
+      await act(async () => {
+        await result.current.sendPrompt("Pergunta");
+      });
+
+      expect(result.current.status).toBe("idle");
+      expect(result.current.messages[1]?.content).toBe("Resposta local");
+      expect(result.current.messages[1]?.source).toBe("litert-lm");
+    });
+
+    it("mostra erro quando todos os motores falham", async () => {
+      mockModelsByMode({});
+      mockStreamMultimodalPrompt.mockImplementation(async function* () {
+        throw new Error("falha local");
+      });
+      const { result } = await renderReadyHook();
+
+      await act(async () => {
+        await result.current.sendPrompt("Pergunta");
+      });
+
+      expect(result.current.status).toBe("error");
+      expect(result.current.messages[1]?.content).toContain(
+        "Não foi possível obter resposta",
+      );
+    });
+
+    it("não faz fallback quando um motor foi escolhido manualmente", async () => {
+      mockPreferredChatEngine = "cloud";
+      mockModelsByMode({ [InferenceMode.ONLY_ON_DEVICE]: "Resposta Nano" });
+      const { result } = await renderReadyHook();
+
+      await act(async () => {
+        await result.current.sendPrompt("Pergunta");
+      });
+
+      expect(result.current.status).toBe("error");
+      expect(mockStreamMultimodalPrompt).not.toHaveBeenCalled();
+    });
+  });
 });
