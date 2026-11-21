@@ -45,6 +45,8 @@ import { useDocumentHighlights } from "@/hooks/use-document-highlights";
 import { useDocumentNotes } from "@/hooks/use-document-notes";
 import { NoteDialog } from "./ui/note-dialog";
 import { NotesDrawer } from "./ui/notes-drawer";
+import { LocalTtsLoadingPopup } from "./ui/local-tts-loading-popup";
+import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
 import { StorageQuotaModal } from "@/components/sync/storage-quota-modal";
 import type { HighlightColor } from "@/lib/domain/document-highlight.types";
 import type { DocumentNote, NoteColor } from "@/lib/domain/document-note.types";
@@ -213,6 +215,15 @@ export function PdfReader() {
     onEngineUnavailable: handleEngineUnavailable,
     onModelFallback: handleModelFallback,
   });
+
+  // Pré-aquece o Kokoro local em segundo plano assim que há um documento aberto
+  // com a voz local selecionada: o primeiro "play" já encontra o modelo pronto.
+  const hasDocument = sentences.length > 0;
+  const kokoroReady = isModelReady("kokoro-82m-tts");
+  useEffect(() => {
+    if (!prefsLoaded || engine !== "litert" || !kokoroReady || !hasDocument) return;
+    void getLocalTtsEngine().warmup(voice || undefined);
+  }, [prefsLoaded, engine, kokoroReady, hasDocument, voice]);
 
   const handleContinueZenWithFreeVoice = useCallback(
     (selectedVoice: string) => {
@@ -511,6 +522,7 @@ export function PdfReader() {
       data-reading-theme={readerSettings.theme}
     >
       <AppHeader />
+      <LocalTtsLoadingPopup />
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8 space-y-3 sm:space-y-5">
         {sentences.length === 0 ? (
