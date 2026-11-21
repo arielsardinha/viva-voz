@@ -2,6 +2,7 @@ import {
   LOCAL_AI_CACHE_NAME,
   resolveModelDownloadUrl,
 } from "../domain/local-model-catalog";
+import { describeError, reportLocalAiFailure, traceLocalAi } from "../diagnostics";
 import type {
   CachedModelMetadata,
   LocalModelDescriptor,
@@ -261,10 +262,6 @@ function throwIfAborted(signal?: AbortSignal): void {
   }
 }
 
-function isAbort(err: unknown): boolean {
-  return err instanceof DOMException && err.name === "AbortError";
-}
-
 function wait(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
@@ -459,6 +456,13 @@ export async function downloadAndCacheModel(
       });
     };
     if (resumedBytes > 0) emit();
+    traceLocalAi("download iniciado", {
+      modelId: descriptor.id,
+      resumedChunks: nextIndex,
+      resumedBytes,
+      totalBytes,
+      host: new URL(downloadUrl).host,
+    });
 
     // Falha cedo, com mensagem clara, em vez de baixar GBs e esbarrar na cota no fim.
     await ensureStorageAvailable(
@@ -481,6 +485,17 @@ export async function downloadAndCacheModel(
           });
           if (!response.ok || !response.body) {
             throw new HttpStatusError(response.status);
+          }
+          if (nextIndex === 0 || attempt > 1) {
+            traceLocalAi("resposta do bloco", {
+              modelId: descriptor.id,
+              chunk: nextIndex,
+              attempt,
+              status: response.status,
+              contentRange: response.headers.get("Content-Range"),
+              contentLength: response.headers.get("Content-Length"),
+              finalHost: response.url ? new URL(response.url).host : null,
+            });
           }
 
           if (response.status === 200) {
@@ -546,7 +561,9 @@ export async function downloadAndCacheModel(
             emit();
           });
           if (bytes.byteLength !== expectedChunk) {
-            throw new Error("Bloco do modelo incompleto.");
+            throw new Error(
+              `Bloco do modelo incompleto (${bytes.byteLength} de ${expectedChunk} bytes).`,
+            );
           }
 
           await cache.put(
@@ -561,10 +578,30 @@ export async function downloadAndCacheModel(
             }),
           );
           stored = true;
+          if (nextIndex % 8 === 0) {
+            traceLocalAi("bloco gravado", {
+              modelId: descriptor.id,
+              chunk: nextIndex,
+              downloadedBytes,
+              totalBytes,
+            });
+          }
         } catch (err) {
           downloadedBytes -= chunkBytes;
           sessionBytes -= chunkBytes;
-          if (isAbort(err) || signal?.aborted) throw err;
+          // Só é cancelamento se o NOSSO sinal foi abortado; um AbortError vindo do
+          // navegador (aba em segundo plano, rede trocada) é falha transitória.
+          if (signal?.aborted) throw err;
+          const info = describeError(err);
+          traceLocalAi("falha no bloco", {
+            modelId: descriptor.id,
+            chunk: nextIndex,
+            attempt,
+            chunkBytes,
+            errorName: info.name,
+            errorMessage: info.message,
+            httpStatus: err instanceof HttpStatusError ? err.status : null,
+          });
           if (isQuotaExceeded(err)) {
             throw err instanceof ModelStorageQuotaError
               ? err
@@ -577,7 +614,17 @@ export async function downloadAndCacheModel(
           const fatalHttp =
             err instanceof HttpStatusError && err.status >= 400 && err.status < 500 &&
             err.status !== 408 && err.status !== 429;
-          if (fatalHttp || attempt >= MAX_CHUNK_ATTEMPTS) throw err;
+          if (fatalHttp || attempt >= MAX_CHUNK_ATTEMPTS) {
+            await reportLocalAiFailure("download_chunk", err, {
+              modelId: descriptor.id,
+              chunk: nextIndex,
+              attempt,
+              downloadedBytes,
+              totalBytes,
+              httpStatus: err instanceof HttpStatusError ? err.status : null,
+            });
+            throw err;
+          }
           // Rede móvel oscilou: espera e tenta o mesmo bloco de novo.
           await wait(Math.min(15_000, 1_000 * 2 ** (attempt - 1)), signal);
         }
@@ -587,6 +634,11 @@ export async function downloadAndCacheModel(
 
     const finalSize = totalBytes ?? 0;
     const cachedAt = Date.now();
+    traceLocalAi("todos os blocos gravados; gravando manifesto", {
+      modelId: descriptor.id,
+      chunks: nextIndex,
+      finalSize,
+    });
     await cache.put(
       cacheKey,
       new Response(JSON.stringify({ chunks: nextIndex, sizeBytes: finalSize }), {
@@ -602,6 +654,12 @@ export async function downloadAndCacheModel(
       }),
     );
 
+    traceLocalAi("download concluído", {
+      modelId: descriptor.id,
+      chunks: nextIndex,
+      finalSize,
+      elapsedSec: Math.round((Date.now() - startedAt) / 1000),
+    });
     onProgress?.({
       downloadedBytes: finalSize,
       totalBytes: finalSize,
@@ -613,7 +671,7 @@ export async function downloadAndCacheModel(
     return { sizeBytes: finalSize, cachedAt };
   } catch (err) {
     // Cancelamento explícito limpa tudo; falhas de rede mantêm os blocos para retomar.
-    if (isAbort(err) || signal?.aborted) {
+    if (signal?.aborted) {
       await clearChunks(cache, descriptor.id);
       await cache.delete(cacheKey).catch(() => false);
     }

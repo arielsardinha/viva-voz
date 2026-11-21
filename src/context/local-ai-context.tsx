@@ -31,7 +31,7 @@ import {
   getStorageQuotaEstimate,
   ModelStorageQuotaError,
 } from "@/lib/local-ai/storage/model-storage.service";
-import { logger } from "@/lib/monitoring/logger";
+import { reportLocalAiFailure } from "@/lib/local-ai/diagnostics";
 import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
 import { getLocalChatEngine } from "@/lib/local-ai/engines/local-chat.engine";
 
@@ -294,8 +294,17 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
         if (isMountedRef.current) setStorageEstimate(quota);
         toast.success(`${descriptor.shortName} pronto para uso offline!`);
       } catch (err) {
+        const userCancelled = controller.signal.aborted;
+        if (!userCancelled) {
+          void reportLocalAiFailure("download", err, {
+            modelId,
+            quota: err instanceof ModelStorageQuotaError,
+            abortLike: isAbortError(err),
+            mounted: isMountedRef.current,
+          });
+        }
         if (!isMountedRef.current) return;
-        if (isAbortError(err) || controller.signal.aborted) {
+        if (userCancelled) {
           setModels((prev) => ({
             ...prev,
             [modelId]: {
@@ -316,10 +325,6 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
             err instanceof ModelStorageQuotaError
               ? err.message
               : "Não foi possível concluir o download do modelo. Verifique sua conexão e o espaço disponível.";
-          logger.error(err, {
-            module: "ai_chat",
-            tags: { model_id: modelId, quota: err instanceof ModelStorageQuotaError },
-          });
           setModels((prev) => ({
             ...prev,
             [modelId]: {
