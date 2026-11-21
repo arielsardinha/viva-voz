@@ -46,7 +46,12 @@ import { useDocumentNotes } from "@/hooks/use-document-notes";
 import { NoteDialog } from "./ui/note-dialog";
 import { NotesDrawer } from "./ui/notes-drawer";
 import { LocalTtsLoadingPopup } from "./ui/local-tts-loading-popup";
-import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
+import {
+  LOCAL_TTS_MODEL_IDS,
+  getDefaultVoiceForLocalModel,
+  resolveLocalTtsModelId,
+} from "@/lib/local-ai/domain/local-model-catalog";
+import { getLocalTtsEngineForVoice } from "@/lib/local-ai/engines/local-tts.router";
 import { StorageQuotaModal } from "@/components/sync/storage-quota-modal";
 import type { HighlightColor } from "@/lib/domain/document-highlight.types";
 import type { DocumentNote, NoteColor } from "@/lib/domain/document-note.types";
@@ -179,7 +184,7 @@ export function PdfReader() {
         toast.info(message, {
           action: {
             label: "Abrir Modelos",
-            onClick: () => openModelsPage("kokoro-82m-tts"),
+            onClick: () => openModelsPage(resolveLocalTtsModelId(voice)),
           },
         });
         return;
@@ -201,7 +206,7 @@ export function PdfReader() {
         });
       }
     },
-    [openModelsPage, readerSettings.template]
+    [openModelsPage, readerSettings.template, voice]
   );
 
   const player = useTtsPlayer({
@@ -216,14 +221,14 @@ export function PdfReader() {
     onModelFallback: handleModelFallback,
   });
 
-  // Pré-aquece o Kokoro local em segundo plano assim que há um documento aberto
-  // com a voz local selecionada: o primeiro "play" já encontra o modelo pronto.
+  // Pré-aquece a voz local (Kokoro ou Piper) em segundo plano assim que há um
+  // documento aberto: o primeiro "play" já encontra o modelo pronto.
   const hasDocument = sentences.length > 0;
-  const kokoroReady = isModelReady("kokoro-82m-tts");
+  const localVoiceReady = isModelReady(resolveLocalTtsModelId(voice));
   useEffect(() => {
-    if (!prefsLoaded || engine !== "litert" || !kokoroReady || !hasDocument) return;
-    void getLocalTtsEngine().warmup(voice || undefined);
-  }, [prefsLoaded, engine, kokoroReady, hasDocument, voice]);
+    if (!prefsLoaded || engine !== "litert" || !localVoiceReady || !hasDocument) return;
+    void getLocalTtsEngineForVoice(voice).warmup(voice || undefined);
+  }, [prefsLoaded, engine, localVoiceReady, hasDocument, voice]);
 
   const handleContinueZenWithFreeVoice = useCallback(
     (selectedVoice: string) => {
@@ -316,16 +321,26 @@ export function PdfReader() {
         patchPrefs({ engine: "system" });
         return;
       }
-      if (next === "litert" && !isModelReady("kokoro-82m-tts")) {
-        openModelsPage("kokoro-82m-tts");
-        toast.info(
-          "Baixe o modelo Kokoro 82M (~281 MB) na central de Modelos para usar a voz neural offline."
-        );
-        return;
+      if (next === "litert") {
+        const currentVoice = prefs.voice.litert ?? DEFAULT_VOICE.litert;
+        if (!isModelReady(resolveLocalTtsModelId(currentVoice))) {
+          // A voz salva não está baixada: usa a de outro modelo local já pronto.
+          const readyModel = LOCAL_TTS_MODEL_IDS.find((id) => isModelReady(id));
+          const readyVoice = readyModel ? getDefaultVoiceForLocalModel(readyModel) : null;
+          if (!readyVoice) {
+            openModelsPage("kokoro-82m-tts");
+            toast.info(
+              "Baixe uma voz local (Kokoro 82M ou Piper Cadu) na central de Modelos para narrar offline."
+            );
+            return;
+          }
+          patchPrefs({ engine: next, voice: { ...prefs.voice, litert: readyVoice } });
+          return;
+        }
       }
       patchPrefs({ engine: next });
     },
-    [patchPrefs, hasApiKey, isModelReady, openModelsPage]
+    [patchPrefs, hasApiKey, isModelReady, openModelsPage, prefs.voice]
   );
 
   // Se o motor estiver configurado como Google mas não houver chave, volta para a seleção padrão gratuita (sistema)

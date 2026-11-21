@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useLocalAi } from "@/context/local-ai-context";
+import { LOCAL_TTS_MODEL_IDS } from "@/lib/local-ai/domain/local-model-catalog";
 import { TTS_ENGINES, type TtsEngine } from "@/lib/tts-engines";
 import type { ActiveTtsModelInfo } from "@/lib/tts-models";
 
@@ -36,20 +37,21 @@ export function TtsEngineMenuItems({
   onOpenGeminiDialog,
 }: TtsEngineMenuItemsProps) {
   const { models, openModelsPage } = useLocalAi();
-  const kokoroState = models["kokoro-82m-tts"];
+  const localTtsStates = LOCAL_TTS_MODEL_IDS.map((id) => models[id]).filter(Boolean);
+  const downloadingState = localTtsStates.find((state) => state.status === "downloading");
 
   const renderLiteRtBadge = () => {
-    if (kokoroState.status === "ready") {
+    if (localTtsStates.some((state) => state.status === "ready")) {
       return (
         <span className="ml-auto rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300">
           Pronto
         </span>
       );
     }
-    if (kokoroState.status === "downloading") {
+    if (downloadingState) {
       return (
         <span className="ml-auto rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-sky-700 dark:text-sky-300">
-          {kokoroState.progressPercent}%
+          {downloadingState.progressPercent}%
         </span>
       );
     }

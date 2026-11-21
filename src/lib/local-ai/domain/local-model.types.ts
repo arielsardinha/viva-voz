@@ -3,7 +3,7 @@
  * Armazenamento exclusivo via Cache API (nunca IndexedDB) para pesos binários .litertlm.
  */
 
-export type LocalModelId = "kokoro-82m-tts" | "gemma-4-e2b-chat";
+export type LocalModelId = "kokoro-82m-tts" | "piper-cadu-tts" | "gemma-4-e2b-chat";
 
 export type LocalModelCategory = "tts" | "chat";
 
@@ -19,6 +19,19 @@ export interface LocalModelRuntimeSupport {
   webGpuSupported: boolean;
   cacheApiSupported: boolean;
   wasmSupported: boolean;
+}
+
+/**
+ * Parâmetros de uma voz Piper (VITS em ONNX), copiados do `.onnx.json` oficial
+ * para não precisar baixar o arquivo de configuração separado.
+ */
+export interface PiperVoiceConfig {
+  /** Voz do espeak-ng usada pelo fonemizador (ex.: `pt-br`). */
+  readonly espeakVoice: string;
+  readonly sampleRateHz: number;
+  readonly noiseScale: number;
+  readonly lengthScale: number;
+  readonly noiseW: number;
 }
 
 export interface LocalModelDescriptor {
@@ -38,6 +51,8 @@ export interface LocalModelDescriptor {
   readonly license: string;
   readonly estimatedRamMb: number;
   readonly highlights: readonly string[];
+  /** Presente nas vozes Piper: configuração de inferência do modelo ONNX. */
+  readonly piper?: PiperVoiceConfig;
 }
 
 export interface LocalModelState {

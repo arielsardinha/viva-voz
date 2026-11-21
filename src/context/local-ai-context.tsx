@@ -32,7 +32,7 @@ import {
   ModelStorageQuotaError,
 } from "@/lib/local-ai/storage/model-storage.service";
 import { reportLocalAiFailure } from "@/lib/local-ai/diagnostics";
-import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
+import { getLocalTtsEngineForModel } from "@/lib/local-ai/engines/local-tts.router";
 import { getLocalChatEngine } from "@/lib/local-ai/engines/local-chat.engine";
 
 const CHAT_ENGINE_STORAGE_KEY = "vivavoz-chat-engine-pref";
@@ -352,8 +352,8 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
     const descriptor = getLocalModelById(modelId);
     if (!descriptor) return;
 
-    if (modelId === "kokoro-82m-tts") {
-      getLocalTtsEngine().dispose();
+    if (descriptor.category === "tts") {
+      getLocalTtsEngineForModel(modelId)?.dispose();
     } else if (modelId === "gemma-4-e2b-chat") {
       await getLocalChatEngine().dispose();
     }
