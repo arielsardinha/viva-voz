@@ -1,4 +1,15 @@
 import { getLocalModelById } from "../domain/local-model-catalog";
+import { reportLocalAiFailure } from "../diagnostics";
+
+jest.mock("../diagnostics", () => ({
+  describeError: (err: unknown) => ({
+    name: (err as Error)?.name ?? "Error",
+    message: String((err as Error)?.message ?? err),
+    cause: null,
+  }),
+  traceLocalAi: jest.fn(),
+  reportLocalAiFailure: jest.fn(async () => undefined),
+}));
 import type { ModelDownloadProgress } from "../domain/local-model.types";
 import {
   deleteCachedModel,
@@ -254,6 +265,49 @@ describe("model-storage.service", () => {
         downloadAndCacheModel(getLocalModelById("kokoro-82m-tts")!, { hasWebGpu: true }),
       ).rejects.toBeInstanceOf(ModelStorageQuotaError);
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("diagnóstico", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "storage", { value: undefined, configurable: true });
+      jest.useFakeTimers({ advanceTimers: true });
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("deve repetir o bloco quando o navegador abortar a requisição sem o usuário cancelar", async () => {
+      let calls = 0;
+      globalThis.fetch = jest.fn(async () => {
+        calls += 1;
+        if (calls === 1) throw new DOMException("The user aborted a request.", "AbortError");
+        return new Response(new Uint8Array([1, 2, 3, 4]), {
+          status: 206,
+          headers: { "Content-Range": "bytes 0-3/4", "Content-Length": "4" },
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await downloadAndCacheModel(getLocalModelById("kokoro-82m-tts")!, {
+        hasWebGpu: true,
+      });
+
+      expect(result.sizeBytes).toBe(4);
+      expect(calls).toBe(2);
+    });
+
+    it("deve reportar ao Sentry quando um bloco esgotar as tentativas", async () => {
+      globalThis.fetch = jest.fn(async () => new Response("x", { status: 404 })) as unknown as typeof fetch;
+
+      await expect(
+        downloadAndCacheModel(getLocalModelById("kokoro-82m-tts")!, { hasWebGpu: true }),
+      ).rejects.toThrow();
+
+      expect(reportLocalAiFailure).toHaveBeenCalledWith(
+        "download_chunk",
+        expect.anything(),
+        expect.objectContaining({ modelId: "kokoro-82m-tts", httpStatus: 404 }),
+      );
     });
   });
 });

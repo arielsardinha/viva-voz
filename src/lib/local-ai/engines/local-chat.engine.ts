@@ -1,4 +1,5 @@
 import { buildDocumentSystemPrompt } from "@/lib/ai/system-instructions";
+import { describeError, reportLocalAiFailure, traceLocalAi } from "../diagnostics";
 import {
   LocalModelNotDownloadedError,
   type ChatAttachment,
@@ -121,17 +122,35 @@ export class LocalChatEngine {
   private async initializeEngine(): Promise<LiteRtEngineInstance> {
     const support = detectLocalRuntimeSupport();
     if (!support.webGpuSupported) {
-      throw new Error(
+      const err = new Error(
         "Seu navegador não possui WebGPU habilitado para executar o chat multimodal local.",
       );
+      await reportLocalAiFailure("engine_create", err, { webGpu: false });
+      throw err;
     }
 
-    const modelBlob = await getCachedModelBlob("gemma-4-e2b-chat");
+    const modelId = "gemma-4-e2b-chat";
+    let modelBlob: Blob | null;
+    try {
+      modelBlob = await getCachedModelBlob(modelId);
+    } catch (err) {
+      await reportLocalAiFailure("engine_load_blob", err, { modelId });
+      throw err;
+    }
     if (!modelBlob) {
-      throw new LocalModelNotDownloadedError("gemma-4-e2b-chat");
+      const err = new LocalModelNotDownloadedError(modelId);
+      await reportLocalAiFailure("engine_load_blob", err, { modelId, blobMissing: true });
+      throw err;
     }
+    traceLocalAi("modelo lido do cache", { modelId, blobBytes: modelBlob.size });
 
-    const mod = await this.moduleLoader.loadModule();
+    let mod: LiteRtLmCoreModule;
+    try {
+      mod = await this.moduleLoader.loadModule();
+    } catch (err) {
+      await reportLocalAiFailure("engine_load_module", err, { modelId });
+      throw err;
+    }
     const { Engine, Backend } = mod;
 
     const attempts = [
@@ -157,15 +176,35 @@ export class LocalChatEngine {
     ];
 
     let lastError: unknown;
-    for (const settings of attempts) {
+    for (const [index, settings] of attempts.entries()) {
+      const startedAt = Date.now();
       try {
         const instance = await Engine.create(settings);
+        traceLocalAi("motor criado", {
+          modelId,
+          attempt: index + 1,
+          elapsedMs: Date.now() - startedAt,
+        });
         this.engine = instance;
         return instance;
       } catch (err) {
         lastError = err;
+        const info = describeError(err);
+        traceLocalAi("falha ao criar motor", {
+          modelId,
+          attempt: index + 1,
+          elapsedMs: Date.now() - startedAt,
+          errorName: info.name,
+          errorMessage: info.message,
+        });
       }
     }
+
+    await reportLocalAiFailure("engine_create", lastError, {
+      modelId,
+      attempts: attempts.length,
+      blobBytes: modelBlob.size,
+    });
 
     throw lastError instanceof Error
       ? lastError
