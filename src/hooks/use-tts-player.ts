@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import type { Sentence } from "@/lib/pdf-text";
 import type { TtsEngine } from "@/lib/tts-engines";
 import { LocalModelNotDownloadedError } from "@/lib/local-ai/domain/local-model.types";
-import { getLocalModelById, isPiperVoiceId } from "@/lib/local-ai/domain/local-model-catalog";
+import {
+  getLocalModelById,
+  resolveLocalTtsModelId,
+} from "@/lib/local-ai/domain/local-model-catalog";
 import {
   cancelAllLocalTts,
   getLocalTtsEngineForVoice,
@@ -205,9 +208,17 @@ function configureGoogleAudioElement(params: AttachAudioParams): void {
 
 /** Modelo local (Kokoro ou Piper) exibido no indicador para a voz escolhida. */
 function getLocalTtsModelInfo(voiceId: string): ActiveTtsModelInfo {
-  return isPiperVoiceId(voiceId)
-    ? { id: "piper-cadu", label: "Piper · Cadu (Offline)", shortLabel: "Piper Local", isFallback: false }
-    : { id: "kokoro-82m", label: "Kokoro 82M (Offline)", shortLabel: "Kokoro Local", isFallback: false };
+  const modelId = resolveLocalTtsModelId(voiceId);
+  const descriptor = getLocalModelById(modelId);
+  if (descriptor?.piper) {
+    return {
+      id: modelId.replace(/-tts$/, ""),
+      label: `${descriptor.shortName.replace("Piper ", "Piper · ")} (Offline)`,
+      shortLabel: "Piper Local",
+      isFallback: false,
+    };
+  }
+  return { id: "kokoro-82m", label: "Kokoro 82M (Offline)", shortLabel: "Kokoro Local", isFallback: false };
 }
 
 export function useTtsPlayer({

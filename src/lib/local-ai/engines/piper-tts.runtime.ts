@@ -197,7 +197,7 @@ export class PiperTtsRuntime {
   private ort: Promise<OrtModuleLike> | null = null;
   private phonemizer: Promise<PiperPhonemizer> | null = null;
   private voice: LoadedVoice | null = null;
-  private voicePromise: Promise<LoadedVoice> | null = null;
+  private voicePromise: { modelId: LocalModelId; promise: Promise<LoadedVoice> } | null = null;
   private synthQueue: Promise<void> = Promise.resolve();
   private hasSynthesized = false;
 
@@ -210,21 +210,27 @@ export class PiperTtsRuntime {
     return this.voice !== null && this.hasSynthesized;
   }
 
-  /** Carrega runtime + modelo da voz. Mantém só uma voz Piper em memória. */
+  /**
+   * Carrega runtime + modelo da voz. Mantém só uma voz Piper em memória:
+   * trocar de voz libera a sessão anterior.
+   */
   async ensureReady(voiceId = DEFAULT_VOICE_ID): Promise<LoadedVoice> {
     const modelId = resolveLocalTtsModelId(voiceId);
     if (this.voice?.modelId === modelId) return this.voice;
-    if (this.voicePromise) return this.voicePromise;
+    if (this.voicePromise?.modelId === modelId) return this.voicePromise.promise;
+    if (this.voicePromise) await this.voicePromise.promise.catch(() => undefined);
+    if (this.voice?.modelId === modelId) return this.voice;
 
-    this.voicePromise = this.loadVoice(modelId)
+    const promise = this.loadVoice(modelId)
       .catch((error: unknown) => {
         this.emitFailure(error);
         throw error;
       })
       .finally(() => {
-        this.voicePromise = null;
+        if (this.voicePromise?.promise === promise) this.voicePromise = null;
       });
-    return this.voicePromise;
+    this.voicePromise = { modelId, promise };
+    return promise;
   }
 
   private emitFailure(error: unknown): void {

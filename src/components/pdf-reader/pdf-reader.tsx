@@ -330,7 +330,7 @@ export function PdfReader() {
           if (!readyVoice) {
             openModelsPage("kokoro-82m-tts");
             toast.info(
-              "Baixe uma voz local (Kokoro 82M ou Piper Cadu) na central de Modelos para narrar offline."
+              "Baixe uma voz local (Kokoro 82M ou Piper) na central de Modelos para narrar offline."
             );
             return;
           }

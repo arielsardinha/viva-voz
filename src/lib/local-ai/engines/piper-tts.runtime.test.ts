@@ -131,6 +131,19 @@ describe("PiperTtsRuntime", () => {
     expect(runtime.isReady).toBe(false);
   });
 
+  it("troca de voz Piper liberando a sessão anterior", async () => {
+    mockModelCached(true);
+    const { loader, create, release } = makeLoader();
+    const runtime = new PiperTtsRuntime({ loader });
+
+    await runtime.synthesizeToWav("Cadu.", CADU);
+    await runtime.synthesizeToWav("Faber.", "piper:pt_BR-faber-medium");
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(mockedStorage.getCachedModelBlob).toHaveBeenLastCalledWith("piper-faber-tts");
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   it("devolve WAV vazio para texto em branco sem carregar nada", async () => {
     const { loader } = makeLoader();
     const runtime = new PiperTtsRuntime({ loader });
