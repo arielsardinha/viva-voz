@@ -89,6 +89,8 @@ export async function getCachedModelMeta(
  */
 export const MODEL_DOWNLOAD_CHUNK_BYTES = 32 * 1024 * 1024;
 const MAX_CHUNK_ATTEMPTS = 6;
+/** Acima disso o download único (servidor sem Range) não é tentado. */
+const MAX_SINGLE_STREAM_BYTES = 512 * 1024 * 1024;
 const CHUNK_COUNT_HEADER = "X-VivaVoz-Chunk-Count";
 const TOTAL_BYTES_HEADER = "X-VivaVoz-Total-Bytes";
 
@@ -244,6 +246,14 @@ async function ensureStorageAvailable(requiredBytes: number): Promise<void> {
   const available = Math.max(0, estimate.quotaBytes - estimate.usageBytes);
   if (available < requiredBytes + QUOTA_SAFETY_MARGIN_BYTES) {
     throw new ModelStorageQuotaError(requiredBytes, available);
+  }
+}
+
+/** Falha que não adianta repetir. */
+class FatalDownloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FatalDownloadError";
   }
 }
 
@@ -469,6 +479,12 @@ export async function downloadAndCacheModel(
       Math.max(0, (totalBytes ?? descriptor.sizeBytes) - resumedBytes),
     );
 
+    // O Hugging Face redireciona para outro domínio (CDN). O WebKit (todo navegador
+    // no iOS) descarta o cabeçalho Range ao seguir um redirect cross-origin e recebe
+    // o arquivo inteiro com status 200. Por isso os blocos vão direto para a URL
+    // final do CDN, descoberta na primeira resposta (`response.url`).
+    let rangeUrl = downloadUrl;
+
     while (totalBytes === null || nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES < totalBytes) {
       const rangeStart = nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES;
       const rangeEnd = rangeStart + MODEL_DOWNLOAD_CHUNK_BYTES - 1;
@@ -478,12 +494,23 @@ export async function downloadAndCacheModel(
         throwIfAborted(signal);
         let chunkBytes = 0;
         try {
-          const response = await fetch(downloadUrl, {
+          const response = await fetch(rangeUrl, {
             signal,
             cache: "no-store",
             headers: { Range: `bytes=${rangeStart}-${rangeEnd}` },
           });
           if (!response.ok || !response.body) {
+            if (rangeUrl !== downloadUrl) {
+              // A URL assinada do CDN expirou ou foi recusada: resolve o redirect de novo.
+              void response.body?.cancel().catch(() => undefined);
+              traceLocalAi("URL do CDN recusada; resolvendo de novo", {
+                modelId: descriptor.id,
+                chunk: nextIndex,
+                status: response.status,
+              });
+              rangeUrl = downloadUrl;
+              throw new Error(`CDN respondeu ${response.status}; resolvendo a URL de novo.`);
+            }
             throw new HttpStatusError(response.status);
           }
           if (nextIndex === 0 || attempt > 1) {
@@ -498,6 +525,25 @@ export async function downloadAndCacheModel(
             });
           }
 
+          if (
+            response.status === 200 &&
+            rangeUrl === downloadUrl &&
+            response.url &&
+            response.url !== downloadUrl
+          ) {
+            // Range perdido no redirect (iOS): descarta este corpo e repete o mesmo
+            // bloco direto na URL final, sem contar como tentativa.
+            void response.body.cancel().catch(() => undefined);
+            rangeUrl = response.url;
+            traceLocalAi("Range perdido no redirect; usando a URL final do CDN", {
+              modelId: descriptor.id,
+              chunk: nextIndex,
+              finalHost: new URL(rangeUrl).host,
+            });
+            attempt -= 1;
+            continue;
+          }
+
           if (response.status === 200) {
             // Servidor ignorou o Range: cai no download único (sem retomada).
             if (nextIndex > 0) {
@@ -509,6 +555,14 @@ export async function downloadAndCacheModel(
               Number.isFinite(lengthHeader) && lengthHeader > 0
                 ? lengthHeader
                 : descriptor.sizeBytes;
+            if (expected > MAX_SINGLE_STREAM_BYTES) {
+              // Gravar GBs num único cache.put estoura a memória no celular e o
+              // navegador mata a aba sem nenhum erro de JS. Melhor falhar claro.
+              void response.body.cancel().catch(() => undefined);
+              throw new FatalDownloadError(
+                `O servidor não aceitou download em partes (${expected} bytes de uma vez); não é seguro baixar este modelo assim neste dispositivo.`,
+              );
+            }
             const cachedAt = Date.now();
             const headers = new Headers({
               "Content-Type": "application/octet-stream",
@@ -591,7 +645,7 @@ export async function downloadAndCacheModel(
           sessionBytes -= chunkBytes;
           // Só é cancelamento se o NOSSO sinal foi abortado; um AbortError vindo do
           // navegador (aba em segundo plano, rede trocada) é falha transitória.
-          if (signal?.aborted) throw err;
+          if (signal?.aborted || err instanceof FatalDownloadError) throw err;
           const info = describeError(err);
           traceLocalAi("falha no bloco", {
             modelId: descriptor.id,

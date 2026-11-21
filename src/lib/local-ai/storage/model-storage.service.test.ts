@@ -310,4 +310,57 @@ describe("model-storage.service", () => {
       );
     });
   });
+
+  describe("redirect sem Range (iOS/WebKit)", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "storage", { value: undefined, configurable: true });
+    });
+
+    it("deve repetir o bloco direto na URL final do CDN quando o Range for perdido no redirect", async () => {
+      const cdnUrl = "https://us.aws.cdn.hf.co/repos/x/model.bin?Expires=1&Signature=abc";
+      const urls: string[] = [];
+      globalThis.fetch = jest.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        urls.push(url);
+        if (url !== cdnUrl) {
+          // WebKit seguiu o redirect sem o Range: arquivo inteiro com 200.
+          const full = new Response(new Uint8Array(4096), {
+            status: 200,
+            headers: { "Content-Length": "2008432640" },
+          });
+          Object.defineProperty(full, "url", { value: cdnUrl });
+          return full;
+        }
+        return new Response(new Uint8Array([1, 2, 3, 4]), {
+          status: 206,
+          headers: { "Content-Range": "bytes 0-3/4", "Content-Length": "4" },
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, {
+        hasWebGpu: true,
+      });
+
+      expect(result.sizeBytes).toBe(4);
+      expect(urls).toHaveLength(2);
+      expect(urls[1]).toBe(cdnUrl);
+      expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(true);
+    });
+
+    it("não deve tentar gravar GBs de uma vez quando o servidor ignorar o Range", async () => {
+      const fetchMock = jest.fn(async () =>
+        new Response(new Uint8Array(16), {
+          status: 200,
+          headers: { "Content-Length": "2008432640" },
+        }),
+      );
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      await expect(
+        downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, { hasWebGpu: true }),
+      ).rejects.toThrow(/download em partes/);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(false);
+    });
+  });
 });
