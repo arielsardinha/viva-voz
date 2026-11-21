@@ -28,9 +28,15 @@ describe("local-model-catalog", () => {
     );
   });
 
-  it("deve definir os modelos esperados (Kokoro 82M, Piper Cadu e Gemma 4 E2B)", () => {
+  it("deve definir os modelos esperados (Kokoro 82M, Piper Cadu/Faber e Gemma 4 E2B)", () => {
     expect(LOCAL_AI_CACHE_NAME).toBe("vivavoz-local-ai-models-v1");
-    expect(LOCAL_AI_MODELS).toHaveLength(3);
+    expect(LOCAL_AI_MODELS).toHaveLength(4);
+
+    const faber = getLocalModelById("piper-faber-tts");
+    expect(faber?.category).toBe("tts");
+    expect(faber?.sizeBytes).toBe(63_221_984);
+    expect(faber?.downloadUrl).toContain("pt_BR-faber-medium.onnx");
+    expect(faber?.piper?.espeakVoice).toBe("pt-br");
 
     const cadu = getLocalModelById("piper-cadu-tts");
     expect(cadu?.category).toBe("tts");
@@ -96,7 +102,9 @@ describe("local-model-catalog", () => {
   });
 
   it("deve mapear cada voz local para o modelo que precisa estar baixado", () => {
-    expect(LOCAL_TTS_MODEL_IDS).toEqual(["kokoro-82m-tts", "piper-cadu-tts"]);
+    expect(LOCAL_TTS_MODEL_IDS).toEqual(["kokoro-82m-tts", "piper-cadu-tts", "piper-faber-tts"]);
+    expect(resolveLocalTtsModelId("piper:pt_BR-faber-medium")).toBe("piper-faber-tts");
+    expect(getDefaultVoiceForLocalModel("piper-faber-tts")).toBe("piper:pt_BR-faber-medium");
     expect(isPiperVoiceId("piper:pt_BR-cadu-medium")).toBe(true);
     expect(isPiperVoiceId("pf_dora")).toBe(false);
     expect(isPiperVoiceId(undefined)).toBe(false);

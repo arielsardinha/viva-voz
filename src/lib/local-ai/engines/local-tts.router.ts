@@ -1,4 +1,5 @@
 import {
+  getLocalModelById,
   isPiperVoiceId,
   resolveLocalTtsModelId,
 } from "../domain/local-model-catalog";
@@ -7,7 +8,7 @@ import { LocalTtsEngine, getLocalTtsEngine } from "./local-tts.engine";
 
 let piperEngine: LocalTtsEngine | null = null;
 
-/** Motor das vozes Piper (worker próprio, mesmo contrato do Kokoro). */
+/** Motor de todas as vozes Piper (worker próprio, mesmo contrato do Kokoro). */
 export function getPiperTtsEngine(): LocalTtsEngine {
   if (!piperEngine) {
     piperEngine = new LocalTtsEngine({
@@ -33,7 +34,7 @@ export function getLocalTtsEngineForVoice(voiceId: string | null | undefined): L
 /** Motor local responsável por um modelo baixado (usado ao remover o modelo). */
 export function getLocalTtsEngineForModel(modelId: LocalModelId): LocalTtsEngine | null {
   if (modelId === "kokoro-82m-tts") return getLocalTtsEngine();
-  if (modelId === "piper-cadu-tts") return getPiperTtsEngine();
+  if (getLocalModelById(modelId)?.piper) return getPiperTtsEngine();
   return null;
 }
 

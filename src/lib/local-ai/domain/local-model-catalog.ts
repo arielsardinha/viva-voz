@@ -62,6 +62,35 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     },
   },
   {
+    id: "piper-faber-tts",
+    name: "Piper · Voz Faber (PT-BR)",
+    shortName: "Piper Faber",
+    category: "tts",
+    description:
+      "Voz brasileira Faber do Piper, leve e 100% offline, executada via ONNX Runtime Web (WASM) dentro de um Web Worker.",
+    fileName: "pt_BR-faber-medium.onnx",
+    downloadUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx",
+    sizeBytes: 63_221_984,
+    requiresWebGpu: false,
+    inputModalities: ["text"],
+    outputModality: "audio",
+    license: "CC0-1.0 (dataset) · base Hi-Fi TTS CC-BY-4.0",
+    estimatedRamMb: 250,
+    highlights: [
+      "Voz natural em Português do Brasil",
+      "Download leve (~60 MB) e funciona offline",
+      "Roda em CPU (WASM), inclusive em celulares sem WebGPU",
+    ],
+    piper: {
+      espeakVoice: "pt-br",
+      sampleRateHz: 22050,
+      noiseScale: 0.5,
+      lengthScale: 1.0,
+      noiseW: 0.333,
+    },
+  },
+  {
     id: "gemma-4-e2b-chat",
     name: "Gemma 4 E2B Multimodal (Chat Local)",
     shortName: "Gemma 4 E2B",
@@ -165,6 +194,7 @@ export const PIPER_VOICE_PREFIX = "piper:";
 
 const PIPER_VOICE_MODELS: Readonly<Record<string, LocalModelId>> = {
   "piper:pt_BR-cadu-medium": "piper-cadu-tts",
+  "piper:pt_BR-faber-medium": "piper-faber-tts",
 };
 
 export function isPiperVoiceId(voiceId: string | null | undefined): boolean {

@@ -25,6 +25,7 @@ export const LITERT_VOICES: VoiceOption[] = [
   { id: "pm_alex", label: "Alex (PT-BR · Masculina)" },
   { id: "pm_santa", label: "Santa (PT-BR · Grave)" },
   { id: "piper:pt_BR-cadu-medium", label: "Cadu (PT-BR · Masculina · Piper)" },
+  { id: "piper:pt_BR-faber-medium", label: "Faber (PT-BR · Piper)" },
   { id: "af_heart", label: "Heart (EN-US · Feminina)" },
   { id: "am_michael", label: "Michael (EN-US · Masculina)" },
 ];
