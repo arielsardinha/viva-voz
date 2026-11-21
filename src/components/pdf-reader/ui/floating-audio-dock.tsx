@@ -101,7 +101,7 @@ export function FloatingAudioDock({
   return (
     <div
       className={cn(
-        "glass-panel fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-5xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 shadow-2xl transition-all duration-300",
+        "glass-panel fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-5xl rounded-[28px] sm:rounded-full border border-border p-2.5 sm:py-2 sm:pl-2.5 sm:pr-4 shadow-[0_18px_48px_-8px_rgba(30,34,48,0.22)] backdrop-blur-md transition-all duration-300",
         className
       )}
     >
@@ -115,9 +115,9 @@ export function FloatingAudioDock({
       />
 
       {/* Barra de Progresso Fina no Topo */}
-      <div className="absolute top-0 left-4 right-4 sm:left-6 sm:right-6 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-secondary/80">
+      <div className="absolute top-0 left-8 right-8 sm:left-14 sm:right-14 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-secondary">
         <div
-          className="h-full bg-gradient-to-r from-accent to-accent/70 transition-all duration-300"
+          className="h-full rounded-full bg-voice transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -125,13 +125,13 @@ export function FloatingAudioDock({
       {/* Layout Desktop (sm e acima): 1 linha fluida */}
       <div className="hidden sm:flex items-center justify-between gap-4">
         {/* Info do Documento (Esquerda) */}
-        <div className="flex items-center gap-3 min-w-0 max-w-xs lg:max-w-sm">
-          <div className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 text-accent ring-1 ring-accent/30 shadow-inner">
+        <div className="flex flex-1 items-center gap-3 min-w-0 max-w-xs lg:max-w-sm">
+          <div className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-voice-soft text-voice-ink">
             <FileText className="size-5" />
             {isPlaying && (
               <span className="absolute -top-1 -right-1 flex size-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-3 bg-accent"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-voice opacity-75 motion-reduce:animate-none"></span>
+                <span className="relative inline-flex rounded-full size-3 bg-voice"></span>
               </span>
             )}
           </div>
@@ -139,7 +139,7 @@ export function FloatingAudioDock({
             <p className="truncate text-sm font-semibold text-foreground tracking-tight">
               {title ?? "Documento sem título"}
             </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
               <span>Página {currentPage}</span>
               <span>•</span>
               <span>
@@ -176,7 +176,7 @@ export function FloatingAudioDock({
             type="button"
             onClick={onToggle}
             aria-label={isPlaying ? "Pausar" : "Reproduzir"}
-            className="bg-accent text-accent-foreground flex size-12 shrink-0 items-center justify-center rounded-full shadow-lg shadow-accent/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="bg-primary text-primary-foreground flex size-12 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
           >
             {isBuffering ? (
               <Loader2 className="size-6 animate-spin" />
@@ -286,7 +286,7 @@ export function FloatingAudioDock({
         {/* Linha 1 Mobile: Info do PDF + Botão IA + Velocidade & Voz */}
         <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-voice-soft text-voice-ink">
               <FileText className="size-3.5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -402,7 +402,7 @@ export function FloatingAudioDock({
             type="button"
             onClick={onToggle}
             aria-label={isPlaying ? "Pausar" : "Reproduzir"}
-            className="bg-accent text-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full shadow-md shadow-accent/25 transition-transform active:scale-95 cursor-pointer"
+            className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-full shadow-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
             {isBuffering ? (
               <Loader2 className="size-5 animate-spin" />

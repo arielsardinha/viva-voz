@@ -57,7 +57,7 @@ describe("AIStudyTemplate Component", () => {
     jest.clearAllMocks();
   });
 
-  it("deve renderizar a aba AI Study Assistant e o botão de voz no header", () => {
+  it("deve renderizar o Assistente de leitura e o botão de voz no header", () => {
     render(
       <AIStudyTemplate
         sentences={mockSentences}
@@ -84,7 +84,7 @@ describe("AIStudyTemplate Component", () => {
       />
     );
 
-    expect(screen.getByText("AI Study Assistant")).toBeInTheDocument();
+    expect(screen.getByText("Assistente de leitura")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /selecionar voz e motor/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /conectar chave gemini/i })).toBeInTheDocument();
   });
@@ -116,7 +116,7 @@ describe("AIStudyTemplate Component", () => {
       />
     );
 
-    expect(screen.getByText("AI Study Assistant")).toBeInTheDocument();
+    expect(screen.getByText("Assistente de leitura")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /conectar chave gemini/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /chave gemini conectada/i })).not.toBeInTheDocument();
   });

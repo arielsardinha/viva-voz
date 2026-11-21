@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Merriweather, Lora, Roboto, Literata } from "next/font/google";
+import { Inter, Merriweather, Lora, Roboto, Literata, Source_Serif_4 } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { GeminiApiKeyProvider } from "@/hooks/use-gemini-api-key";
@@ -40,6 +40,14 @@ const literata = Literata({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-literata",
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-source-serif",
   display: "swap",
 });
 
@@ -119,7 +127,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${merriweather.variable} ${lora.variable} ${roboto.variable} ${literata.variable}`}
+      className={`${inter.variable} ${merriweather.variable} ${lora.variable} ${roboto.variable} ${literata.variable} ${sourceSerif.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased bg-background text-foreground transition-colors" suppressHydrationWarning>

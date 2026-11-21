@@ -209,8 +209,7 @@ export function ModernStudioTemplate({
     <div
       ref={containerRef}
       className={cn(
-        "relative pb-40 sm:pb-32 transition-colors",
-        fontClass
+        "relative pb-40 sm:pb-32 transition-colors"
       )}
       data-reading-theme={settings.theme}
     >
@@ -231,16 +230,16 @@ export function ModernStudioTemplate({
       />
 
       {/* Barra de Ferramentas Superior do Leitor (Inspiração 01) */}
-      <div className="glass-panel sticky top-2 z-30 mb-4 sm:mb-5 flex items-center justify-between gap-2 rounded-2xl p-2 sm:p-2.5 shadow-xs border border-border/80">
+      <div className="glass-panel sticky top-2 z-30 mb-4 sm:mb-5 flex items-center justify-between gap-2 rounded-full p-1.5 sm:p-2 shadow-xs border border-border backdrop-blur-md">
         {/* Navegador de Páginas em Pílula */}
-        <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/80 px-1.5 sm:px-2 py-1 rounded-xl shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/80 px-1.5 sm:px-2 py-1 rounded-full shrink-0">
           <button
             type="button"
             onClick={handlePrevPage}
             disabled={currentPage <= 1}
             title="Página Anterior"
             aria-label="Página Anterior"
-            className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30 transition-colors"
+            className="flex size-6 sm:size-7 items-center justify-center rounded-full hover:bg-card text-foreground disabled:opacity-30 transition-colors"
           >
             <ChevronLeft className="size-3.5 sm:size-4" />
           </button>
@@ -255,7 +254,7 @@ export function ModernStudioTemplate({
             disabled={currentPage >= totalPages}
             title="Próxima Página"
             aria-label="Próxima Página"
-            className="flex size-6 sm:size-7 items-center justify-center rounded-lg hover:bg-card text-foreground disabled:opacity-30 transition-colors"
+            className="flex size-6 sm:size-7 items-center justify-center rounded-full hover:bg-card text-foreground disabled:opacity-30 transition-colors"
           >
             <ChevronRight className="size-3.5 sm:size-4" />
           </button>
@@ -263,7 +262,7 @@ export function ModernStudioTemplate({
 
         {/* Busca dentro do documento com navegação Ctrl+F */}
         <div className="relative flex-1 min-w-0 max-w-[200px] sm:max-w-xs md:max-w-sm">
-          <div className="relative flex items-center bg-background/90 border border-border rounded-xl focus-within:ring-1 focus-within:ring-accent transition-all">
+          <div className="relative flex items-center bg-background/90 border border-border rounded-full focus-within:ring-1 focus-within:ring-accent transition-all">
             <Search className="absolute left-2.5 size-3.5 text-muted-foreground pointer-events-none shrink-0" />
             <input
               ref={searchInputRef}
@@ -323,12 +322,12 @@ export function ModernStudioTemplate({
 
         {/* Zoom e Lista de Páginas */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <div className="hidden md:flex items-center gap-1 bg-secondary/80 px-1 py-0.5 rounded-xl">
+          <div className="hidden md:flex items-center gap-1 bg-secondary/80 px-1 py-0.5 rounded-full">
             <button
               type="button"
               onClick={() => setZoomLevel((z) => Math.max(80, z - 10))}
               title="Diminuir Zoom"
-              className="flex size-7 items-center justify-center rounded-lg hover:bg-card text-foreground transition-colors"
+              className="flex size-7 items-center justify-center rounded-full hover:bg-card text-foreground transition-colors"
             >
               <ZoomOut className="size-3.5" />
             </button>
@@ -337,7 +336,7 @@ export function ModernStudioTemplate({
               type="button"
               onClick={() => setZoomLevel((z) => Math.min(140, z + 10))}
               title="Aumentar Zoom"
-              className="flex size-7 items-center justify-center rounded-lg hover:bg-card text-foreground transition-colors"
+              className="flex size-7 items-center justify-center rounded-full hover:bg-card text-foreground transition-colors"
             >
               <ZoomIn className="size-3.5" />
             </button>
@@ -349,7 +348,7 @@ export function ModernStudioTemplate({
             title="Índice de Páginas"
             aria-label="Índice de Páginas"
             className={cn(
-              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-xl border transition-colors cursor-pointer",
+              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-full border transition-colors cursor-pointer",
               showChapters
                 ? "bg-accent text-accent-foreground border-accent"
                 : "bg-background/80 text-foreground hover:bg-secondary border-border"
@@ -364,13 +363,13 @@ export function ModernStudioTemplate({
       {/* Layout de Leitura Principal com Gaveta de Páginas Opcional */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
         {/* Folha do Documento Clean */}
-        <div className="glass-panel min-w-0 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xs border border-border/80 w-full">
+        <div className="reader-sheet min-w-0 w-full rounded-3xl px-5 py-8 sm:px-12 sm:py-14 md:px-16">
           <div
             style={{
               fontSize: `${(settings.fontSize * (zoomLevel / 100)).toFixed(1)}px`,
               lineHeight: settings.lineHeight || 1.8,
             }}
-            className="text-foreground transition-all duration-150"
+            className={cn("mx-auto max-w-[68ch] text-foreground transition-all duration-150", fontClass)}
           >
             {sentences.map((sentence) => {
               const isActive = sentence.index === currentIndex;
@@ -389,12 +388,9 @@ export function ModernStudioTemplate({
               return (
                 <span key={sentence.index}>
                   {showPageMark && (
-                    <span className="my-6 sm:my-8 flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">
-                      <span className="h-px flex-1 bg-border/80" />
-                      <span className="bg-secondary/70 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                        Página {sentence.page}
-                      </span>
-                      <span className="h-px flex-1 bg-border/80" />
+                    <span className="my-8 sm:my-10 flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-accent first:mt-0">
+                      <span>Página {sentence.page}</span>
+                      <span className="h-px flex-1 bg-border" />
                     </span>
                   )}
                   <button
@@ -404,12 +400,12 @@ export function ModernStudioTemplate({
                     data-search-active={isCurrentMatch ? "true" : undefined}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
-                      "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
-                      isActive && "sentence-highlight-active font-medium text-foreground",
+                      "cursor-pointer rounded-[3px] px-0.5 text-left break-words whitespace-normal transition-colors duration-200 inline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive && "sentence-highlight-active text-foreground",
                       !isActive && isRead && "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
                       !isActive && !isRead && "text-foreground hover:bg-accent/10",
-                      isMatched && !isCurrentMatch && "bg-amber-400/30 ring-1 ring-amber-400/50 text-foreground",
-                      isCurrentMatch && "bg-amber-400 text-amber-950 font-semibold ring-2 ring-amber-500 shadow-xs dark:bg-amber-400 dark:text-amber-950"
+                      isMatched && !isCurrentMatch && "bg-accent/15 ring-1 ring-accent/30 text-foreground",
+                      isCurrentMatch && "bg-accent text-accent-foreground ring-2 ring-accent"
                     )}
                   >
                     <HighlightedSentenceText

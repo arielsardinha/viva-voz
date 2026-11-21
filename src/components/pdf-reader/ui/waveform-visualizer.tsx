@@ -44,9 +44,9 @@ export function WaveformVisualizer({
             className={cn(
               "w-[3px] rounded-full transition-all duration-200",
               isPlaying
-                ? "bg-gradient-to-t from-accent to-accent/60 shadow-[0_0_8px_rgba(99,102,241,0.4)]"
+                ? "bg-voice"
                 : "bg-muted-foreground/30",
-              isBuffering && "animate-pulse bg-accent/40"
+              isBuffering && "animate-pulse bg-voice/40"
             )}
             style={{
               height: isPlaying

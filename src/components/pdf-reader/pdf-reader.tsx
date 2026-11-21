@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
+  ArrowLeft,
   Check,
   Pencil,
-  X,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "./app-header";
@@ -404,6 +407,9 @@ export function PdfReader() {
   }, [sentences]);
 
   // Identifica o capítulo atual com base na sentença ativa
+  const readingPercent =
+    sentences.length > 0 ? Math.round(((player.currentIndex + 1) / sentences.length) * 100) : 0;
+
   const currentChapter = useMemo(() => {
     const index = player.currentIndex;
     return chapters.find((c) => index >= c.startIndex && index <= c.endIndex);
@@ -533,7 +539,7 @@ export function PdfReader() {
 
   return (
     <div
-      className="bg-background min-h-screen transition-colors pb-10"
+      className="reader-shell bg-background min-h-screen transition-colors pb-10"
       data-reading-theme={readerSettings.theme}
     >
       <AppHeader />
@@ -551,12 +557,17 @@ export function PdfReader() {
 
         ) : (
           <>
-            {/* Barra de Título, Formato & Ações Principais */}
-            <div className="glass-panel flex items-center justify-between gap-2 sm:gap-3 rounded-2xl p-2.5 sm:px-5 sm:py-3 border border-border/80 shadow-xs">
-              <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 flex-1">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent font-mono text-xs font-bold uppercase">
-                  {docFormat}
-                </div>
+            {/* Barra do leitor: voltar, título, progresso e atalho para a IA */}
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                <Link
+                  href="/leituras"
+                  aria-label="Voltar para a biblioteca"
+                  title="Voltar para a biblioteca"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ArrowLeft className="size-4" />
+                </Link>
                 {isEditing ? (
                   <div className="flex min-w-0 flex-1 items-center gap-1.5 max-w-md">
                     <input
@@ -568,28 +579,27 @@ export function PdfReader() {
                         if (event.key === "Escape") setIsEditing(false);
                       }}
                       aria-label="Título da leitura"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                      className="min-w-0 flex-1 rounded-full border border-input bg-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                     <button
                       type="button"
                       onClick={() => void saveTitle()}
                       aria-label="Salvar título"
-                      className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-xs hover:opacity-90"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90"
                     >
                       <Check className="size-4" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex min-w-0 items-center gap-1.5 flex-1">
-                    <div className="min-w-0 flex-1">
-                      <h2 className="truncate text-xs sm:text-base font-bold text-foreground max-w-[180px] xs:max-w-[260px] sm:max-w-md">
+                  <div className="flex min-w-0 flex-1 items-center gap-1">
+                    <div className="min-w-0">
+                      <h2 className="truncate text-sm sm:text-[15px] font-semibold text-foreground">
                         {title}
                       </h2>
-                      {currentChapter && (
-                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                          {currentChapter.title}
-                        </p>
-                      )}
+                      <p className="truncate text-xs text-muted-foreground">
+                        <span className="font-semibold uppercase tracking-wide">{docFormat}</span>
+                        {currentChapter && <> · {currentChapter.title}</>}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -598,7 +608,7 @@ export function PdfReader() {
                         setIsEditing(true);
                       }}
                       aria-label="Editar título"
-                      className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <Pencil className="size-3.5" />
                     </button>
@@ -606,9 +616,26 @@ export function PdfReader() {
                 )}
               </div>
 
+              <div className="hidden md:flex shrink-0 items-center gap-2.5">
+                <div
+                  role="progressbar"
+                  aria-label="Progresso da leitura"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={readingPercent}
+                  className="h-1 w-28 lg:w-40 overflow-hidden rounded-full bg-secondary"
+                >
+                  <div
+                    className="h-full rounded-full bg-accent transition-[width] duration-300"
+                    style={{ width: `${readingPercent}%` }}
+                  />
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground">{readingPercent}% lido</span>
+              </div>
+
               {/* Se houver múltiplos capítulos, dropdown para pular */}
               {chapters.length > 1 && (
-                <div className="hidden sm:flex items-center gap-1.5">
+                <div className="hidden lg:flex items-center">
                   <select
                     aria-label="Selecionar capítulo"
                     value={currentChapter?.id || ""}
@@ -616,7 +643,7 @@ export function PdfReader() {
                       const selected = chapters.find((c) => c.id === e.target.value);
                       if (selected) player.jumpTo(selected.startIndex);
                     }}
-                    className="text-xs bg-secondary/80 border border-border rounded-xl px-2.5 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer max-w-[160px] truncate"
+                    className="h-10 max-w-[180px] cursor-pointer truncate rounded-full border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {chapters.map((chap) => (
                       <option key={chap.id} value={chap.id}>
@@ -627,18 +654,29 @@ export function PdfReader() {
                 </div>
               )}
 
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={reset}
                   data-cy="change-document-btn"
                   title="Trocar de documento"
-                  className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border bg-card/80 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                  className="flex h-10 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
                 >
-                  <X className="size-3.5" />
+                  <RefreshCw className="size-3.5" />
                   <span className="hidden xs:inline">Trocar Documento</span>
                   <span className="inline xs:hidden">Trocar</span>
                 </button>
+                {readerSettings.template !== "ai-study" && (
+                  <button
+                    type="button"
+                    onClick={() => patchSettings({ template: "ai-study" })}
+                    aria-label="Perguntar à IA sobre o documento"
+                    className="flex h-10 items-center gap-2 rounded-full bg-accent px-3 sm:px-4 text-sm font-semibold text-accent-foreground shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <Sparkles className="size-4" />
+                    <span className="hidden sm:inline">Perguntar à IA</span>
+                  </button>
+                )}
               </div>
             </div>
 

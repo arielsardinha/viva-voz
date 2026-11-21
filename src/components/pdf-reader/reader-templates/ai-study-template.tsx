@@ -14,7 +14,7 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Send,
+  ArrowUp,
   Sparkles,
 } from "lucide-react";
 import type { Sentence } from "@/lib/pdf-text";
@@ -212,7 +212,7 @@ export function AIStudyTemplate({
   return (
     <div
       ref={containerRef}
-      className={cn("flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-5 min-h-[calc(100vh-10rem)]", fontClass)}
+      className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-5 min-h-[calc(100vh-10rem)]"
       data-reading-theme={settings.theme}
     >
       {/* Diálogo Centralizado de Chave Gemini */}
@@ -241,12 +241,12 @@ export function AIStudyTemplate({
       />
 
       {/* Seletor de Abas Mobile (< lg) */}
-      <div className="flex lg:hidden items-center p-1 bg-secondary/80 rounded-2xl border border-border/60">
+      <div className="flex lg:hidden items-center p-1 bg-secondary rounded-full">
         <button
           type="button"
           onClick={() => setMobileTab("doc")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+            "flex-1 flex items-center justify-center gap-2 h-10 text-xs font-semibold rounded-full transition-all cursor-pointer",
             mobileTab === "doc"
               ? "bg-card text-foreground shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
@@ -260,7 +260,7 @@ export function AIStudyTemplate({
           type="button"
           onClick={() => setMobileTab("chat")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all relative cursor-pointer",
+            "flex-1 flex items-center justify-center gap-2 h-10 text-xs font-semibold rounded-full transition-all relative cursor-pointer",
             mobileTab === "chat"
               ? "bg-card text-accent shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
@@ -336,7 +336,7 @@ export function AIStudyTemplate({
                   ? "Pausar narração"
                   : "Ouvir narração"
               }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-xs hover:opacity-90 transition-transform active:scale-95 cursor-pointer"
             >
               {isBuffering ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -419,13 +419,13 @@ export function AIStudyTemplate({
         </div>
 
         {/* Visualizador de Texto */}
-        <div className="glass-panel flex-1 rounded-2xl sm:rounded-3xl p-4 sm:p-8 h-[calc(100vh-14rem)] overflow-y-auto shadow-xs border border-border/80">
+        <div className="reader-sheet flex-1 rounded-3xl px-5 py-6 sm:px-10 sm:py-10 h-[calc(100vh-14rem)] overflow-y-auto">
           <div
             style={{
               fontSize: `${settings.fontSize}px`,
               lineHeight: settings.lineHeight || 1.8,
             }}
-            className="text-foreground"
+            className={cn("mx-auto max-w-[68ch] text-foreground", fontClass)}
           >
             {sentences.map((sentence) => {
               const isActive = sentence.index === currentIndex;
@@ -436,10 +436,9 @@ export function AIStudyTemplate({
               return (
                 <span key={sentence.index}>
                   {showPageMark && (
-                    <span className="my-5 sm:my-6 flex items-center gap-3 text-[11px] sm:text-xs font-bold tracking-wider text-muted-foreground/70 uppercase">
-                      <span className="h-px flex-1 bg-border/80" />
-                      Pág. {sentence.page}
-                      <span className="h-px flex-1 bg-border/80" />
+                    <span className="my-6 sm:my-8 flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+                      <span>Pág. {sentence.page}</span>
+                      <span className="h-px flex-1 bg-border" />
                     </span>
                   )}
                   <button
@@ -447,8 +446,8 @@ export function AIStudyTemplate({
                     data-sentence-index={sentence.index}
                     onClick={() => onSelectSentence(sentence.index)}
                     className={cn(
-                      "cursor-pointer rounded px-0.5 sm:px-1 text-left break-words whitespace-normal transition-all duration-200 inline",
-                      isActive && "sentence-highlight-active font-medium text-foreground",
+                      "cursor-pointer rounded-[3px] px-0.5 text-left break-words whitespace-normal transition-colors duration-200 inline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive && "sentence-highlight-active text-foreground",
                       !isActive && isRead && "text-muted-foreground hover:bg-accent/10",
                       !isActive && !isRead && "text-foreground hover:bg-accent/10"
                     )}
@@ -470,19 +469,19 @@ export function AIStudyTemplate({
       {/* Painel Direito: Assistente de IA de Estudos (5 Colunas no Desktop) */}
       <div
         className={cn(
-          "lg:col-span-5 glass-panel flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] border border-border/80 shadow-md",
+          "lg:col-span-5 flex flex-col rounded-3xl overflow-hidden h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] border border-border bg-card shadow-[0_4px_18px_rgba(30,34,48,0.06)] font-sans",
           mobileTab !== "chat" && "hidden lg:flex"
         )}
       >
         {/* Header do Chat com IA */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border bg-card/60">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-accent/15 text-accent">
-              <Sparkles className="size-3.5 sm:size-4" />
+        <div className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 border-b border-border">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+              <Sparkles className="size-4" />
             </div>
-            <div>
-              <h3 className="text-xs font-bold text-foreground">AI Study Assistant</h3>
-              <p className="text-[10px] text-muted-foreground">Pergunte e analise o documento</p>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-foreground">Assistente de leitura</h3>
+              <p className="truncate text-xs text-muted-foreground">Pergunte sem sair da página</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -494,13 +493,15 @@ export function AIStudyTemplate({
         {/* Histórico de Mensagens */}
         <div
           ref={chatScrollRef}
-          className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 text-xs scroll-smooth"
+          className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 space-y-5 text-sm scroll-smooth"
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4 text-muted-foreground">
-              <BotMessageSquare className="size-10 text-accent/50 mb-2 stroke-1" />
-              <p className="font-semibold text-foreground text-sm">Pronto para tirar dúvidas</p>
-              <p className="text-xs max-w-xs mt-1">
+              <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                <BotMessageSquare className="size-6 stroke-[1.5]" />
+              </div>
+              <p className="font-semibold text-foreground text-base">Pronto para tirar dúvidas</p>
+              <p className="text-sm leading-relaxed max-w-xs mt-1">
                 Selecione qualquer trecho no texto para resumir, ou use as sugestões rápidas abaixo.
               </p>
             </div>
@@ -512,16 +513,16 @@ export function AIStudyTemplate({
                 <div
                   key={m.id}
                   className={cn(
-                    "flex flex-col gap-1 max-w-[92%] sm:max-w-[90%]",
-                    isUser ? "ml-auto items-end" : "mr-auto items-start"
+                    "flex flex-col gap-1.5",
+                    isUser ? "ml-auto max-w-[85%] items-end" : "mr-auto w-full items-start"
                   )}
                 >
                   <div
                     className={cn(
-                      "p-3 rounded-2xl leading-relaxed whitespace-pre-wrap",
+                      "leading-relaxed whitespace-pre-wrap",
                       isUser
-                        ? "bg-accent text-accent-foreground rounded-br-none shadow-xs"
-                        : "bg-secondary/90 text-secondary-foreground rounded-bl-none border border-border/80 shadow-xs"
+                        ? "rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground"
+                        : "text-[15px] leading-[1.65] text-foreground"
                     )}
                   >
                     {m.attachments && m.attachments.length > 0 && (
@@ -543,7 +544,7 @@ export function AIStudyTemplate({
                     )}
                     {m.content}
                   </div>
-                  <span className="text-[10px] text-muted-foreground px-1">
+                  <span className={cn("text-[11px] text-muted-foreground", isUser && "px-1")}>
                     {isUser
                       ? "Você"
                       : `VivaVoz AI - ${
@@ -561,29 +562,30 @@ export function AIStudyTemplate({
 
           {isLoadingAI && (
             <div className="flex items-center gap-2 text-muted-foreground text-xs p-2">
-              <span className="size-2 rounded-full bg-accent animate-ping" />
+              <span className="size-2 rounded-full bg-accent animate-ping motion-reduce:animate-none" />
               <span>Analisando o documento…</span>
             </div>
           )}
         </div>
 
         {/* Chips de Ações Rápidas */}
-        <div className="flex items-center gap-1.5 px-3 py-2 border-t border-border/60 bg-secondary/40 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 px-4 sm:px-5 pt-1 pb-3 overflow-x-auto no-scrollbar">
           {quickPrompts.map((q) => (
             <button
               key={q}
               type="button"
               onClick={() => handleSendPrompt(q)}
               disabled={isLoadingAI}
-              className="text-[10px] sm:text-[11px] font-medium px-2.5 py-1 rounded-full bg-card hover:bg-accent/15 hover:text-accent border border-border text-foreground/80 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-full bg-card hover:bg-accent/10 hover:text-accent border border-border text-foreground transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
             >
-              ✨ {q}
+              <Sparkles className="size-3.5 text-accent" aria-hidden="true" />
+              {q}
             </button>
           ))}
         </div>
 
         {/* Input de Pergunta */}
-        <div className="p-2.5 sm:p-3 border-t border-border bg-card/80 space-y-2">
+        <div className="mx-3 sm:mx-4 mb-3 sm:mb-4 rounded-2xl border border-input bg-card p-2.5 space-y-2 shadow-[0_4px_18px_rgba(30,34,48,0.06)] focus-within:ring-2 focus-within:ring-ring/40">
           <ChatMultimodalBar
             attachments={attachments}
             onAddAttachment={(att) => setAttachments((prev) => [...prev, att])}
@@ -617,20 +619,17 @@ export function AIStudyTemplate({
               }}
               placeholder="Pergunte sobre o documento..."
               aria-label="Perguntar sobre o documento PDF"
-              className="flex-1 min-h-[36px] max-h-24 resize-none rounded-xl border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent text-foreground"
+              className="flex-1 min-h-[40px] max-h-28 resize-none bg-transparent px-2 py-2 text-sm leading-relaxed focus:outline-none text-foreground placeholder:text-muted-foreground"
             />
             <button
               type="submit"
               disabled={(!input.trim() && attachments.length === 0) || isLoadingAI}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 shadow-xs cursor-pointer"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
               aria-label="Enviar pergunta sobre o documento"
             >
-              <Send className="size-4" aria-hidden="true" />
+              <ArrowUp className="size-5" aria-hidden="true" />
             </button>
           </form>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Motor de IA Híbrida VivaVoz (Nuvem, Gemini Nano & LiteRT-LM Local)
-          </p>
         </div>
       </div>
 

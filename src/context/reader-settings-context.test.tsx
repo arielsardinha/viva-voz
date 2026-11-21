@@ -65,8 +65,8 @@ describe("ReaderSettingsContext", () => {
 
     expect(screen.getByTestId("template")).toHaveTextContent("modern");
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
-    expect(screen.getByTestId("font")).toHaveTextContent("inter");
-    expect(screen.getByTestId("fontSize")).toHaveTextContent("16");
+    expect(screen.getByTestId("font")).toHaveTextContent("source-serif");
+    expect(screen.getByTestId("fontSize")).toHaveTextContent("19");
     expect(document.documentElement.getAttribute("data-reading-theme")).toBe("light");
     expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
@@ -178,6 +178,7 @@ describe("getFontFamilyClass", () => {
     expect(getFontFamilyClass("roboto")).toContain("font-roboto");
     expect(getFontFamilyClass("literata")).toContain("font-literata");
     expect(getFontFamilyClass("mono")).toContain("font-mono");
+    expect(getFontFamilyClass("source-serif")).toContain("font-source-serif");
     expect(getFontFamilyClass("inter")).toContain("font-inter");
     expect(getFontFamilyClass("sans")).toContain("font-inter");
   });

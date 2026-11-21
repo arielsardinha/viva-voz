@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 export type ReaderTemplateId = "modern" | "ai-study" | "zen";
 export type ReadingTheme = "light" | "sepia" | "dark";
 export type ReadingFont =
+  | "source-serif"
   | "inter"
   | "merriweather"
   | "lora"
@@ -23,6 +24,13 @@ export interface FontOption {
 }
 
 export const READING_FONTS: FontOption[] = [
+  {
+    id: "source-serif",
+    name: "Source Serif 4",
+    category: "Serifa de Leitura",
+    description: "Serifa calma e nítida, pensada para textos longos na tela",
+    fontClass: "font-source-serif",
+  },
   {
     id: "inter",
     name: "Inter",
@@ -71,6 +79,8 @@ export function getFontFamilyClass(font: ReadingFont): string {
       return "font-roboto font-sans";
     case "literata":
       return "font-literata font-serif";
+    case "source-serif":
+      return "font-source-serif font-serif";
     case "mono":
       return "font-mono";
     case "inter":
@@ -93,8 +103,8 @@ export interface ReaderSettings {
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   template: "modern",
   theme: "light",
-  font: "inter",
-  fontSize: 16,
+  font: "source-serif",
+  fontSize: 19,
   lineHeight: 1.8,
   speed: 1.0,
   hasCompletedOnboarding: false,
