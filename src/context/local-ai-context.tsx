@@ -29,7 +29,9 @@ import {
   downloadAndCacheModel,
   getCachedModelMeta,
   getStorageQuotaEstimate,
+  ModelStorageQuotaError,
 } from "@/lib/local-ai/storage/model-storage.service";
+import { logger } from "@/lib/monitoring/logger";
 import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
 import { getLocalChatEngine } from "@/lib/local-ai/engines/local-chat.engine";
 
@@ -311,7 +313,13 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
           toast.info(`Download de ${descriptor.shortName} cancelado.`);
         } else {
           const message =
-            "Não foi possível concluir o download do modelo. Verifique sua conexão e o espaço disponível.";
+            err instanceof ModelStorageQuotaError
+              ? err.message
+              : "Não foi possível concluir o download do modelo. Verifique sua conexão e o espaço disponível.";
+          logger.error(err, {
+            module: "ai_chat",
+            tags: { model_id: modelId, quota: err instanceof ModelStorageQuotaError },
+          });
           setModels((prev) => ({
             ...prev,
             [modelId]: {

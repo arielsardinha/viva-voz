@@ -8,6 +8,7 @@ import {
   getCachedModelMeta,
   getCachedModelStreamReader,
   getStorageQuotaEstimate,
+  ModelStorageQuotaError,
 } from "./model-storage.service";
 
 interface MockCacheEntry {
@@ -193,5 +194,66 @@ describe("model-storage.service", () => {
     });
     const quota = await getStorageQuotaEstimate();
     expect(quota).toEqual({ usageBytes: 1000, quotaBytes: 50000 });
+  });
+
+  describe("espaço de armazenamento", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "storage", { value: undefined, configurable: true });
+    });
+
+    it("deve apagar o cache antigo do app (vivavoz-app-v1) que guardava cópias do modelo", async () => {
+      const { stores } = installMockCacheStorage();
+      stores.set("vivavoz-app-v1", new Map());
+      globalThis.fetch = jest.fn(async () =>
+        new Response(new Uint8Array([1, 2]), {
+          status: 200,
+          headers: { "Content-Length": "2" },
+        }),
+      ) as unknown as typeof fetch;
+
+      await downloadAndCacheModel(getLocalModelById("kokoro-82m-tts")!, { hasWebGpu: true });
+
+      expect(stores.has("vivavoz-app-v1")).toBe(false);
+    });
+
+    it("deve falhar antes de baixar quando não houver espaço suficiente", async () => {
+      Object.defineProperty(navigator, "storage", {
+        value: {
+          estimate: jest.fn().mockResolvedValue({ usage: 0, quota: 500 * 1024 * 1024 }),
+        },
+        configurable: true,
+      });
+      const fetchMock = jest.fn();
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      await expect(
+        downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, { hasWebGpu: true }),
+      ).rejects.toBeInstanceOf(ModelStorageQuotaError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("não deve repetir o bloco quando a Cache API estourar a cota", async () => {
+      const { mockCaches } = installMockCacheStorage();
+      const originalOpen = mockCaches.open;
+      (mockCaches as { open: unknown }).open = jest.fn(async (name: string) => {
+        const cache = await originalOpen(name);
+        cache.put = jest.fn(async () => {
+          throw new DOMException("Quota exceeded", "QuotaExceededError");
+        });
+        return cache;
+      });
+      const fetchMock = jest.fn(async () =>
+        new Response(new Uint8Array([1, 2, 3, 4]), {
+          status: 206,
+          headers: { "Content-Range": "bytes 0-3/4", "Content-Length": "4" },
+        }),
+      );
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      await expect(
+        downloadAndCacheModel(getLocalModelById("kokoro-82m-tts")!, { hasWebGpu: true }),
+      ).rejects.toBeInstanceOf(ModelStorageQuotaError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 });
