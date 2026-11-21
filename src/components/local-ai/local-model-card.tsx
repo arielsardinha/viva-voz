@@ -35,7 +35,6 @@ interface LocalModelCardProps {
   state: LocalModelState;
   runtimeSupport: LocalModelRuntimeSupport;
   isHighlighted?: boolean;
-  compact?: boolean;
   onDownload: (id: LocalModelId) => void;
   onCancel: (id: LocalModelId) => void;
   onDelete: (id: LocalModelId) => void;
@@ -120,7 +119,6 @@ export function LocalModelCard({
   state,
   runtimeSupport,
   isHighlighted = false,
-  compact = false,
   onDownload,
   onCancel,
   onDelete,
@@ -140,7 +138,7 @@ export function LocalModelCard({
       data-model-id={descriptor.id}
       className={cn(
         "glass-panel rounded-2xl border bg-card/85 shadow-xs transition-all flex flex-col justify-between gap-3",
-        compact ? "p-3.5" : "p-4 sm:p-5",
+        "p-4 sm:p-5",
         isHighlighted
           ? "border-accent ring-2 ring-accent/30"
           : "border-border/80",
@@ -186,19 +184,17 @@ export function LocalModelCard({
           </Badge>
         </div>
 
-        {!compact && (
-          <ul className="space-y-1 pt-1 text-[11px] text-muted-foreground">
-            {descriptor.highlights.map((item) => (
-              <li key={item} className="flex items-start gap-1.5">
-                <Cpu
-                  className="size-3 text-accent shrink-0 mt-0.5"
-                  aria-hidden="true"
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul className="space-y-1 pt-1 text-[11px] text-muted-foreground">
+          {descriptor.highlights.map((item) => (
+            <li key={item} className="flex items-start gap-1.5">
+              <Cpu
+                className="size-3 text-accent shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
 
         {needsWebGpuWarning && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">

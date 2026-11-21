@@ -11,6 +11,10 @@ import { AIStudyTemplate } from "./reader-templates/ai-study-template";
 import * as storageService from "@/lib/local-ai/storage/model-storage.service";
 import type { ReaderSettings } from "./ui/template-switcher";
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
+
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));

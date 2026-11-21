@@ -56,6 +56,15 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
   },
 ] as const;
 
+/** Central única de gestão dos modelos locais (substituiu o antigo menu lateral). */
+export const LOCAL_MODELS_PAGE_PATH = "/modelos";
+
+/** URL da central `/modelos`; com `modelId`, o card correspondente aparece destacado. */
+export function buildModelsPageHref(modelId?: LocalModelId | null): string {
+  if (!modelId) return LOCAL_MODELS_PAGE_PATH;
+  return `${LOCAL_MODELS_PAGE_PATH}?model=${encodeURIComponent(modelId)}`;
+}
+
 export function getLocalModelById(
   id: LocalModelId,
 ): LocalModelDescriptor | undefined {

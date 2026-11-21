@@ -35,7 +35,7 @@ export function TtsEngineMenuItems({
   onSelectEngine,
   onOpenGeminiDialog,
 }: TtsEngineMenuItemsProps) {
-  const { models, openDrawer } = useLocalAi();
+  const { models, openModelsPage } = useLocalAi();
   const kokoroState = models["kokoro-82m-tts"];
 
   const renderLiteRtBadge = () => {
@@ -95,7 +95,7 @@ export function TtsEngineMenuItems({
       <DropdownMenuSeparator className="my-1.5" />
       <DropdownMenuItem
         data-cy="tts-menu-open-local-models"
-        onClick={() => openDrawer("kokoro-82m-tts")}
+        onClick={() => openModelsPage("kokoro-82m-tts")}
         className="cursor-pointer text-xs flex items-center gap-1.5 text-foreground font-medium"
       >
         <DownloadCloud className="size-3.5 text-accent" aria-hidden="true" />

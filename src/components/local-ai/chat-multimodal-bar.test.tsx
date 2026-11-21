@@ -11,14 +11,14 @@ let mockPref: "auto" | "cloud" | "gemini-nano" | "litert-lm" = "auto";
 const mockSetPref = jest.fn((next: typeof mockPref) => {
   mockPref = next;
 });
-const mockOpenDrawer = jest.fn();
+const mockOpenModelsPage = jest.fn();
 
 jest.mock("@/context/local-ai-context", () => ({
   useLocalAi: () => ({
     preferredChatEngine: mockPref,
     setPreferredChatEngine: mockSetPref,
     isModelReady: (id: string) => id === "gemma-4-e2b-chat" && mockGemmaReady,
-    openDrawer: mockOpenDrawer,
+    openModelsPage: mockOpenModelsPage,
   }),
 }));
 
@@ -29,7 +29,7 @@ describe("ChatMultimodalBar", () => {
     mockPref = "auto";
   });
 
-  it("deve abrir o menu lateral de Gemma 4 ao tentar selecionar Gemma 4 Local sem o modelo baixado", async () => {
+  it("deve abrir a central /modelos do Gemma 4 ao tentar selecionar Gemma 4 Local sem o modelo baixado", async () => {
     render(
       <ChatMultimodalBar
         attachments={[]}
@@ -49,7 +49,7 @@ describe("ChatMultimodalBar", () => {
     });
     fireEvent.click(gemmaItem);
 
-    expect(mockOpenDrawer).toHaveBeenCalledWith("gemma-4-e2b-chat");
+    expect(mockOpenModelsPage).toHaveBeenCalledWith("gemma-4-e2b-chat");
     expect(mockSetPref).not.toHaveBeenCalled();
   });
 
