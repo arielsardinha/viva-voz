@@ -363,4 +363,48 @@ describe("model-storage.service", () => {
       expect((await getCachedModelMeta("gemma-4-e2b-chat")).cached).toBe(false);
     });
   });
+
+  describe("troca de versão do arquivo do modelo", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "storage", { value: undefined, configurable: true });
+    });
+
+    it("não retoma blocos de outro arquivo e substitui a versão completa anterior", async () => {
+      const cache = await caches.open("vivavoz-local-ai-models-v1");
+      const key = "https://local-models.vivavoz.internal/models/gemma-4-e2b-chat";
+      // Versão antiga completa + um bloco órfão do arquivo antigo (sem origem).
+      await cache.put(key, new Response("{}", { headers: { "X-VivaVoz-Chunk-Count": "1" } }));
+      await cache.put(
+        `${key}/part-0`,
+        new Response(new Uint8Array([9, 9, 9, 9]), {
+          headers: { "X-VivaVoz-Total-Bytes": "2008432640" },
+        }),
+      );
+
+      const ranges: string[] = [];
+      globalThis.fetch = jest.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+        ranges.push(new Headers(init?.headers).get("Range") ?? "");
+        return new Response(new Uint8Array([1, 2, 3, 4]), {
+          status: 206,
+          headers: { "Content-Range": "bytes 0-3/4", "Content-Length": "4" },
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await downloadAndCacheModel(getLocalModelById("gemma-4-e2b-chat")!, {
+        hasWebGpu: true,
+      });
+
+      // Recomeçou do bloco 0 em vez de "retomar" o arquivo antigo.
+      expect(ranges[0]).toBe(`bytes=0-${32 * 1024 * 1024 - 1}`);
+      expect(result.sizeBytes).toBe(4);
+      const reader = await getCachedModelStreamReader("gemma-4-e2b-chat");
+      const bytes: number[] = [];
+      for (let r = await reader!.read(); !r.done; r = await reader!.read()) {
+        bytes.push(...r.value);
+      }
+      expect(bytes).toEqual([1, 2, 3, 4]);
+      const meta = await getCachedModelMeta("gemma-4-e2b-chat");
+      expect(meta.sourceUrl).toContain("gemma-4-E2B-it-gpu.litertlm");
+    });
+  });
 });

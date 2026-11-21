@@ -97,15 +97,18 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     category: "chat",
     description:
       "Modelo multimodal LiteRT-LM para conversar sobre documentos localmente no navegador com suporte a texto, imagens e áudios via WebGPU.",
-    fileName: "gemma-4-E2B-it-web.litertlm",
+    // Arquivo recomendado pelo LiteRT-LM.js para a web ("otimizado para as
+    // restrições de memória da web"). `-web.litertlm` é o nome antigo dele.
+    fileName: "gemma-4-E2B-it-gpu.litertlm",
     downloadUrl:
-      "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.litertlm",
-    sizeBytes: 2_008_432_640,
+      "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-gpu.litertlm",
+    sizeBytes: 2_340_870_772,
     requiresWebGpu: true,
     inputModalities: ["text", "image", "audio"],
     outputModality: "text",
-    license: "Gemma Terms of Use",
-    estimatedRamMb: 2600,
+    license: "Apache-2.0",
+    // Benchmark oficial na web (WebGPU, MacBook M4): ~1800 MB de memória de GPU.
+    estimatedRamMb: 1800,
     highlights: [
       "Entrada multimodal: texto, imagens e áudios → texto",
       "Processamento privado 100% local via @litert-lm/core",

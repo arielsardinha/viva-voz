@@ -168,3 +168,71 @@ export async function reportLocalAiFailure(
     // ignore
   }
 }
+
+/**
+ * Sentinela de travamento: quando o navegador mata a aba (falta de memória no
+ * iOS, por exemplo) nenhum JS roda e nada chega ao Sentry. Antes de uma etapa
+ * pesada gravamos um marcador; se a aba morrer, o próximo carregamento encontra
+ * o marcador e reporta em qual etapa ela caiu.
+ */
+const CRASH_SENTINEL_KEY = "vivavoz-local-ai-risky-stage";
+
+interface RiskyStageMarker {
+  stage: string;
+  at: number;
+  attrs: Record<string, string | number | boolean>;
+}
+
+export function markRiskyStage(stage: string, attrs: Attributes = {}): void {
+  try {
+    const marker: RiskyStageMarker = { stage, at: Date.now(), attrs: clean(attrs) };
+    window.localStorage.setItem(CRASH_SENTINEL_KEY, JSON.stringify(marker));
+  } catch {
+    // ignore
+  }
+  traceLocalAi(`etapa iniciada: ${stage}`, attrs);
+}
+
+export function clearRiskyStage(): void {
+  try {
+    window.localStorage.removeItem(CRASH_SENTINEL_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Chamar uma vez ao carregar o app. Reporta a etapa em que a aba anterior morreu. */
+export async function reportPreviousTabCrash(): Promise<void> {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(CRASH_SENTINEL_KEY);
+    window.localStorage.removeItem(CRASH_SENTINEL_KEY);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  try {
+    const marker = JSON.parse(raw) as RiskyStageMarker;
+    const device = await collectDeviceContext();
+    const err = new LocalAiError(`Aba encerrada pelo navegador durante ${marker.stage}`);
+    Sentry.captureException(err, {
+      level: "fatal",
+      tags: {
+        module: "local_ai",
+        local_ai_stage: marker.stage,
+        local_ai_error: "TabCrash",
+        local_ai_model: String(marker.attrs.modelId ?? "unknown"),
+      },
+      contexts: {
+        local_ai_details: {
+          ...marker.attrs,
+          secondsSinceMarker: Math.round((Date.now() - marker.at) / 1000),
+        },
+        local_ai_device: device,
+      },
+      fingerprint: ["local-ai", "tab-crash", marker.stage],
+    });
+  } catch {
+    // ignore
+  }
+}

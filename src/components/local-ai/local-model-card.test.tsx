@@ -121,4 +121,30 @@ describe("LocalModelCard", () => {
 
     expect(screen.getByText(/requer navegador com WebGPU ativo/i)).toBeInTheDocument();
   });
+
+  it("deve sugerir atualização quando o modelo no cache for uma versão antiga", () => {
+    const onDownload = jest.fn();
+    render(
+      <LocalModelCard
+        descriptor={gemma}
+        state={{
+          ...baseState,
+          id: "gemma-4-e2b-chat",
+          status: "ready",
+          totalBytes: 2_008_432_640,
+          progressPercent: 100,
+          cachedSizeBytes: 2_008_432_640,
+          outdated: true,
+        }}
+        runtimeSupport={runtimeOk}
+        onDownload={onDownload}
+        onCancel={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/versão mais nova deste modelo/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /atualizar/i }));
+    expect(onDownload).toHaveBeenCalledWith("gemma-4-e2b-chat");
+  });
 });

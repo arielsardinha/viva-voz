@@ -131,14 +131,15 @@ describe("LocalChatEngine", () => {
     );
     expect(mockEngineInstance.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
-        preface: {
+        preface: expect.objectContaining({
           messages: [
             expect.objectContaining({
               role: "system",
               content: expect.stringContaining("relatorio.pdf"),
             }),
           ],
-        },
+        }),
+        sessionConfig: { maxOutputTokens: 1024 },
       }),
     );
     expect(Array.isArray(sentMessages[0]?.content)).toBe(true);

@@ -69,6 +69,11 @@ export interface LocalModelState {
   errorMessage: string | null;
   cachedAt: number | null;
   cachedSizeBytes: number;
+  /**
+   * O arquivo no cache veio de outra URL que a atual do catálogo (ex.: o antigo
+   * `gemma-4-E2B-it-web.litertlm`). Continua funcionando; a UI sugere atualizar.
+   */
+  outdated?: boolean;
 }
 
 export interface ModelDownloadProgress {

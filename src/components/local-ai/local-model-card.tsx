@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Loader2,
   Play,
+  RefreshCw,
   Trash2,
   Type,
   AlertTriangle,
@@ -242,6 +243,16 @@ export function LocalModelCard({
           </div>
         )}
 
+        {state.status === "ready" && state.outdated && (
+          <p
+            data-cy={`model-outdated-${descriptor.id}`}
+            className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-800 dark:text-sky-200"
+          >
+            Há uma versão mais nova deste modelo, otimizada para rodar no
+            navegador com menos memória. A versão atual continua funcionando.
+          </p>
+        )}
+
         {state.status === "error" && state.errorMessage && (
           <p
             role="alert"
@@ -288,6 +299,19 @@ export function LocalModelCard({
 
         {state.status === "ready" && (
           <>
+            {state.outdated && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                data-cy={`update-model-${descriptor.id}`}
+                onClick={() => onDownload(descriptor.id)}
+                className="min-h-9 text-xs font-semibold gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className="size-3.5" aria-hidden="true" />
+                <span>Atualizar ({formatBytes(descriptor.sizeBytes)})</span>
+              </Button>
+            )}
             {onActivate && (
               <Button
                 type="button"

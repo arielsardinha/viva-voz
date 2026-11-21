@@ -78,7 +78,7 @@ describe("Integração Chat Multimodal Local (Gemma 4 E2B / LiteRT-LM)", () => {
     });
     mockedStorage.getCachedModelMeta.mockImplementation(async (id) => ({
       cached: id === "gemma-4-e2b-chat",
-      sizeBytes: id === "gemma-4-e2b-chat" ? 2_008_432_640 : 0,
+      sizeBytes: id === "gemma-4-e2b-chat" ? 2_340_870_772 : 0,
       cachedAt: id === "gemma-4-e2b-chat" ? Date.now() : null,
       sourceUrl: null,
     }));
