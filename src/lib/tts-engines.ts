@@ -8,7 +8,7 @@ export interface VoiceOption {
 
 export const TTS_ENGINES: { id: TtsEngine; label: string; hint: string }[] = [
   { id: "system", label: "Sistema (grátis)", hint: "Vozes do navegador/sistema operacional" },
-  { id: "litert", label: "IA Local (Offline)", hint: "Kokoro 82M — voz neural no dispositivo" },
+  { id: "litert", label: "IA Local (Offline)", hint: "Kokoro 82M e Piper — vozes neurais no dispositivo" },
   { id: "google", label: "Google (IA)", hint: "Gemini TTS — melhor qualidade" },
 ];
 
@@ -24,6 +24,7 @@ export const LITERT_VOICES: VoiceOption[] = [
   { id: "pf_dora", label: "Dora (PT-BR · Feminina)" },
   { id: "pm_alex", label: "Alex (PT-BR · Masculina)" },
   { id: "pm_santa", label: "Santa (PT-BR · Grave)" },
+  { id: "piper:pt_BR-cadu-medium", label: "Cadu (PT-BR · Masculina · Piper)" },
   { id: "af_heart", label: "Heart (EN-US · Feminina)" },
   { id: "am_michael", label: "Michael (EN-US · Masculina)" },
 ];

@@ -5,7 +5,7 @@ import { LocalModelsView } from "@/components/local-ai/local-models-view";
 export const metadata: Metadata = {
   title: "Modelos de IA Local (Offline) | VivaVoz",
   description:
-    "Baixe e gerencie modelos de voz neural (Kokoro 82M) e chat multimodal (Gemma 4 E2B) para usar o VivaVoz 100% offline no navegador.",
+    "Baixe e gerencie modelos de voz neural (Kokoro 82M e Piper Cadu) e chat multimodal (Gemma 4 E2B) para usar o VivaVoz 100% offline no navegador.",
   openGraph: {
     title: "Modelos de IA Local — VivaVoz",
     description:

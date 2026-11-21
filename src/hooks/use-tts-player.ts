@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import type { Sentence } from "@/lib/pdf-text";
 import type { TtsEngine } from "@/lib/tts-engines";
 import { LocalModelNotDownloadedError } from "@/lib/local-ai/domain/local-model.types";
-import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
+import { getLocalModelById, isPiperVoiceId } from "@/lib/local-ai/domain/local-model-catalog";
+import {
+  cancelAllLocalTts,
+  getLocalTtsEngineForVoice,
+} from "@/lib/local-ai/engines/local-tts.router";
 import {
   TTS_FALLBACK_HEADER,
   TTS_MODEL_HEADER,
@@ -199,6 +203,13 @@ function configureGoogleAudioElement(params: AttachAudioParams): void {
   };
 }
 
+/** Modelo local (Kokoro ou Piper) exibido no indicador para a voz escolhida. */
+function getLocalTtsModelInfo(voiceId: string): ActiveTtsModelInfo {
+  return isPiperVoiceId(voiceId)
+    ? { id: "piper-cadu", label: "Piper · Cadu (Offline)", shortLabel: "Piper Local", isFallback: false }
+    : { id: "kokoro-82m", label: "Kokoro 82M (Offline)", shortLabel: "Kokoro Local", isFallback: false };
+}
+
 export function useTtsPlayer({
   sentences,
   engine,
@@ -266,7 +277,7 @@ export function useTtsPlayer({
   const stopAll = useCallback(() => {
     audioRef.current?.pause();
     if (engine === "litert") {
-      getLocalTtsEngine().cancel();
+      cancelAllLocalTts();
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -302,18 +313,14 @@ export function useTtsPlayer({
       const promise = (async () => {
         try {
           if (targetEngine === "litert") {
-            const { blob } = await getLocalTtsEngine().synthesizeToWavBlob(
+            const localVoice = targetVoice || "pf_dora";
+            const { blob } = await getLocalTtsEngineForVoice(localVoice).synthesizeToWavBlob(
               block.text,
-              targetVoice || "pf_dora",
+              localVoice,
             );
             const entry: CachedBlockAudio = {
               url: URL.createObjectURL(blob),
-              model: {
-                id: "kokoro-82m",
-                label: "Kokoro 82M (Offline)",
-                shortLabel: "Kokoro Local",
-                isFallback: false,
-              },
+              model: getLocalTtsModelInfo(localVoice),
             };
             cacheRef.current.set(cacheKey, entry);
             return entry;
@@ -507,9 +514,10 @@ export function useTtsPlayer({
         const message =
           error instanceof Error ? error.message : "Não foi possível narrar este trecho.";
         if (error instanceof LocalModelNotDownloadedError) {
+          const missing = getLocalModelById(error.modelId)?.shortName ?? "Kokoro 82M";
           onEngineUnavailable?.(
             "litert",
-            "Baixe o modelo Kokoro 82M para narrar offline com IA Local.",
+            `Baixe o modelo ${missing} para narrar offline com IA Local.`,
           );
         } else if (error instanceof TtsHttpError && [402, 403, 404, 429].includes(error.status)) {
           onEngineUnavailable?.(engine, message);
@@ -629,7 +637,8 @@ export function useTtsPlayer({
     currentIndex,
     isPlaying,
     isBuffering,
-    activeTtsModel,
+    // Na IA local o modelo é definido pela voz: mostra o certo antes do primeiro play.
+    activeTtsModel: engine === "litert" ? getLocalTtsModelInfo(voice || "pf_dora") : activeTtsModel,
     activeBlockRange,
     play,
     pause,

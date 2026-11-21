@@ -33,6 +33,35 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     ],
   },
   {
+    id: "piper-cadu-tts",
+    name: "Piper · Voz Cadu (PT-BR)",
+    shortName: "Piper Cadu",
+    category: "tts",
+    description:
+      "Voz masculina brasileira (Cadu) do Piper, leve e 100% offline, executada via ONNX Runtime Web (WASM) dentro de um Web Worker.",
+    fileName: "pt_BR-cadu-medium.onnx",
+    downloadUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/cadu/medium/pt_BR-cadu-medium.onnx",
+    sizeBytes: 63_221_984,
+    requiresWebGpu: false,
+    inputModalities: ["text"],
+    outputModality: "audio",
+    license: "CC0-1.0",
+    estimatedRamMb: 250,
+    highlights: [
+      "Voz masculina natural em Português do Brasil",
+      "Download leve (~60 MB) e funciona offline",
+      "Roda em CPU (WASM), inclusive em celulares sem WebGPU",
+    ],
+    piper: {
+      espeakVoice: "pt-br",
+      sampleRateHz: 22050,
+      noiseScale: 0.5,
+      lengthScale: 1.0,
+      noiseW: 0.333,
+    },
+  },
+  {
     id: "gemma-4-e2b-chat",
     name: "Gemma 4 E2B Multimodal (Chat Local)",
     shortName: "Gemma 4 E2B",
@@ -109,30 +138,48 @@ export function estimateEtaSeconds(
 }
 
 export function createInitialModelStates(): Record<LocalModelId, LocalModelState> {
-  const kokoro = getLocalModelById("kokoro-82m-tts")!;
-  const gemma = getLocalModelById("gemma-4-e2b-chat")!;
-  return {
-    "kokoro-82m-tts": {
-      id: "kokoro-82m-tts",
+  const states = {} as Record<LocalModelId, LocalModelState>;
+  for (const model of LOCAL_AI_MODELS) {
+    states[model.id] = {
+      id: model.id,
       status: "not_downloaded",
       downloadedBytes: 0,
-      totalBytes: kokoro.sizeBytes,
+      totalBytes: model.sizeBytes,
       progressPercent: 0,
       speedBytesPerSec: 0,
       errorMessage: null,
       cachedAt: null,
       cachedSizeBytes: 0,
-    },
-    "gemma-4-e2b-chat": {
-      id: "gemma-4-e2b-chat",
-      status: "not_downloaded",
-      downloadedBytes: 0,
-      totalBytes: gemma.sizeBytes,
-      progressPercent: 0,
-      speedBytesPerSec: 0,
-      errorMessage: null,
-      cachedAt: null,
-      cachedSizeBytes: 0,
-    },
-  };
+    };
+  }
+  return states;
+}
+
+/** Modelos de voz (TTS) locais, na ordem em que aparecem no catálogo. */
+export const LOCAL_TTS_MODEL_IDS: readonly LocalModelId[] = LOCAL_AI_MODELS.filter(
+  (model) => model.category === "tts",
+).map((model) => model.id);
+
+/** Prefixo dos ids de voz do Piper (ex.: `piper:pt_BR-cadu-medium`). */
+export const PIPER_VOICE_PREFIX = "piper:";
+
+const PIPER_VOICE_MODELS: Readonly<Record<string, LocalModelId>> = {
+  "piper:pt_BR-cadu-medium": "piper-cadu-tts",
+};
+
+export function isPiperVoiceId(voiceId: string | null | undefined): boolean {
+  return !!voiceId && voiceId.startsWith(PIPER_VOICE_PREFIX);
+}
+
+/** Modelo local que precisa estar baixado para narrar com a voz informada. */
+export function resolveLocalTtsModelId(voiceId: string | null | undefined): LocalModelId {
+  if (voiceId && PIPER_VOICE_MODELS[voiceId]) return PIPER_VOICE_MODELS[voiceId];
+  return "kokoro-82m-tts";
+}
+
+/** Voz padrão de cada modelo de TTS local (usada ao ativar o modelo). */
+export function getDefaultVoiceForLocalModel(modelId: LocalModelId): string | null {
+  if (modelId === "kokoro-82m-tts") return "pf_dora";
+  const entry = Object.entries(PIPER_VOICE_MODELS).find(([, id]) => id === modelId);
+  return entry ? entry[0] : null;
 }

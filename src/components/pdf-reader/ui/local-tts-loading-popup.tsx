@@ -12,6 +12,7 @@ import {
   type LocalTtsLoadState,
 } from "@/lib/local-ai/domain/local-tts-load-state";
 import { getLocalTtsEngine } from "@/lib/local-ai/engines/local-tts.engine";
+import { getPiperTtsEngine } from "@/lib/local-ai/engines/local-tts.router";
 import { cn } from "@/lib/utils";
 
 /** Quanto tempo a confirmação "Voz local pronta" fica visível. */
@@ -48,7 +49,7 @@ interface LocalTtsLoadingPopupViewProps {
 }
 
 /**
- * Popup flutuante que mostra o carregamento inicial do Kokoro local. Só a etapa
+ * Popup flutuante que mostra o carregamento inicial da voz local (Kokoro ou Piper). Só a etapa
  * de leitura do modelo tem porcentagem real; as demais exibem uma barra
  * indeterminada e o tempo decorrido, para deixar claro que nada travou.
  */
@@ -222,7 +223,10 @@ export function LocalTtsLoadingPopup() {
       state={state}
       showReady={showReady}
       now={now}
-      onDismissError={() => getLocalTtsEngine().dismissLoadError()}
+      onDismissError={() => {
+        getLocalTtsEngine().dismissLoadError();
+        getPiperTtsEngine().dismissLoadError();
+      }}
     />
   );
 }

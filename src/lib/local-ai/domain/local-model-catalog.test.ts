@@ -9,6 +9,10 @@ import {
   formatSpeed,
   getLocalModelById,
   resolveModelDownloadUrl,
+  LOCAL_TTS_MODEL_IDS,
+  getDefaultVoiceForLocalModel,
+  isPiperVoiceId,
+  resolveLocalTtsModelId,
 } from "./local-model-catalog";
 
 describe("local-model-catalog", () => {
@@ -24,9 +28,22 @@ describe("local-model-catalog", () => {
     );
   });
 
-  it("deve definir os dois modelos esperados (Kokoro 82M TTS e Gemma 4 E2B Chat)", () => {
+  it("deve definir os modelos esperados (Kokoro 82M, Piper Cadu e Gemma 4 E2B)", () => {
     expect(LOCAL_AI_CACHE_NAME).toBe("vivavoz-local-ai-models-v1");
-    expect(LOCAL_AI_MODELS).toHaveLength(2);
+    expect(LOCAL_AI_MODELS).toHaveLength(3);
+
+    const cadu = getLocalModelById("piper-cadu-tts");
+    expect(cadu?.category).toBe("tts");
+    expect(cadu?.sizeBytes).toBe(63_221_984);
+    expect(cadu?.license).toBe("CC0-1.0");
+    expect(cadu?.downloadUrl).toContain("pt_BR-cadu-medium.onnx");
+    expect(cadu?.piper).toEqual({
+      espeakVoice: "pt-br",
+      sampleRateHz: 22050,
+      noiseScale: 0.5,
+      lengthScale: 1.0,
+      noiseW: 0.333,
+    });
 
     const kokoro = getLocalModelById("kokoro-82m-tts");
     expect(kokoro).toBeDefined();
@@ -76,5 +93,19 @@ describe("local-model-catalog", () => {
     expect(initial["kokoro-82m-tts"].progressPercent).toBe(0);
     expect(initial["gemma-4-e2b-chat"].status).toBe("not_downloaded");
     expect(initial["gemma-4-e2b-chat"].totalBytes).toBe(2_008_432_640);
+  });
+
+  it("deve mapear cada voz local para o modelo que precisa estar baixado", () => {
+    expect(LOCAL_TTS_MODEL_IDS).toEqual(["kokoro-82m-tts", "piper-cadu-tts"]);
+    expect(isPiperVoiceId("piper:pt_BR-cadu-medium")).toBe(true);
+    expect(isPiperVoiceId("pf_dora")).toBe(false);
+    expect(isPiperVoiceId(undefined)).toBe(false);
+    expect(resolveLocalTtsModelId("piper:pt_BR-cadu-medium")).toBe("piper-cadu-tts");
+    expect(resolveLocalTtsModelId("pm_alex")).toBe("kokoro-82m-tts");
+    expect(resolveLocalTtsModelId("")).toBe("kokoro-82m-tts");
+    expect(getDefaultVoiceForLocalModel("kokoro-82m-tts")).toBe("pf_dora");
+    expect(getDefaultVoiceForLocalModel("piper-cadu-tts")).toBe("piper:pt_BR-cadu-medium");
+    expect(getDefaultVoiceForLocalModel("gemma-4-e2b-chat")).toBeNull();
+    expect(createInitialModelStates()["piper-cadu-tts"].totalBytes).toBe(63_221_984);
   });
 });

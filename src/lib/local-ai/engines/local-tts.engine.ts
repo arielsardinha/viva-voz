@@ -14,12 +14,20 @@ import {
   type LocalTtsWorkerResponse,
   type SerializedLocalTtsError,
 } from "./local-tts.protocol";
-import type { LocalTtsRuntime } from "./local-tts.runtime";
+import type { LocalTtsWavResult } from "./local-tts.runtime";
 
 export { MEDIAPIPE_AUDIO_WASM_URL } from "./local-tts.runtime";
 
 const DEFAULT_VOICE_ID = "pf_dora";
 const DEFAULT_SAMPLE_RATE_HZ = 24000;
+
+/** Contrato comum dos runtimes de TTS local (Kokoro/MediaPipe e Piper/ONNX). */
+export interface LocalTtsRuntimeLike {
+  synthesizeToWav(text: string, voiceId?: string): Promise<LocalTtsWavResult>;
+  warmup(voiceId?: string): Promise<void>;
+  cancel(): void;
+  dispose(): void;
+}
 
 /** Subconjunto de `Worker` usado pelo engine (facilita testes com fakes). */
 export interface LocalTtsWorkerLike {
@@ -38,7 +46,9 @@ export interface LocalTtsEngineOptions {
   /** Cria o runtime de fallback na thread principal. */
   createMainThreadRuntime?: (
     onProgress: (event: LocalTtsProgressEvent) => void,
-  ) => Promise<LocalTtsRuntime>;
+  ) => Promise<LocalTtsRuntimeLike>;
+  /** Voz usada quando nenhuma é informada (Kokoro: `pf_dora`). */
+  defaultVoiceId?: string;
 }
 
 interface PendingSynthesis {
@@ -55,7 +65,7 @@ const defaultCreateWorker = async (): Promise<LocalTtsWorkerLike | null> => {
 
 const defaultCreateMainThreadRuntime = async (
   onProgress: (event: LocalTtsProgressEvent) => void,
-): Promise<LocalTtsRuntime> => {
+): Promise<LocalTtsRuntimeLike> => {
   const { LocalTtsRuntime } = await import("./local-tts.runtime");
   return new LocalTtsRuntime({ onProgress });
 };
@@ -75,7 +85,7 @@ export class LocalTtsEngine {
   private readonly listeners = new Set<() => void>();
   private worker: LocalTtsWorkerLike | null = null;
   private workerPromise: Promise<LocalTtsWorkerLike | null> | null = null;
-  private mainThreadRuntime: Promise<LocalTtsRuntime> | null = null;
+  private mainThreadRuntime: Promise<LocalTtsRuntimeLike> | null = null;
   private useMainThread = false;
   /** Última etapa (sem erro) reportada pelo worker atual. */
   private workerPhase: LocalTtsLoadPhase = "idle";
@@ -86,7 +96,10 @@ export class LocalTtsEngine {
     LocalTtsEngineOptions["createMainThreadRuntime"]
   >;
 
+  private readonly defaultVoiceId: string;
+
   constructor(options: LocalTtsEngineOptions = {}) {
+    this.defaultVoiceId = options.defaultVoiceId ?? DEFAULT_VOICE_ID;
     this.createWorker = options.createWorker ?? defaultCreateWorker;
     this.createMainThreadRuntime =
       options.createMainThreadRuntime ?? defaultCreateMainThreadRuntime;
@@ -223,7 +236,7 @@ export class LocalTtsEngine {
     if (retry.length === 0 && isLocalTtsLoading(this.state)) {
       // Era só um warmup: refaz na thread principal para o progresso não travar.
       void this.getMainThreadRuntime()
-        .then((runtime) => runtime.warmup())
+        .then((runtime) => runtime.warmup(this.defaultVoiceId))
         .catch(() => undefined);
     }
     for (const request of retry) {
@@ -236,7 +249,7 @@ export class LocalTtsEngine {
 
   // ---- Thread principal (fallback) ----
 
-  private getMainThreadRuntime(): Promise<LocalTtsRuntime> {
+  private getMainThreadRuntime(): Promise<LocalTtsRuntimeLike> {
     if (!this.mainThreadRuntime) {
       this.mainThreadRuntime = this.createMainThreadRuntime(this.handleProgress);
     }
@@ -256,7 +269,7 @@ export class LocalTtsEngine {
 
   async synthesizeToWavBlob(
     text: string,
-    voiceId = DEFAULT_VOICE_ID,
+    voiceId = this.defaultVoiceId,
   ): Promise<{ blob: Blob; sampleRateHz: number }> {
     if (!text.trim()) {
       return {
@@ -279,7 +292,7 @@ export class LocalTtsEngine {
    * Pré-carrega o modelo em segundo plano (com uma síntese curta descartável).
    * Seguro chamar várias vezes; falhas não são propagadas, só refletidas no estado.
    */
-  async warmup(voiceId = DEFAULT_VOICE_ID): Promise<void> {
+  async warmup(voiceId = this.defaultVoiceId): Promise<void> {
     if (this.state.phase === "ready" || isLocalTtsLoading(this.state)) return;
 
     const worker = await this.getWorker();
