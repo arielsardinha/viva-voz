@@ -62,7 +62,7 @@ describe("local-model-catalog", () => {
     const gemma = getLocalModelById("gemma-4-e2b-chat");
     expect(gemma).toBeDefined();
     expect(gemma?.category).toBe("chat");
-    expect(gemma?.sizeBytes).toBe(2_008_432_640);
+    expect(gemma?.sizeBytes).toBe(2_340_870_772);
     expect(gemma?.requiresWebGpu).toBe(true);
     expect(gemma?.inputModalities).toEqual(["text", "image", "audio"]);
     expect(gemma?.outputModality).toBe("text");
@@ -74,8 +74,8 @@ describe("local-model-catalog", () => {
     expect(resolveModelDownloadUrl(kokoro, false)).toContain("kokoro_int8_fp16.litertlm");
 
     const gemma = getLocalModelById("gemma-4-e2b-chat")!;
-    expect(resolveModelDownloadUrl(gemma, true)).toContain("gemma-4-E2B-it-web.litertlm");
-    expect(resolveModelDownloadUrl(gemma, false)).toContain("gemma-4-E2B-it-web.litertlm");
+    expect(resolveModelDownloadUrl(gemma, true)).toContain("gemma-4-E2B-it-gpu.litertlm");
+    expect(resolveModelDownloadUrl(gemma, false)).toContain("gemma-4-E2B-it-gpu.litertlm");
   });
 
   it("deve formatar tamanhos, velocidades e estimativa de tempo corretamente", () => {
@@ -98,7 +98,7 @@ describe("local-model-catalog", () => {
     expect(initial["kokoro-82m-tts"].totalBytes).toBe(294_750_530);
     expect(initial["kokoro-82m-tts"].progressPercent).toBe(0);
     expect(initial["gemma-4-e2b-chat"].status).toBe("not_downloaded");
-    expect(initial["gemma-4-e2b-chat"].totalBytes).toBe(2_008_432_640);
+    expect(initial["gemma-4-e2b-chat"].totalBytes).toBe(2_340_870_772);
   });
 
   it("deve mapear cada voz local para o modelo que precisa estar baixado", () => {

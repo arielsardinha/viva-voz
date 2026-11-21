@@ -31,10 +31,17 @@ export interface LiteRtConversation {
   delete(): Promise<void>;
 }
 
+export interface LiteRtConversationConfig {
+  preface?: {
+    messages?: LiteRtMessage[];
+    extra_context?: Record<string, string | number | boolean>;
+  };
+  sessionConfig?: { maxOutputTokens?: number };
+  filterChannelContentFromKvCache?: boolean;
+}
+
 export interface LiteRtEngineInstance {
-  createConversation(config?: {
-    preface?: { messages?: LiteRtMessage[] };
-  }): Promise<LiteRtConversation>;
+  createConversation(config?: LiteRtConversationConfig): Promise<LiteRtConversation>;
   delete(): Promise<void>;
 }
 
@@ -82,6 +89,8 @@ export interface LocalChatProfile {
   name: "full" | "lite";
   maxNumTokens: number;
   maxContextChars: number;
+  /** Teto da resposta: limita tempo de geração e o crescimento do KV cache. */
+  maxOutputTokens: number;
   multimodal: boolean;
 }
 
@@ -89,6 +98,7 @@ const FULL_PROFILE: LocalChatProfile = {
   name: "full",
   maxNumTokens: 4096,
   maxContextChars: 8000,
+  maxOutputTokens: 1024,
   multimodal: true,
 };
 
@@ -96,6 +106,7 @@ const LITE_PROFILE: LocalChatProfile = {
   name: "lite",
   maxNumTokens: 2048,
   maxContextChars: 3000,
+  maxOutputTokens: 512,
   multimodal: false,
 };
 
@@ -295,7 +306,12 @@ export class LocalChatEngine {
     const conv = await engine.createConversation({
       preface: {
         messages: [{ role: "system", content: systemPrompt }],
+        // Sem "thinking": tokens de raciocínio contam no limite de saída e na
+        // janela, e aqui a resposta direta sobre o documento basta.
+        extra_context: { enable_thinking: false },
       },
+      sessionConfig: { maxOutputTokens: this.profile.maxOutputTokens },
+      filterChannelContentFromKvCache: true,
     });
     clearRiskyStage();
     this.conversation = conv;

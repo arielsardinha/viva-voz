@@ -435,6 +435,28 @@ export async function downloadAndCacheModel(
   const wakeLock = await requestWakeLock();
 
   try {
+    // Um download novo substitui uma versão completa anterior (ex.: arquivo do
+    // catálogo trocado). Blocos de outra URL de origem também não são retomados:
+    // juntar pedaços de arquivos diferentes corromperia o modelo.
+    const previous = await cache.match(cacheKey);
+    if (previous) {
+      void previous.body?.cancel?.().catch(() => undefined);
+      await cache.delete(cacheKey).catch(() => false);
+      await clearChunks(cache, descriptor.id);
+    }
+    const firstPart = await cache.match(buildChunkCacheKey(descriptor.id, 0));
+    if (firstPart) {
+      const partSource = firstPart.headers.get(MODEL_CACHE_HEADERS.sourceUrl);
+      void firstPart.body?.cancel?.().catch(() => undefined);
+      if (partSource !== downloadUrl) {
+        traceLocalAi("blocos de outra versão descartados", {
+          modelId: descriptor.id,
+          previousSource: partSource ? new URL(partSource).pathname.split("/").pop() : null,
+        });
+        await clearChunks(cache, descriptor.id);
+      }
+    }
+
     // Retoma a partir dos blocos já gravados numa tentativa anterior.
     let totalBytes: number | null = null;
     let nextIndex = 0;
@@ -628,6 +650,7 @@ export async function downloadAndCacheModel(
                 "Content-Type": "application/octet-stream",
                 "Content-Length": String(bytes.byteLength),
                 [TOTAL_BYTES_HEADER]: String(rangeTotal),
+                [MODEL_CACHE_HEADERS.sourceUrl]: downloadUrl,
               },
             }),
           );

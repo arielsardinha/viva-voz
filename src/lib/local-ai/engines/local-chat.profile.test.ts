@@ -98,11 +98,11 @@ describe("LocalChatEngine no iPhone", () => {
     const engine = new LocalChatEngine({
       loadModule: async () => ({ Backend: { CPU: 3, GPU: 4 }, Engine: { create } }),
     });
-    return { engine, create };
+    return { engine, create, instance };
   }
 
   it("cria o motor só com texto e janela de 2048 tokens, sem visão/áudio na GPU", async () => {
-    const { engine, create } = buildEngine();
+    const { engine, create, instance } = buildEngine();
 
     const chunks: string[] = [];
     for await (const c of engine.streamMultimodalPrompt({ prompt: "Resuma" })) chunks.push(c);
@@ -113,6 +113,14 @@ describe("LocalChatEngine no iPhone", () => {
     expect(settings.mainExecutorSettings).toEqual({ maxNumTokens: 2048 });
     expect(settings).not.toHaveProperty("visionBackend");
     expect(settings).not.toHaveProperty("audioBackend");
+    // Conversa com teto de resposta, sem "thinking" e sem canais no KV cache.
+    expect(instance.createConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionConfig: { maxOutputTokens: 512 },
+        filterChannelContentFromKvCache: true,
+        preface: expect.objectContaining({ extra_context: { enable_thinking: false } }),
+      }),
+    );
     // A etapa terminou: o marcador de travamento foi limpo.
     expect(window.localStorage.getItem("vivavoz-local-ai-risky-stage")).toBeNull();
   });

@@ -98,6 +98,15 @@ function readChatEnginePreference(): ChatEnginePreference {
   return "auto";
 }
 
+/** O arquivo no cache veio de uma URL que o catálogo não usa mais. */
+function isOutdatedModelSource(
+  descriptor: { downloadUrl: string; cpuFallbackDownloadUrl?: string },
+  sourceUrl: string | null,
+): boolean {
+  if (!sourceUrl) return false;
+  return sourceUrl !== descriptor.downloadUrl && sourceUrl !== descriptor.cpuFallbackDownloadUrl;
+}
+
 function isAbortError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === "AbortError") return true;
   if (error instanceof Error && /abort/i.test(error.name)) return true;
@@ -156,6 +165,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
             errorMessage: null,
             cachedAt: meta.cachedAt,
             cachedSizeBytes: effectiveSize,
+            outdated: isOutdatedModelSource(descriptor, meta.sourceUrl),
           };
         } else if (current?.status !== "error") {
           next[descriptor.id] = {
@@ -276,6 +286,10 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
           },
         });
 
+        if (modelId === "gemma-4-e2b-chat") {
+          // Atualização de versão: o próximo chat carrega o arquivo novo.
+          await getLocalChatEngine().dispose();
+        }
         if (!isMountedRef.current) return;
         setModels((prev) => ({
           ...prev,
