@@ -6,9 +6,11 @@ import {
   reportLocalAiFailure,
   traceLocalAi,
 } from "../diagnostics";
+import { isAppleMobileWebKit } from "../domain/device";
 import {
   LocalModelNotDownloadedError,
   type ChatAttachment,
+  type LocalModelId,
 } from "../domain/local-model.types";
 import {
   detectLocalRuntimeSupport,
@@ -110,13 +112,7 @@ const LITE_PROFILE: LocalChatProfile = {
   multimodal: false,
 };
 
-export function isAppleMobileWebKit(nav?: Navigator): boolean {
-  if (!nav) return false;
-  const ua = nav.userAgent ?? "";
-  if (/iPhone|iPad|iPod/i.test(ua)) return true;
-  // O iPadOS se apresenta como Mac; o suporte a toque denuncia.
-  return /Macintosh/i.test(ua) && (nav.maxTouchPoints ?? 0) > 1;
-}
+export { isAppleMobileWebKit };
 
 export function resolveLocalChatProfile(
   nav: Navigator | undefined = typeof navigator !== "undefined" ? navigator : undefined,
@@ -158,8 +154,21 @@ function buildUserContentParts(
   return parts;
 }
 
+/**
+ * Ordem de busca do modelo de chat instalado. Só um fica instalado por vez
+ * (E2B x E4B) e o E4B nem aparece em celulares; a ordem só decide qual
+ * procurar primeiro no cache.
+ */
+function chatModelCandidates(profile: LocalChatProfile): LocalModelId[] {
+  return profile.name === "full"
+    ? ["gemma-4-e4b-chat", "gemma-4-e2b-chat"]
+    : ["gemma-4-e2b-chat", "gemma-4-e4b-chat"];
+}
+
 export class LocalChatEngine {
   private readonly profile: LocalChatProfile = resolveLocalChatProfile();
+  /** Modelo carregado no motor atual (para logs e diagnóstico). */
+  private modelId: LocalModelId = "gemma-4-e2b-chat";
   private engine: LiteRtEngineInstance | null = null;
   private conversation: LiteRtConversation | null = null;
   private initPromise: Promise<LiteRtEngineInstance> | null = null;
@@ -188,10 +197,17 @@ export class LocalChatEngine {
       throw err;
     }
 
-    const modelId = "gemma-4-e2b-chat";
-    let modelBlob: Blob | null;
+    const candidates = chatModelCandidates(this.profile);
+    let modelId: LocalModelId = candidates[candidates.length - 1];
+    let modelBlob: Blob | null = null;
     try {
-      modelBlob = await getCachedModelBlob(modelId);
+      for (const candidate of candidates) {
+        modelBlob = await getCachedModelBlob(candidate);
+        if (modelBlob) {
+          modelId = candidate;
+          break;
+        }
+      }
     } catch (err) {
       await reportLocalAiFailure("engine_load_blob", err, { modelId });
       throw err;
@@ -201,6 +217,7 @@ export class LocalChatEngine {
       await reportLocalAiFailure("engine_load_blob", err, { modelId, blobMissing: true });
       throw err;
     }
+    this.modelId = modelId;
     traceLocalAi("modelo lido do cache", { modelId, blobBytes: modelBlob.size });
 
     let mod: LiteRtLmCoreModule;
@@ -299,7 +316,7 @@ export class LocalChatEngine {
     });
 
     markRiskyStage("chat_conversation", {
-      modelId: "gemma-4-e2b-chat",
+      modelId: this.modelId,
       profile: this.profile.name,
       systemPromptChars: systemPrompt.length,
     });
@@ -347,7 +364,7 @@ export class LocalChatEngine {
     );
     const parts = buildUserContentParts(params.prompt, params.attachments);
     markRiskyStage("chat_stream", {
-      modelId: "gemma-4-e2b-chat",
+      modelId: this.modelId,
       profile: this.profile.name,
       promptChars: params.prompt.length,
       attachments: params.attachments?.length ?? 0,
@@ -394,7 +411,7 @@ export class LocalChatEngine {
       }
     } catch (err) {
       await reportLocalAiFailure("chat_stream", err, {
-        modelId: "gemma-4-e2b-chat",
+        modelId: this.modelId,
         profile: this.profile.name,
         yieldedAny,
       });

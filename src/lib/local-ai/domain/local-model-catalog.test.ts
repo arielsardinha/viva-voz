@@ -28,9 +28,9 @@ describe("local-model-catalog", () => {
     );
   });
 
-  it("deve definir os modelos esperados (Kokoro 82M, Piper Cadu/Faber e Gemma 4 E2B)", () => {
+  it("deve definir os modelos esperados (Kokoro 82M, Piper Cadu/Faber e Gemma 4 E2B/E4B)", () => {
     expect(LOCAL_AI_CACHE_NAME).toBe("vivavoz-local-ai-models-v1");
-    expect(LOCAL_AI_MODELS).toHaveLength(4);
+    expect(LOCAL_AI_MODELS).toHaveLength(5);
 
     const faber = getLocalModelById("piper-faber-tts");
     expect(faber?.category).toBe("tts");

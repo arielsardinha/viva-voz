@@ -18,6 +18,9 @@ jest.mock("@/context/local-ai-context", () => ({
     preferredChatEngine: mockPref,
     setPreferredChatEngine: mockSetPref,
     isModelReady: (id: string) => id === "gemma-4-e2b-chat" && mockGemmaReady,
+    get readyChatModelId() {
+      return mockGemmaReady ? "gemma-4-e2b-chat" : null;
+    },
     openModelsPage: mockOpenModelsPage,
   }),
 }));

@@ -89,10 +89,10 @@ export function ChatMultimodalBar({
   const {
     preferredChatEngine,
     setPreferredChatEngine,
-    isModelReady,
+    readyChatModelId,
     openModelsPage,
   } = useLocalAi();
-  const gemmaReady = isModelReady("gemma-4-e2b-chat");
+  const gemmaReady = Boolean(readyChatModelId);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +114,7 @@ export function ChatMultimodalBar({
     if (next === "litert-lm" && !gemmaReady) {
       openModelsPage("gemma-4-e2b-chat");
       toast.info(
-        "Baixe o modelo Gemma 4 E2B (~1,87 GB) para conversar com texto, imagem e áudio offline.",
+        "Baixe um modelo Gemma 4 (E2B ou, no computador, o E4B) para conversar com texto, imagem e áudio offline.",
       );
       return;
     }
@@ -410,7 +410,7 @@ export function ChatMultimodalBar({
 
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => openModelsPage("gemma-4-e2b-chat")}
+              onClick={() => openModelsPage(readyChatModelId ?? "gemma-4-e2b-chat")}
               className="text-xs flex items-center gap-1.5 cursor-pointer font-medium text-accent"
             >
               <DownloadCloud className="size-3.5" aria-hidden="true" />

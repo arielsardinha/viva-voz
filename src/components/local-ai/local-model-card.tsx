@@ -7,7 +7,9 @@ import {
   Cpu,
   Download,
   Image as ImageIcon,
+  Laptop,
   Loader2,
+  Lock,
   Play,
   RefreshCw,
   Trash2,
@@ -36,6 +38,11 @@ interface LocalModelCardProps {
   state: LocalModelState;
   runtimeSupport: LocalModelRuntimeSupport;
   isHighlighted?: boolean;
+  /**
+   * Outro modelo do mesmo grupo exclusivo já instalado ou baixando. Enquanto
+   * existir, este não pode ser baixado (ex.: Gemma 4 E2B x E4B).
+   */
+  blockedBy?: LocalModelDescriptor | null;
   onDownload: (id: LocalModelId) => void;
   onCancel: (id: LocalModelId) => void;
   onDelete: (id: LocalModelId) => void;
@@ -120,6 +127,7 @@ export function LocalModelCard({
   state,
   runtimeSupport,
   isHighlighted = false,
+  blockedBy = null,
   onDownload,
   onCancel,
   onDelete,
@@ -197,6 +205,21 @@ export function LocalModelCard({
           ))}
         </ul>
 
+        <div
+          data-cy={`model-specs-${descriptor.id}`}
+          className="rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 space-y-1"
+        >
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+            <Laptop className="size-3.5 text-accent shrink-0" aria-hidden="true" />
+            <span>Configuração recomendada</span>
+          </p>
+          <ul className="space-y-0.5 text-[11px] text-muted-foreground list-disc pl-5">
+            {descriptor.recommendedSpecs.map((spec) => (
+              <li key={spec}>{spec}</li>
+            ))}
+          </ul>
+        </div>
+
         {needsWebGpuWarning && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
             <AlertTriangle
@@ -264,7 +287,20 @@ export function LocalModelCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-        {(state.status === "not_downloaded" || state.status === "error") && (
+        {(state.status === "not_downloaded" || state.status === "error") && blockedBy && (
+          <p
+            data-cy={`model-blocked-${descriptor.id}`}
+            className="flex w-full items-start gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200"
+          >
+            <Lock className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              Só um modelo de chat local fica instalado por vez. Para baixar o{" "}
+              {descriptor.shortName}, remova antes o {blockedBy.shortName}.
+            </span>
+          </p>
+        )}
+
+        {(state.status === "not_downloaded" || state.status === "error") && !blockedBy && (
           <Button
             type="button"
             size="sm"

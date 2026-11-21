@@ -19,6 +19,9 @@ const mockStreamMultimodalPrompt = jest.fn();
 jest.mock("@/context/local-ai-context", () => ({
   useLocalAi: () => ({
     isModelReady: (id: string) => id === "gemma-4-e2b-chat" && mockLiteRtReady,
+    get readyChatModelId() {
+      return mockLiteRtReady ? "gemma-4-e2b-chat" : null;
+    },
     preferredChatEngine: mockPreferredChatEngine,
     setPreferredChatEngine: mockSetPreferredChatEngine,
     openModelsPage: mockOpenModelsPage,

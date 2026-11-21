@@ -15,8 +15,11 @@ import {
   LOCAL_AI_MODELS,
   buildModelsPageHref,
   createInitialModelStates,
+  findExclusiveConflict,
   getLocalModelById,
+  getReadyChatModelId,
 } from "@/lib/local-ai/domain/local-model-catalog";
+import { isMobileDevice } from "@/lib/local-ai/domain/device";
 import type {
   ChatEnginePreference,
   LocalModelId,
@@ -53,6 +56,8 @@ export interface LocalAiContextValue {
   deleteModel: (modelId: LocalModelId) => Promise<void>;
   refreshModels: () => Promise<void>;
   isModelReady: (modelId: LocalModelId) => boolean;
+  /** Modelo de chat local instalado (E4B ou E2B), ou null. */
+  readyChatModelId: LocalModelId | null;
 }
 
 const DEFAULT_RUNTIME_SUPPORT: LocalModelRuntimeSupport = {
@@ -76,6 +81,7 @@ const FALLBACK_CONTEXT_VALUE: LocalAiContextValue = {
   deleteModel: async () => {},
   refreshModels: async () => {},
   isModelReady: () => false,
+  readyChatModelId: null,
 };
 
 const LocalAiContext = createContext<LocalAiContextValue | null>(null);
@@ -131,6 +137,11 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
   const abortControllersRef = useRef<Map<LocalModelId, AbortController>>(
     new Map(),
   );
+  // Estado mais recente para as regras de download (o callback é estável).
+  const modelsRef = useRef(models);
+  useEffect(() => {
+    modelsRef.current = models;
+  }, [models]);
   const isMountedRef = useRef(true);
 
   const refreshModels = useCallback(async () => {
@@ -225,6 +236,21 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
       if (!descriptor) return;
       if (abortControllersRef.current.has(modelId)) return;
 
+      if (
+        descriptor.desktopOnly &&
+        isMobileDevice(typeof navigator !== "undefined" ? navigator : undefined)
+      ) {
+        toast.error(`${descriptor.shortName} está disponível apenas em computadores.`);
+        return;
+      }
+      const conflict = findExclusiveConflict(modelId, modelsRef.current);
+      if (conflict) {
+        toast.error(
+          `Remova o ${conflict.shortName} antes de baixar o ${descriptor.shortName}: só um modelo de chat local fica instalado por vez.`,
+        );
+        return;
+      }
+
       const support = detectLocalRuntimeSupport();
       if (!support.cacheApiSupported) {
         const msg =
@@ -286,8 +312,8 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
           },
         });
 
-        if (modelId === "gemma-4-e2b-chat") {
-          // Atualização de versão: o próximo chat carrega o arquivo novo.
+        if (descriptor.category === "chat") {
+          // Modelo novo ou atualizado: o próximo chat carrega o arquivo novo.
           await getLocalChatEngine().dispose();
         }
         if (!isMountedRef.current) return;
@@ -369,7 +395,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
 
     if (descriptor.category === "tts") {
       getLocalTtsEngineForModel(modelId)?.dispose();
-    } else if (modelId === "gemma-4-e2b-chat") {
+    } else if (descriptor.category === "chat") {
       await getLocalChatEngine().dispose();
     }
 
@@ -399,6 +425,8 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
     (modelId: LocalModelId) => models[modelId]?.status === "ready",
     [models],
   );
+
+  const readyChatModelId = useMemo(() => getReadyChatModelId(models), [models]);
 
   const activeDownloadsCount = useMemo(
     () =>
@@ -431,6 +459,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
       deleteModel,
       refreshModels,
       isModelReady,
+      readyChatModelId,
     }),
     [
       models,
@@ -447,6 +476,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
       deleteModel,
       refreshModels,
       isModelReady,
+      readyChatModelId,
     ],
   );
 

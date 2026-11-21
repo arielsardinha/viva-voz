@@ -22,6 +22,7 @@ export function LocalModelsView() {
     cancelDownload,
     deleteModel,
     activateModelInReader,
+    getBlockingModel,
   } = useLocalAiModels();
 
   return (
@@ -94,6 +95,7 @@ export function LocalModelsView() {
                 state={models[descriptor.id]}
                 runtimeSupport={runtimeSupport}
                 isHighlighted={requestedModel === descriptor.id}
+                blockedBy={getBlockingModel(descriptor.id)}
                 onDownload={(id) => void startDownload(id)}
                 onCancel={cancelDownload}
                 onDelete={(id) => void deleteModel(id)}

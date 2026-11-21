@@ -147,4 +147,41 @@ describe("LocalModelCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /atualizar/i }));
     expect(onDownload).toHaveBeenCalledWith("gemma-4-e2b-chat");
   });
+
+  it("deve mostrar a configuração recomendada do modelo", () => {
+    const e4b = getLocalModelById("gemma-4-e4b-chat")!;
+    render(
+      <LocalModelCard
+        descriptor={e4b}
+        state={{ ...baseState, id: "gemma-4-e4b-chat", totalBytes: e4b.sizeBytes }}
+        runtimeSupport={runtimeOk}
+        onDownload={jest.fn()}
+        onCancel={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Configuração recomendada")).toBeInTheDocument();
+    expect(screen.getByText(/16 GB de RAM/)).toBeInTheDocument();
+    expect(screen.getByText(/Somente computador/)).toBeInTheDocument();
+  });
+
+  it("deve bloquear o download quando outro modelo de chat estiver instalado", () => {
+    const e4b = getLocalModelById("gemma-4-e4b-chat")!;
+    const onDownload = jest.fn();
+    render(
+      <LocalModelCard
+        descriptor={e4b}
+        state={{ ...baseState, id: "gemma-4-e4b-chat", totalBytes: e4b.sizeBytes }}
+        runtimeSupport={runtimeOk}
+        blockedBy={gemma}
+        onDownload={onDownload}
+        onCancel={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/remova antes o Gemma 4 E2B/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /baixar modelo/i })).toBeNull();
+  });
 });
