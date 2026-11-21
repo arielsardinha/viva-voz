@@ -1,9 +1,9 @@
 /**
  * VivaVoz - Service Worker para PWA e Suporte Offline
- * Versão do Cache: vivavoz-v1
+ * Versão do Cache: vivavoz-app-v2 (v1 continha cópias de GBs dos modelos baixados pelo SW antigo)
  */
 
-const CACHE_NAME = 'vivavoz-app-v1';
+const CACHE_NAME = 'vivavoz-app-v2';
 
 // Rotas e assets essenciais para pré-cache no App Shell
 const PRECACHE_ASSETS = [

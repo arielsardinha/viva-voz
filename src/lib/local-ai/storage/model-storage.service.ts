@@ -181,6 +181,71 @@ export async function getCachedModelStreamReader(
   return stream.getReader();
 }
 
+/** Erro de falta de espaço: não adianta repetir, o usuário precisa liberar armazenamento. */
+export class ModelStorageQuotaError extends Error {
+  constructor(
+    readonly requiredBytes: number,
+    readonly availableBytes: number | null,
+    options?: { cause?: unknown },
+  ) {
+    super(
+      "Espaço de armazenamento insuficiente para salvar o modelo neste dispositivo. Libere espaço e tente novamente.",
+      options,
+    );
+    this.name = "ModelStorageQuotaError";
+  }
+}
+
+function isQuotaExceeded(err: unknown): boolean {
+  if (err instanceof ModelStorageQuotaError) return true;
+  const name = (err as { name?: unknown } | null)?.name;
+  return name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED";
+}
+
+/** Margem de folga além do tamanho do modelo (metadados, outros dados do app). */
+const QUOTA_SAFETY_MARGIN_BYTES = 64 * 1024 * 1024;
+
+/**
+ * O service worker antigo interceptava o download no Hugging Face e salvava uma
+ * cópia inteira do modelo (GBs) no cache do app. No celular essa cópia órfã
+ * esgota a cota e o download novo falha perto dos 100%. Remove essas entradas.
+ */
+export async function purgeStaleModelCopies(): Promise<void> {
+  if (typeof globalThis.caches === "undefined") return;
+  const ownOrigin =
+    typeof location !== "undefined" ? location.origin : null;
+  const names = await globalThis.caches.keys().catch(() => [] as string[]);
+  for (const name of names) {
+    if (name.startsWith("vivavoz-local-ai-models")) continue;
+    if (name === "vivavoz-app-v1") {
+      await globalThis.caches.delete(name).catch(() => false);
+      continue;
+    }
+    const cache = await globalThis.caches.open(name).catch(() => null);
+    if (!cache) continue;
+    const requests = await cache.keys().catch(() => [] as readonly Request[]);
+    for (const request of requests) {
+      let origin: string;
+      try {
+        origin = new URL(request.url).origin;
+      } catch {
+        continue;
+      }
+      if (ownOrigin && origin === ownOrigin) continue;
+      await cache.delete(request).catch(() => false);
+    }
+  }
+}
+
+async function ensureStorageAvailable(requiredBytes: number): Promise<void> {
+  const estimate = await getStorageQuotaEstimate();
+  if (!estimate || estimate.quotaBytes <= 0) return;
+  const available = Math.max(0, estimate.quotaBytes - estimate.usageBytes);
+  if (available < requiredBytes + QUOTA_SAFETY_MARGIN_BYTES) {
+    throw new ModelStorageQuotaError(requiredBytes, available);
+  }
+}
+
 class HttpStatusError extends Error {
   constructor(readonly status: number) {
     super(
@@ -355,6 +420,7 @@ export async function downloadAndCacheModel(
   if (typeof navigator !== "undefined" && navigator.storage?.persist) {
     await navigator.storage.persist().catch(() => false);
   }
+  await purgeStaleModelCopies();
 
   const downloadUrl = resolveModelDownloadUrl(descriptor, options.hasWebGpu);
   const cacheKey = buildModelCacheKey(descriptor.id);
@@ -393,6 +459,11 @@ export async function downloadAndCacheModel(
       });
     };
     if (resumedBytes > 0) emit();
+
+    // Falha cedo, com mensagem clara, em vez de baixar GBs e esbarrar na cota no fim.
+    await ensureStorageAvailable(
+      Math.max(0, (totalBytes ?? descriptor.sizeBytes) - resumedBytes),
+    );
 
     while (totalBytes === null || nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES < totalBytes) {
       const rangeStart = nextIndex * MODEL_DOWNLOAD_CHUNK_BYTES;
@@ -494,6 +565,15 @@ export async function downloadAndCacheModel(
           downloadedBytes -= chunkBytes;
           sessionBytes -= chunkBytes;
           if (isAbort(err) || signal?.aborted) throw err;
+          if (isQuotaExceeded(err)) {
+            throw err instanceof ModelStorageQuotaError
+              ? err
+              : new ModelStorageQuotaError(
+                  Math.max(0, (totalBytes ?? descriptor.sizeBytes) - downloadedBytes),
+                  null,
+                  { cause: err },
+                );
+          }
           const fatalHttp =
             err instanceof HttpStatusError && err.status >= 400 && err.status < 500 &&
             err.status !== 408 && err.status !== 429;
