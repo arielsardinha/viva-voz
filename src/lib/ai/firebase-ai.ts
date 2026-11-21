@@ -90,13 +90,18 @@ export async function* streamHybridPrompt(options: {
   prompt: string;
   context?: string;
   fileName?: string | null;
+  systemPrompt?: string;
   signal?: AbortSignal;
 }): AsyncIterable<HybridStreamChunk> {
-  const { model, prompt, context, fileName, signal } = options;
+  const { model, prompt, context, fileName, systemPrompt, signal } = options;
 
   let fullPrompt = prompt;
   if (context && context.trim().length > 0) {
-    const documentContext = buildDocumentSystemPrompt({ context, fileName });
+    const documentContext = buildDocumentSystemPrompt({
+      context,
+      fileName,
+      baseInstruction: systemPrompt,
+    });
     fullPrompt = `${documentContext}\n\n=== PERGUNTA DO USUÁRIO ===\n${prompt}`;
   }
 

@@ -117,8 +117,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
     visitReaderWithTemplate("ai-study", [1280, 800]);
     openSampleViaQuickPaste();
 
-    cy.get('[data-cy="a2ui-suggest-count"]').should("contain.text", "2 questões");
-    cy.get('[data-cy="a2ui-open-quiz-btn"]').should("be.visible").click();
+    cy.get('[data-cy="assistant-tab-quiz"]').should("be.visible").click();
     cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "1 de 2");
 
     cy.get('[data-cy="a2ui-choice-B"]').click();
@@ -170,7 +169,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
       },
     }).as("generateQuiz");
 
-    cy.get('[data-cy="a2ui-open-quiz-btn"]').should("be.visible").click();
+    cy.get('[data-cy="assistant-tab-quiz"]').should("be.visible").click();
     cy.wait("@generateQuiz");
 
     cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "1 de 10");
@@ -198,7 +197,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
       body: { error: "Limite temporário de uso da IA atingido." },
     }).as("generateQuizError");
 
-    cy.get('[data-cy="a2ui-open-quiz-btn"]').should("be.visible").click();
+    cy.get('[data-cy="assistant-tab-quiz"]').should("be.visible").click();
     cy.wait("@generateQuizError");
 
     cy.get('[data-cy="a2ui-fallback-notice"]').should("be.visible");
@@ -239,7 +238,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
       },
     }).as("generateMobileQuiz");
 
-    cy.get('[data-cy="a2ui-open-quiz-btn"]').scrollIntoView().should("be.visible").click();
+    cy.get('[data-cy="assistant-tab-quiz"]').scrollIntoView().should("be.visible").click();
     cy.wait("@generateMobileQuiz");
 
     cy.get('[data-cy="a2ui-step-track"]').should("be.visible");

@@ -8,6 +8,7 @@ import type {
   A2UIQuizSurfacePayload,
   A2UIUserAction,
   QuizCoverageInfo,
+  QuizEngineKind,
   QuizGenerationSource,
   QuizSummaryStats,
 } from "./a2ui-quiz.types";
@@ -315,10 +316,11 @@ export function buildA2uiQuizSurface(
   sentences: readonly Sentence[],
   _currentIndex: number,
   title: string | null,
-  options?: { difficulty?: "normal" | "hard" },
+  options?: { difficulty?: "normal" | "hard"; engine?: QuizEngineKind },
 ): A2UIQuizSurfacePayload {
   const documentTitle = title?.trim() || "Leitura atual";
-  const planned = planQuizContent(sentences, "offline");
+  // Usa o mesmo motor do cabeçalho para a contagem de questões bater com o plano exibido.
+  const planned = planQuizContent(sentences, options?.engine ?? "offline");
   const valid = sentences.filter((s) => s.text.trim().length > 0);
 
   if (valid.length === 0 || planned.targetQuestionCount === 0) {

@@ -233,13 +233,10 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
 
     renderTemplate(sentences, { onSelectSentence, onAddNote });
 
-    await waitFor(() => {
-      expect(screen.getByText(/6 questões/i)).toBeInTheDocument();
-    });
     // Zero tokens gastos antes de abrir o Quiz
     expect(geminiCalls).toBe(0);
 
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
       expect(screen.getByText("1 de 6")).toBeInTheDocument();
@@ -310,11 +307,8 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
 
     renderTemplate(hugeDoc);
 
-    await waitFor(() => {
-      expect(screen.getByText(/10 questões/i)).toBeInTheDocument();
-    });
 
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
       expect(screen.getByText("1 de 10")).toBeInTheDocument();
@@ -363,11 +357,8 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
 
     renderTemplate(sentences);
 
-    await waitFor(() => {
-      expect(screen.getByText(/4 questões/i)).toBeInTheDocument();
-    });
 
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
       expect(screen.getByText("Modo rápido")).toBeInTheDocument();
@@ -400,22 +391,26 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
       expect(within(engineSelector).getByText("Gemma 4 Local")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
       expect(screen.getByText("IA Local")).toBeInTheDocument();
-      expect(screen.getByText("1 de 5")).toBeInTheDocument();
+      // 6 questões planejadas, pedidas em 2 lotes de 3 para caber no teto de saída do Gemma.
+      expect(screen.getByText("1 de 6")).toBeInTheDocument();
     });
 
+    expect(mockStreamMultimodalPrompt).toHaveBeenCalledTimes(2);
     expect(mockStreamMultimodalPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         fileName: "Arquitetura Moderna",
         context: expect.any(String),
+        systemPrompt: expect.stringContaining("APENAS com JSON"),
       }),
     );
-    const callArg = mockStreamMultimodalPrompt.mock.calls[0][0] as { context: string };
-    expect(callArg.context.length).toBeLessThanOrEqual(
-      QUIZ_TOKEN_BUDGETS["litert-lm-full"].maxContextChars,
-    );
+    for (const [callArg] of mockStreamMultimodalPrompt.mock.calls as Array<[{ context: string }]>) {
+      expect(callArg.context.length).toBeLessThanOrEqual(
+        QUIZ_TOKEN_BUDGETS["litert-lm-full"].maxContextChars,
+      );
+    }
   });
 });

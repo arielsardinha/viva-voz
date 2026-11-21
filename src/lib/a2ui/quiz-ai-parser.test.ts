@@ -178,4 +178,48 @@ describe("quiz-ai-parser", () => {
       }),
     ).toThrow("Nenhuma questão válida retornada pela IA.");
   });
+
+  it("aproveita as questões completas de um JSON truncado pelo teto de tokens", () => {
+    const q = (n: number) => ({
+      topic: `Tema ${n}`,
+      sentenceIndex: 0,
+      prompt: `Pergunta numero ${n} sobre o texto?`,
+      options: [
+        { label: `Certa ${n}`, isCorrect: true },
+        { label: `Errada A ${n}`, isCorrect: false },
+        { label: `Errada B ${n}`, isCorrect: false },
+        { label: `Errada C ${n}`, isCorrect: false },
+      ],
+    });
+    const full = JSON.stringify({ questions: [q(1), q(2), q(3)] });
+    // Corta no meio da terceira questão, como o Gemma local faz ao bater 1024 tokens.
+    const truncated = full.slice(0, full.indexOf('"Pergunta numero 3') + 10);
+
+    const questions = parseAndNormalizeAiQuizQuestions(truncated, SAMPLE_SENTENCES, {
+      maxQuestions: 3,
+      difficulty: "normal",
+    });
+    expect(questions.map((item) => item.topic)).toEqual(["Tema 1", "Tema 2"]);
+  });
+
+  it("descarta só a questão fora do schema, mantendo as demais", () => {
+    const payload = JSON.stringify({
+      questions: [
+        { prompt: "curta", options: [] },
+        {
+          prompt: "Qual ideia central aparece no trecho?",
+          options: [
+            { label: "Ideia certa", isCorrect: true },
+            { label: "Ideia errada 1", isCorrect: false },
+            { label: "Ideia errada 2", isCorrect: false },
+          ],
+        },
+      ],
+    });
+    const questions = parseAndNormalizeAiQuizQuestions(payload, SAMPLE_SENTENCES, {
+      maxQuestions: 3,
+      difficulty: "normal",
+    });
+    expect(questions).toHaveLength(1);
+  });
 });

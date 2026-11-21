@@ -50,6 +50,34 @@ export function buildQuizSystemPrompt(difficulty: "normal" | "hard"): string {
   ].join("\n");
 }
 
+/**
+ * Instrução enxuta para modelos locais (Gemma/Nano): menos campos por questão para
+ * caber no teto de saída. `explanation` e `hint` são preenchidos pelo parser.
+ */
+export function buildCompactQuizSystemPrompt(difficulty: "normal" | "hard"): string {
+  return [
+    "Você gera questões de múltipla escolha em Português do Brasil sobre os trechos fornecidos ([¶N p.P]).",
+    "Use SOMENTE o conteúdo dos trechos. Nunca invente fatos.",
+    difficulty === "hard"
+      ? "Prefira questões de inferência e relação entre ideias."
+      : "Prefira questões de compreensão das ideias centrais.",
+    "Cada questão tem exatamente 4 alternativas curtas (até 15 palavras) e só 1 com isCorrect true. Varie a letra correta.",
+    "Responda APENAS com JSON válido, sem Markdown, sem texto antes ou depois.",
+  ].join("\n");
+}
+
+export function buildCompactQuizUserPrompt(params: {
+  title: string;
+  questionCount: number;
+}): string {
+  return [
+    `Documento: "${params.title}"`,
+    `Gere exatamente ${params.questionCount} questão(ões) sobre trechos diferentes.`,
+    "`sentenceIndex` = N - 1 do trecho [¶N] usado. `evidenceQuote` = até 12 palavras copiadas do trecho.",
+    'Formato: {"questions":[{"topic":"","sentenceIndex":0,"prompt":"","evidenceQuote":"","options":[{"label":"","isCorrect":true},{"label":"","isCorrect":false},{"label":"","isCorrect":false},{"label":"","isCorrect":false}]}]}',
+  ].join("\n");
+}
+
 export function buildQuizUserPrompt(params: {
   title: string;
   questionCount: number;
@@ -197,18 +225,86 @@ function clipText(text: string, maxLen: number): string {
   return `${clean.slice(0, maxLen - 1).trimEnd()}…`;
 }
 
-function parseRawObject(rawInput: string | unknown): unknown {
-  if (typeof rawInput !== "string") return rawInput;
-  const trimmed = rawInput.trim();
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    const extracted = extractJsonObject(trimmed);
-    if (!extracted) {
-      throw new Error("Resposta da IA não contém JSON válido.");
+/**
+ * Recupera as questões completas de uma resposta truncada (ex.: modelo local que
+ * atinge o teto de tokens de saída no meio do JSON). Varre o array `questions`
+ * e devolve cada objeto `{...}` que fechou corretamente.
+ */
+export function salvageQuestionObjects(rawText: string): unknown[] {
+  const stripped = rawText
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "");
+  const keyIdx = stripped.search(/"questions"\s*:\s*\[/);
+  const arrayStart =
+    keyIdx === -1 ? stripped.indexOf("[") : stripped.indexOf("[", keyIdx);
+  if (arrayStart === -1) return [];
+
+  const found: unknown[] = [];
+  let depth = 0;
+  let objStart = -1;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = arrayStart + 1; i < stripped.length; i += 1) {
+    const ch = stripped[i];
+    if (escaped) {
+      escaped = false;
+      continue;
     }
-    return JSON.parse(extracted);
+    if (ch === "\\" && inString) {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{") {
+      if (depth === 0) objStart = i;
+      depth += 1;
+    } else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0 && objStart !== -1) {
+        try {
+          found.push(JSON.parse(stripped.slice(objStart, i + 1)));
+        } catch {
+          // objeto malformado: ignora e segue para o próximo
+        }
+        objStart = -1;
+      }
+    } else if (ch === "]" && depth === 0) {
+      break;
+    }
   }
+  return found;
+}
+
+function extractQuestionCandidates(rawInput: string | unknown): unknown[] {
+  if (typeof rawInput !== "string") {
+    const obj = rawInput as { questions?: unknown };
+    if (Array.isArray(rawInput)) return rawInput;
+    return Array.isArray(obj?.questions) ? obj.questions : [];
+  }
+
+  const trimmed = rawInput.trim();
+  const candidates = [trimmed, extractJsonObject(trimmed)];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const parsed = JSON.parse(candidate) as { questions?: unknown };
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.questions)) return parsed.questions;
+    } catch {
+      // tenta a próxima estratégia
+    }
+  }
+
+  const salvaged = salvageQuestionObjects(trimmed);
+  if (salvaged.length === 0) {
+    throw new Error("Resposta da IA não contém JSON válido.");
+  }
+  return salvaged;
 }
 
 /** Valida, normaliza e ancora no documento as questões geradas por IA. */
@@ -221,8 +317,11 @@ export function parseAndNormalizeAiQuizQuestions(
     throw new Error("Documento vazio para geração de questões.");
   }
 
-  const parsedJson = parseRawObject(rawInput);
-  const validated = RawAiQuizResponseSchema.parse(parsedJson);
+  // Valida questão a questão: uma alternativa longa demais não descarta o lote todo.
+  const validatedQuestions = extractQuestionCandidates(rawInput)
+    .map((item) => RawAiQuizQuestionSchema.safeParse(item))
+    .filter((result) => result.success)
+    .map((result) => result.data as RawQuestion);
   const limit = Math.min(10, Math.max(1, options.maxQuestions));
   const sentenceMap = new Map(sentences.map((s) => [s.index, s]));
 
@@ -231,7 +330,7 @@ export function parseAndNormalizeAiQuizQuestions(
     opts: Array<{ label: string; isCorrect: boolean }>;
   }> = [];
 
-  for (const raw of validated.questions) {
+  for (const raw of validatedQuestions) {
     const cleanOpts = deduplicateAndValidateOptions(raw.options);
     if (cleanOpts) validDrafts.push({ raw, opts: cleanOpts });
     if (validDrafts.length >= limit) break;

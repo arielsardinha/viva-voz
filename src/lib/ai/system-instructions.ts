@@ -23,9 +23,11 @@ export function buildDocumentSystemPrompt(options: {
   context?: string;
   fileName?: string | null;
   maxContextChars?: number;
+  /** Substitui as instruções de chat (ex.: tarefas que exigem só JSON, como o Quiz). */
+  baseInstruction?: string;
 }): string {
-  const { context, fileName, maxContextChars = 32000 } = options;
-  const parts = [SYSTEM_INSTRUCTION_PT_BR];
+  const { context, fileName, maxContextChars = 32000, baseInstruction } = options;
+  const parts = [baseInstruction ?? SYSTEM_INSTRUCTION_PT_BR];
 
   if (fileName) {
     parts.push(`\nDocumento atual em análise: "${fileName}".`);

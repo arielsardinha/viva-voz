@@ -305,6 +305,7 @@ export class LocalChatEngine {
   private async createFreshConversation(
     context?: string,
     fileName?: string | null,
+    baseInstruction?: string,
   ): Promise<LiteRtConversation> {
     const engine = await this.ensureEngine();
     await this.resetConversation();
@@ -313,6 +314,7 @@ export class LocalChatEngine {
       context,
       fileName,
       maxContextChars: this.profile.maxContextChars,
+      baseInstruction,
     });
 
     markRiskyStage("chat_conversation", {
@@ -346,6 +348,8 @@ export class LocalChatEngine {
     attachments?: ChatAttachment[];
     context?: string;
     fileName?: string | null;
+    /** Substitui a instrução de chat no prompt de sistema (ex.: saída só em JSON). */
+    systemPrompt?: string;
     signal?: AbortSignal;
   }): AsyncIterable<string> {
     if (params.signal?.aborted) {
@@ -361,6 +365,7 @@ export class LocalChatEngine {
     const conversation = await this.createFreshConversation(
       params.context,
       params.fileName,
+      params.systemPrompt,
     );
     const parts = buildUserContentParts(params.prompt, params.attachments);
     markRiskyStage("chat_stream", {

@@ -175,9 +175,9 @@ describe("AIStudyTemplate Component", () => {
       />
     );
 
-    // Mini-Card A2UI visível no estado inicial
-    expect(screen.getByText("A2UI · Widget nativo")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    // Mini-Card A2UI removido; o Quiz abre pela aba de modo
+    expect(screen.queryByText("A2UI · Widget nativo")).not.toBeInTheDocument();
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     // Superfície A2UI aberta com barra de protocolo e SEM o chip/banner redundante de sincronia
     expect(screen.getByText("A2UI Surface · Catálogo nativo")).toBeInTheDocument();
@@ -234,7 +234,7 @@ describe("AIStudyTemplate Component", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /gerar quiz interativo/i }));
+    fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
     expect(screen.getByText("1 de 1")).toBeInTheDocument();
   });
 

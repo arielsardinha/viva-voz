@@ -53,6 +53,8 @@ export interface SendPromptOptions {
   context?: string;
   fileName?: string | null;
   attachments?: ChatAttachment[];
+  /** Instrução de sistema específica da tarefa; substitui a do chat. */
+  systemPrompt?: string;
 }
 
 export interface UseFirebaseAIReturn {
@@ -295,6 +297,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
           attachments: msgOptions?.attachments,
           context: msgOptions?.context,
           fileName: msgOptions?.fileName,
+          systemPrompt: msgOptions?.systemPrompt,
           signal,
         });
         return;
@@ -314,6 +317,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         prompt,
         context: msgOptions?.context,
         fileName: msgOptions?.fileName,
+        systemPrompt: msgOptions?.systemPrompt,
         signal,
       })) {
         if (chunk.text) yield chunk.text;

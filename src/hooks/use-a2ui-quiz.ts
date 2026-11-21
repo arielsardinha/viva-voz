@@ -18,11 +18,13 @@ import type {
   QuizGenerationStatus,
 } from "@/lib/a2ui/a2ui-quiz.types";
 import {
-  buildQuizSystemPrompt,
+  buildCompactQuizSystemPrompt,
+  buildCompactQuizUserPrompt,
   parseAndNormalizeAiQuizQuestions,
 } from "@/lib/a2ui/quiz-ai-parser";
 import {
   buildDocumentFingerprint,
+  getQuizBudgetConfig,
   planQuizContent,
 } from "@/lib/a2ui/quiz-content-planner";
 
@@ -77,24 +79,53 @@ function resolveQuizEngineKind(activeEngine: AIEngineType): QuizEngineKind {
   }
 }
 
-function buildOnDeviceQuizPrompt(params: {
-  title: string;
-  questionCount: number;
-  difficulty: "normal" | "hard";
-  wasBudgetLimited: boolean;
-  coveragePercent: number;
-}): string {
-  const coverageInfo = params.wasBudgetLimited
-    ? `Cobertura distribuída (~${params.coveragePercent}%) do início ao fim.`
-    : "Cobertura integral do texto.";
+/**
+ * Questões por chamada nos motores on-device. Cada questão em JSON custa ~150-200
+ * tokens; o Gemma local tem teto de 1024 (full) / 512 (lite) tokens de saída, então
+ * pedir 8 de uma vez cortava o JSON no meio e derrubava o quiz no modo rápido.
+ */
+const ON_DEVICE_BATCH_SIZE: Partial<Record<QuizEngineKind, number>> = {
+  "litert-lm-full": 3,
+  "litert-lm-lite": 2,
+  "gemini-nano": 3,
+};
 
-  return [
-    buildQuizSystemPrompt(params.difficulty),
-    `Documento: "${params.title}"`,
-    `Quantidade exata de questões: ${params.questionCount}`,
-    coverageInfo,
-    'Responda SOMENTE com JSON válido no formato {"questions":[{"topic":"","sentenceIndex":0,"prompt":"","evidenceQuote":"","explanation":"","hint":"","options":[{"id":"A","label":"","isCorrect":true}]}]}.',
-  ].join("\n");
+export interface OnDeviceQuizBatch {
+  questionCount: number;
+  context: string;
+}
+
+/** Divide o recorte planejado em lotes contíguos, um pedido de poucas questões cada. */
+export function planOnDeviceQuizBatches(
+  selected: readonly Sentence[],
+  targetQuestionCount: number,
+  engineKind: QuizEngineKind,
+): OnDeviceQuizBatch[] {
+  if (selected.length === 0 || targetQuestionCount <= 0) return [];
+  const batchSize = ON_DEVICE_BATCH_SIZE[engineKind] ?? targetQuestionCount;
+  const batchCount = Math.min(
+    selected.length,
+    Math.max(1, Math.ceil(targetQuestionCount / batchSize)),
+  );
+  const maxChars = getQuizBudgetConfig(engineKind).maxContextChars;
+  const batches: OnDeviceQuizBatch[] = [];
+  let remainingQuestions = targetQuestionCount;
+
+  for (let b = 0; b < batchCount; b += 1) {
+    const start = Math.floor((b * selected.length) / batchCount);
+    const end = Math.floor(((b + 1) * selected.length) / batchCount);
+    const questionCount = Math.ceil(remainingQuestions / (batchCount - b));
+    remainingQuestions -= questionCount;
+    const context = selected
+      .slice(start, Math.max(start + 1, end))
+      .map(
+        (s) => `[¶${s.index + 1} p.${s.page}] ${s.text.replace(/\s+/g, " ").trim()}`,
+      )
+      .join("\n")
+      .slice(0, maxChars);
+    batches.push({ questionCount, context });
+  }
+  return batches;
 }
 
 async function fetchCloudQuiz(params: {
@@ -152,7 +183,7 @@ export function useA2uiQuiz({
   );
 
   const [surface, setSurface] = useState<A2UIQuizSurfacePayload>(() =>
-    buildA2uiQuizSurface(sentences, currentIndex, title),
+    buildA2uiQuizSurface(sentences, currentIndex, title, { engine: engineKind }),
   );
   const [generationStatus, setGenerationStatus] =
     useState<QuizGenerationStatus>("idle");
@@ -180,8 +211,10 @@ export function useA2uiQuiz({
     activeCacheKeyRef.current = null;
     setGenerationNotice(null);
     setGenerationStatus("idle");
-    setSurface(buildA2uiQuizSurface(sentences, currentIndex, title));
-  }, [fingerprint, sentences, currentIndex, title]);
+    setSurface(
+      buildA2uiQuizSurface(sentences, currentIndex, title, { engine: engineKind }),
+    );
+  }, [fingerprint, sentences, currentIndex, title, engineKind]);
 
   const generateWithAi = useCallback(
     async (difficulty: "normal" | "hard", forceRefresh: boolean) => {
@@ -197,7 +230,10 @@ export function useA2uiQuiz({
           surface.dataModelUpdate.difficulty !== difficulty
         ) {
           setSurface(
-            buildA2uiQuizSurface(sentences, currentIndex, title, { difficulty }),
+            buildA2uiQuizSurface(sentences, currentIndex, title, {
+              difficulty,
+              engine: engineKind,
+            }),
           );
         }
         setGenerationNotice(null);
@@ -250,27 +286,61 @@ export function useA2uiQuiz({
           });
         } else {
           const localPlan = planQuizContent(sentences, engineKind);
-          const prompt = buildOnDeviceQuizPrompt({
-            title: title?.trim() || "Leitura atual",
-            questionCount: localPlan.targetQuestionCount,
-            difficulty,
-            wasBudgetLimited: localPlan.coverage.wasBudgetLimited,
-            coveragePercent: localPlan.coverage.coveragePercent,
-          });
-          let rawOutput = "";
-          for await (const chunk of sendMessage(prompt, {
-            context: localPlan.formattedContext,
-            fileName: title,
-          })) {
-            if (controller.signal.aborted) return;
-            rawOutput += chunk;
-          }
-          if (controller.signal.aborted || !mountedRef.current) return;
-          const questions = parseAndNormalizeAiQuizQuestions(
-            rawOutput,
-            sentences,
-            { maxQuestions: localPlan.targetQuestionCount, difficulty },
+          const batches = planOnDeviceQuizBatches(
+            localPlan.selectedSentences,
+            localPlan.targetQuestionCount,
+            engineKind,
           );
+          const documentTitle = title?.trim() || "Leitura atual";
+          const systemPrompt = buildCompactQuizSystemPrompt(difficulty);
+          const collected: A2UIQuizQuestion[] = [];
+          let lastBatchError: unknown = null;
+
+          for (const [batchIdx, batch] of batches.entries()) {
+            let rawOutput = "";
+            try {
+              for await (const chunk of sendMessage(
+                buildCompactQuizUserPrompt({
+                  title: documentTitle,
+                  questionCount: batch.questionCount,
+                }),
+                { context: batch.context, fileName: title, systemPrompt },
+              )) {
+                if (controller.signal.aborted) return;
+                rawOutput += chunk;
+              }
+              if (controller.signal.aborted || !mountedRef.current) return;
+              collected.push(
+                ...parseAndNormalizeAiQuizQuestions(rawOutput, sentences, {
+                  maxQuestions: batch.questionCount,
+                  difficulty,
+                }),
+              );
+            } catch (batchErr) {
+              if (
+                controller.signal.aborted ||
+                (batchErr as Error)?.name === "AbortError"
+              ) {
+                throw batchErr;
+              }
+              // Um lote ruim não derruba o quiz: seguimos com os demais.
+              lastBatchError = batchErr;
+              console.warn(
+                `[VivaVoz Quiz] Lote ${batchIdx + 1}/${batches.length} falhou (${engineKind}).`,
+                batchErr,
+                { rawOutputPreview: rawOutput.slice(0, 600), rawLength: rawOutput.length },
+              );
+            }
+          }
+
+          if (collected.length === 0) {
+            throw lastBatchError ?? new Error("Nenhuma questão válida retornada pela IA.");
+          }
+          const questions = collected.map((q, idx) => ({
+            ...q,
+            id: `q-${idx + 1}`,
+            index: idx,
+          }));
           nextSurface = buildA2uiSurfaceFromQuestions({
             questions,
             title,
@@ -292,8 +362,15 @@ export function useA2uiQuiz({
         ) {
           return;
         }
+        console.warn(
+          `[VivaVoz Quiz] Geração com IA falhou (${activeEngine}); usando modo rápido.`,
+          err,
+        );
         setSurface(
-          buildA2uiQuizSurface(sentences, currentIndex, title, { difficulty }),
+          buildA2uiQuizSurface(sentences, currentIndex, title, {
+            difficulty,
+            engine: engineKind,
+          }),
         );
         setGenerationStatus("fallback");
         setGenerationNotice(
@@ -334,11 +411,12 @@ export function useA2uiQuiz({
     setSurface(
       buildA2uiQuizSurface(sentences, currentIndex, title, {
         difficulty: surface.dataModelUpdate.difficulty,
+        engine: engineKind,
       }),
     );
     setGenerationNotice(null);
     setGenerationStatus("ready");
-  }, [sentences, currentIndex, title, surface.dataModelUpdate.difficulty]);
+  }, [sentences, currentIndex, title, surface.dataModelUpdate.difficulty, engineKind]);
 
   const dispatchAction = useCallback((action: A2UIUserAction) => {
     setSurface((prev) => ({
