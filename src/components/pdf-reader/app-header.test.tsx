@@ -72,11 +72,12 @@ describe("AppHeader Component", () => {
       "href",
       "/modelos"
     );
+    // A gestão de modelos vive só na tela /modelos: não há mais botão de menu lateral.
     expect(
-      screen.getByRole("button", {
+      screen.queryByRole("button", {
         name: /abrir painel de modelos e downloads de ia local/i,
       })
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
   });
 
   it("deve renderizar os botões principais de ação (apoio Pix, contato com dev e tema) e não exibir botões de tutorial ou chave Gemini fixos", () => {

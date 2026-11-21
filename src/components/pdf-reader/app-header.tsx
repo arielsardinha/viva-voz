@@ -7,7 +7,6 @@ import {
   AudioLines,
   Check,
   Cpu,
-  DownloadCloud,
   FolderArchive,
   GraduationCap,
   Heart,
@@ -45,7 +44,7 @@ export function AppHeader() {
   const isModels = pathname === "/modelos";
 
   const { apiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
-  const { openDrawer, activeDownloadsCount, models } = useLocalAi();
+  const { activeDownloadsCount, models } = useLocalAi();
   const [geminiDialogOpen, setGeminiDialogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -174,33 +173,17 @@ export function AppHeader() {
                 aria-hidden="true"
               />
               <span>IA Local</span>
+              {activeDownloadsCount > 0 && (
+                <span
+                  data-cy="nav-models-download-progress"
+                  aria-label={`Baixando modelos: ${avgProgress}%`}
+                  className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-accent tabular-nums"
+                >
+                  {avgProgress}%
+                </span>
+              )}
             </Link>
           </nav>
-
-          {/* Botão do Menu Lateral de Modelos e Downloads de IA Local (Desktop) */}
-          <button
-            type="button"
-            data-cy="local-models-drawer-trigger"
-            onClick={() => openDrawer()}
-            aria-label="Abrir painel de modelos e downloads de IA local"
-            className={cn(
-              "hidden sm:flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl border text-xs font-semibold transition-all shadow-xs cursor-pointer",
-              activeDownloadsCount > 0
-                ? "border-accent/40 bg-accent/15 text-accent"
-                : "border-border/80 bg-background/80 hover:bg-secondary text-foreground"
-            )}
-          >
-            <DownloadCloud
-              className={cn(
-                "size-3.5 text-accent",
-                activeDownloadsCount > 0 && "animate-bounce"
-              )}
-              aria-hidden="true"
-            />
-            <span className="hidden lg:inline">
-              {activeDownloadsCount > 0 ? `Baixando ${avgProgress}%` : "Modelos"}
-            </span>
-          </button>
 
           {/* Botão de Sincronização e Backup no Google Drive */}
           <GoogleDriveSyncButton hideWhenConnected={true} />
@@ -439,7 +422,7 @@ export function AppHeader() {
                   <span>Falar com o Desenvolvedor</span>
                 </DropdownMenuItem>
 
-                {/* Modelos de IA Local (Tela completa & Menu Lateral) */}
+                {/* Modelos de IA Local (tela dedicada /modelos) */}
                 <DropdownMenuItem asChild>
                   <Link
                     href="/modelos"
@@ -447,22 +430,13 @@ export function AppHeader() {
                     className="flex items-center gap-2 cursor-pointer rounded-lg text-xs font-medium text-foreground hover:bg-secondary py-2 px-2.5"
                   >
                     <Cpu className="size-4 text-accent" aria-hidden="true" />
-                    <span>Modelos de IA Local</span>
+                    <span className="flex-1">Modelos de IA Local</span>
+                    {activeDownloadsCount > 0 && (
+                      <span className="text-[10px] font-bold text-accent tabular-nums">
+                        {avgProgress}%
+                      </span>
+                    )}
                   </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  data-cy="mobile-models-drawer-item"
-                  onClick={() => openDrawer()}
-                  className="flex items-center justify-between gap-2 cursor-pointer rounded-lg text-xs font-medium text-foreground hover:bg-secondary py-2 px-2.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <DownloadCloud className="size-4 text-accent" aria-hidden="true" />
-                    <span>Acompanhar Downloads IA</span>
-                  </div>
-                  {activeDownloadsCount > 0 && (
-                    <span className="text-[10px] font-bold text-accent">{avgProgress}%</span>
-                  )}
                 </DropdownMenuItem>
 
                 {/* Chave Gemini */}

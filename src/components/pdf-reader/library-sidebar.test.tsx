@@ -166,16 +166,15 @@ describe("LibrarySidebar", () => {
       render(<LibrarySidebar {...connectedProps} maskedKey={null} />);
       expect(screen.getByText(/ativa/i)).toBeInTheDocument();
     });
-    it("deve exibir a seção Modelos IA Local com botão de download e link para /modelos", () => {
+    it("deve exibir a seção Modelos IA Local com um único link para a central /modelos", () => {
       render(<LibrarySidebar {...defaultProps} />);
       expect(screen.getByText("Modelos IA Local")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /gerenciar \/ baixar/i })
-      ).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Tela" })).toHaveAttribute(
-        "href",
-        "/modelos"
-      );
+        screen.getByRole("link", { name: /gerenciar \/ baixar modelos/i })
+      ).toHaveAttribute("href", "/modelos");
+      expect(
+        screen.queryByRole("button", { name: /gerenciar \/ baixar/i })
+      ).not.toBeInTheDocument();
     });
   });
 });

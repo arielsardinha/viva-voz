@@ -1,5 +1,7 @@
 import {
   LOCAL_AI_CACHE_NAME,
+  LOCAL_MODELS_PAGE_PATH,
+  buildModelsPageHref,
   LOCAL_AI_MODELS,
   createInitialModelStates,
   estimateEtaSeconds,
@@ -10,6 +12,18 @@ import {
 } from "./local-model-catalog";
 
 describe("local-model-catalog", () => {
+  it("deve montar a URL da central /modelos destacando o modelo pedido", () => {
+    expect(LOCAL_MODELS_PAGE_PATH).toBe("/modelos");
+    expect(buildModelsPageHref()).toBe("/modelos");
+    expect(buildModelsPageHref(null)).toBe("/modelos");
+    expect(buildModelsPageHref("kokoro-82m-tts")).toBe(
+      "/modelos?model=kokoro-82m-tts",
+    );
+    expect(buildModelsPageHref("gemma-4-e2b-chat")).toBe(
+      "/modelos?model=gemma-4-e2b-chat",
+    );
+  });
+
   it("deve definir os dois modelos esperados (Kokoro 82M TTS e Gemma 4 E2B Chat)", () => {
     expect(LOCAL_AI_CACHE_NAME).toBe("vivavoz-local-ai-models-v1");
     expect(LOCAL_AI_MODELS).toHaveLength(2);

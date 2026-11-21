@@ -2,6 +2,12 @@ import { render, screen, act, waitFor, fireEvent } from "@testing-library/react"
 import { LocalAiProvider, useLocalAi } from "./local-ai-context";
 import * as storageService from "@/lib/local-ai/storage/model-storage.service";
 
+const mockRouterPush = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+}));
+
 jest.mock("sonner", () => ({
   toast: {
     success: jest.fn(),
@@ -31,12 +37,9 @@ const mockedStorage = storageService as jest.Mocked<typeof storageService>;
 function ContextHarness() {
   const {
     models,
-    isDrawerOpen,
-    highlightedModelId,
     preferredChatEngine,
     activeDownloadsCount,
-    openDrawer,
-    closeDrawer,
+    openModelsPage,
     setPreferredChatEngine,
     startDownload,
     cancelDownload,
@@ -55,15 +58,13 @@ function ContextHarness() {
       <span data-testid="kokoro-ready">
         {isModelReady("kokoro-82m-tts") ? "yes" : "no"}
       </span>
-      <span data-testid="drawer-open">{isDrawerOpen ? "open" : "closed"}</span>
-      <span data-testid="highlighted">{highlightedModelId ?? "none"}</span>
       <span data-testid="chat-pref">{preferredChatEngine}</span>
       <span data-testid="active-downloads">{activeDownloadsCount}</span>
-      <button type="button" onClick={() => openDrawer("kokoro-82m-tts")}>
-        Abrir Drawer
+      <button type="button" onClick={() => openModelsPage("kokoro-82m-tts")}>
+        Abrir Modelos Kokoro
       </button>
-      <button type="button" onClick={() => closeDrawer()}>
-        Fechar Drawer
+      <button type="button" onClick={() => openModelsPage()}>
+        Abrir Modelos
       </button>
       <button
         type="button"
@@ -110,7 +111,8 @@ describe("LocalAiProvider & useLocalAi", () => {
     render(<ContextHarness />);
     expect(screen.getByTestId("kokoro-status")).toHaveTextContent("not_downloaded");
     expect(screen.getByTestId("kokoro-ready")).toHaveTextContent("no");
-    expect(screen.getByTestId("drawer-open")).toHaveTextContent("closed");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Modelos" }));
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
   it("deve gerenciar ciclo completo: download com progresso -> ready -> delete -> not_downloaded", async () => {
@@ -189,7 +191,7 @@ describe("LocalAiProvider & useLocalAi", () => {
     expect(screen.getByTestId("active-downloads")).toHaveTextContent("0");
   });
 
-  it("deve abrir/fechar drawer com destaque e persistir preferência do motor de chat", async () => {
+  it("deve navegar para /modelos destacando o modelo e persistir preferência do motor de chat", async () => {
     render(
       <LocalAiProvider>
         <ContextHarness />
@@ -200,12 +202,17 @@ describe("LocalAiProvider & useLocalAi", () => {
       expect(screen.getByTestId("initialized")).toHaveTextContent("yes");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Drawer" }));
-    expect(screen.getByTestId("drawer-open")).toHaveTextContent("open");
-    expect(screen.getByTestId("highlighted")).toHaveTextContent("kokoro-82m-tts");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir Modelos Kokoro" }),
+    );
+    expect(mockRouterPush).toHaveBeenLastCalledWith(
+      "/modelos?model=kokoro-82m-tts",
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Fechar Drawer" }));
-    expect(screen.getByTestId("drawer-open")).toHaveTextContent("closed");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Modelos" }));
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/modelos");
+    // Uma navegação por clique: abrir a central não pode disparar push duplicado.
+    expect(mockRouterPush).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Preferir LiteRT" }));
     expect(screen.getByTestId("chat-pref")).toHaveTextContent("litert-lm");

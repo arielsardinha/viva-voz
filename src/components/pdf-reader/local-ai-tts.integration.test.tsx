@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { ReaderSettingsProvider } from "@/context/reader-settings-context";
 import { LocalAiProvider, useLocalAi } from "@/context/local-ai-context";
-import { LocalModelsDrawer } from "@/components/local-ai/local-models-drawer";
 import { ModernStudioTemplate } from "./reader-templates/modern-studio-template";
 import { useTtsPlayer } from "@/hooks/use-tts-player";
 import { getVoicesForEngine, type TtsEngine } from "@/lib/tts-engines";
@@ -11,8 +10,10 @@ import type { ReaderSettings } from "./ui/template-switcher";
 import * as storageService from "@/lib/local-ai/storage/model-storage.service";
 import { getAudioCacheStats } from "@/lib/tts-audio-cache";
 
+const mockRouterPush = jest.fn();
+
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: mockRouterPush }),
 }));
 
 jest.mock("sonner", () => ({
@@ -66,7 +67,7 @@ const settings: ReaderSettings = {
 function LocalTtsReaderHarness() {
   const [engine, setEngineState] = useState<TtsEngine>("system");
   const [voice, setVoice] = useState("pf_dora");
-  const { isModelReady, openDrawer, isInitialized } = useLocalAi();
+  const { isModelReady, openModelsPage, isInitialized } = useLocalAi();
 
   const player = useTtsPlayer({
     sentences: sampleSentences,
@@ -74,13 +75,13 @@ function LocalTtsReaderHarness() {
     voice,
     speed: 1,
     onEngineUnavailable: (failed) => {
-      if (failed === "litert") openDrawer("kokoro-82m-tts");
+      if (failed === "litert") openModelsPage("kokoro-82m-tts");
     },
   });
 
   const handleEngineChange = (next: TtsEngine) => {
     if (next === "litert" && !isModelReady("kokoro-82m-tts")) {
-      openDrawer("kokoro-82m-tts");
+      openModelsPage("kokoro-82m-tts");
       return;
     }
     setEngineState(next);
@@ -110,7 +111,6 @@ function LocalTtsReaderHarness() {
         onVoiceChange={setVoice}
         onSpeedChange={jest.fn()}
       />
-      <LocalModelsDrawer />
     </div>
   );
 }
@@ -129,7 +129,7 @@ describe("Integração TTS Local Offline (Kokoro 82M)", () => {
     });
   });
 
-  it("deve abrir o menu lateral LocalModelsDrawer ao clicar em IA Local (Offline) sem modelo baixado", async () => {
+  it("deve navegar para /modelos?model=kokoro-82m-tts ao clicar em IA Local (Offline) sem modelo baixado", async () => {
     mockedStorage.getCachedModelMeta.mockResolvedValue({
       cached: false,
       sizeBytes: 0,
@@ -159,8 +159,9 @@ describe("Integração TTS Local Offline (Kokoro 82M)", () => {
     fireEvent.click(localOption);
 
     await waitFor(() => {
-      expect(screen.getByText("Modelos de IA Local")).toBeInTheDocument();
+      expect(mockRouterPush).toHaveBeenCalledWith("/modelos?model=kokoro-82m-tts");
     });
+    expect(screen.queryAllByTestId("tts-model-indicator")).toHaveLength(0);
   });
 
   it("deve narrar com Kokoro 82M em memória quando pronto e manter zero blobs de áudio no IndexedDB", async () => {

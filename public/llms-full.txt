@@ -30,7 +30,7 @@
 - Ações para cópia de código BR Code, chave direta e compartilhamento.
 
 ### 4. `/modelos` (Central de Modelos de IA Local)
-- Gerencia download, cancelamento, remoção e ativação de modelos `.litertlm` (Kokoro 82M e Gemma 4 E2B) armazenados na Cache API do navegador, com espelho no menu lateral `LocalModelsDrawer`.
+- Gerencia download, cancelamento, remoção e ativação de modelos `.litertlm` (Kokoro 82M e Gemma 4 E2B) armazenados na Cache API do navegador. A gestão fica exclusivamente na tela dedicada `/modelos` (atalhos do leitor navegam para `/modelos?model=<id>`, destacando o card).
 
 ## Esquemas das Ferramentas WebMCP
 

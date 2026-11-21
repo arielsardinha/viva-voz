@@ -9,7 +9,7 @@ import { useReaderSettings } from "@/context/reader-settings-context";
 import { useLocalAi } from "@/context/local-ai-context";
 
 /**
- * ViewModel para gerenciamento dos modelos de IA local (tela /modelos e LocalModelsDrawer).
+ * ViewModel da central de modelos de IA local (tela /modelos).
  */
 export function useLocalAiModels() {
   const router = useRouter();
@@ -24,7 +24,6 @@ export function useLocalAiModels() {
         localAi.setPreferredChatEngine("litert-lm");
         patchSettings({ template: "ai-study" });
       }
-      localAi.closeDrawer();
       router.push("/leitor");
     },
     [localAi, patchSettings, router],

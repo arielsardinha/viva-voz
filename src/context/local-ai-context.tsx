@@ -9,9 +9,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   LOCAL_AI_MODELS,
+  buildModelsPageHref,
   createInitialModelStates,
   getLocalModelById,
 } from "@/lib/local-ai/domain/local-model-catalog";
@@ -37,15 +39,12 @@ export interface LocalAiContextValue {
   models: Record<LocalModelId, LocalModelState>;
   runtimeSupport: LocalModelRuntimeSupport;
   storageEstimate: { usageBytes: number; quotaBytes: number } | null;
-  isDrawerOpen: boolean;
-  highlightedModelId: LocalModelId | null;
   preferredChatEngine: ChatEnginePreference;
   activeDownloadsCount: number;
   totalLocalModelsBytes: number;
   isInitialized: boolean;
-  openDrawer: (highlightModelId?: LocalModelId | null) => void;
-  closeDrawer: () => void;
-  setDrawerOpen: (open: boolean) => void;
+  /** Navega (client-side, sem interromper downloads) para /modelos, destacando `modelId`. */
+  openModelsPage: (modelId?: LocalModelId | null) => void;
   setPreferredChatEngine: (pref: ChatEnginePreference) => void;
   startDownload: (modelId: LocalModelId) => Promise<void>;
   cancelDownload: (modelId: LocalModelId) => void;
@@ -64,15 +63,11 @@ const FALLBACK_CONTEXT_VALUE: LocalAiContextValue = {
   models: createInitialModelStates(),
   runtimeSupport: DEFAULT_RUNTIME_SUPPORT,
   storageEstimate: null,
-  isDrawerOpen: false,
-  highlightedModelId: null,
   preferredChatEngine: "auto",
   activeDownloadsCount: 0,
   totalLocalModelsBytes: 0,
   isInitialized: false,
-  openDrawer: () => {},
-  closeDrawer: () => {},
-  setDrawerOpen: () => {},
+  openModelsPage: () => {},
   setPreferredChatEngine: () => {},
   startDownload: async () => {},
   cancelDownload: () => {},
@@ -117,9 +112,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
     usageBytes: number;
     quotaBytes: number;
   } | null>(null);
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const [highlightedModelId, setHighlightedModelId] =
-    useState<LocalModelId | null>(null);
+  const router = useRouter();
   const [preferredChatEngine, setPreferredChatEngineState] =
     useState<ChatEnginePreference>("auto");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -206,14 +199,12 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const openDrawer = useCallback((highlightId?: LocalModelId | null) => {
-    setHighlightedModelId(highlightId ?? null);
-    setDrawerOpen(true);
-  }, []);
-
-  const closeDrawer = useCallback(() => {
-    setDrawerOpen(false);
-  }, []);
+  const openModelsPage = useCallback(
+    (modelId?: LocalModelId | null) => {
+      router.push(buildModelsPageHref(modelId));
+    },
+    [router],
+  );
 
   const startDownload = useCallback(
     async (modelId: LocalModelId) => {
@@ -401,15 +392,11 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
       models,
       runtimeSupport,
       storageEstimate,
-      isDrawerOpen,
-      highlightedModelId,
       preferredChatEngine,
       activeDownloadsCount,
       totalLocalModelsBytes,
       isInitialized,
-      openDrawer,
-      closeDrawer,
-      setDrawerOpen,
+      openModelsPage,
       setPreferredChatEngine,
       startDownload,
       cancelDownload,
@@ -421,14 +408,11 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
       models,
       runtimeSupport,
       storageEstimate,
-      isDrawerOpen,
-      highlightedModelId,
       preferredChatEngine,
       activeDownloadsCount,
       totalLocalModelsBytes,
       isInitialized,
-      openDrawer,
-      closeDrawer,
+      openModelsPage,
       setPreferredChatEngine,
       startDownload,
       cancelDownload,

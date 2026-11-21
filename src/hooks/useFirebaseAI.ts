@@ -131,7 +131,6 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     isModelReady,
     preferredChatEngine,
     setPreferredChatEngine,
-    openDrawer,
   } = useLocalAi();
   const isLiteRtChatReady = isModelReady("gemma-4-e2b-chat");
 
@@ -384,8 +383,9 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         msgOptions?.attachments && msgOptions.attachments.length > 0,
       );
       try {
+        // Sem Gemma baixado, a mensagem de erro do chat orienta a ir à central /modelos;
+        // não navegamos automaticamente para não descartar a conversa em andamento.
         if (hasAttachments && !isLiteRtChatReady) {
-          openDrawer("gemma-4-e2b-chat");
           throw new LocalModelNotDownloadedError("gemma-4-e2b-chat");
         }
 
@@ -413,7 +413,6 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
     },
     [
       isLiteRtChatReady,
-      openDrawer,
       abortCurrentRequest,
       resolveEngineChain,
       streamWithFallback,
@@ -466,8 +465,9 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
       setError(null);
 
       try {
+        // Sem Gemma baixado, a mensagem de erro do chat orienta a ir à central /modelos;
+        // não navegamos automaticamente para não descartar a conversa em andamento.
         if (hasAttachments && !isLiteRtChatReady) {
-          openDrawer("gemma-4-e2b-chat");
           throw new LocalModelNotDownloadedError("gemma-4-e2b-chat");
         }
 
@@ -514,7 +514,7 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
         setIsLoading(false);
       }
     },
-    [isLiteRtChatReady, openDrawer, resolveEngineChain, streamWithFallback],
+    [isLiteRtChatReady, resolveEngineChain, streamWithFallback],
   );
 
   return {

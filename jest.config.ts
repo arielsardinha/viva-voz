@@ -17,7 +17,14 @@ const config: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/cypress/"],
+  // `.claude/worktrees/` guarda worktrees git de outras sessões (cópias do repo):
+  // sem isso o Jest roda os testes delas junto com os deste checkout.
+  testPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "<rootDir>/cypress/",
+    "<rootDir>/.claude/",
+  ],
+  modulePathIgnorePatterns: ["<rootDir>/.claude/"],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

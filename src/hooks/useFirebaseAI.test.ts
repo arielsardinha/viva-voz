@@ -13,7 +13,7 @@ let mockPreferredChatEngine: "auto" | "cloud" | "gemini-nano" | "litert-lm" = "a
 const mockSetPreferredChatEngine = jest.fn((pref: typeof mockPreferredChatEngine) => {
   mockPreferredChatEngine = pref;
 });
-const mockOpenDrawer = jest.fn();
+const mockOpenModelsPage = jest.fn();
 const mockStreamMultimodalPrompt = jest.fn();
 
 jest.mock("@/context/local-ai-context", () => ({
@@ -21,7 +21,7 @@ jest.mock("@/context/local-ai-context", () => ({
     isModelReady: (id: string) => id === "gemma-4-e2b-chat" && mockLiteRtReady,
     preferredChatEngine: mockPreferredChatEngine,
     setPreferredChatEngine: mockSetPreferredChatEngine,
-    openDrawer: mockOpenDrawer,
+    openModelsPage: mockOpenModelsPage,
   }),
 }));
 
@@ -260,7 +260,7 @@ describe("useFirebaseAI hook", () => {
     expect(result.current.messages[1]?.source).toBe("litert-lm");
   });
 
-  it("deve abrir o drawer de modelos locais e exibir mensagem amigável ao enviar anexo sem Gemma 4 baixado", async () => {
+  it("deve exibir mensagem amigável sem sair do chat ao enviar anexo sem Gemma 4 baixado", async () => {
     mockLiteRtReady = false;
     const { result } = renderHook(() => useFirebaseAI());
 
@@ -278,7 +278,7 @@ describe("useFirebaseAI hook", () => {
       });
     });
 
-    expect(mockOpenDrawer).toHaveBeenCalledWith("gemma-4-e2b-chat");
+    expect(mockOpenModelsPage).not.toHaveBeenCalled();
     expect(result.current.status).toBe("error");
     expect(result.current.messages[1]?.content).toContain("Gemma 4");
   });

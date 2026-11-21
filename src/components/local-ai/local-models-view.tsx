@@ -1,9 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Cpu, HardDrive, PanelRightOpen, ShieldCheck, WifiOff } from "lucide-react";
+import { Cpu, HardDrive, ShieldCheck, WifiOff } from "lucide-react";
 import { AppHeader } from "@/components/pdf-reader/app-header";
-import { Button } from "@/components/ui/button";
 import { formatBytes } from "@/lib/local-ai/domain/local-model-catalog";
 import type { LocalModelId } from "@/lib/local-ai/domain/local-model.types";
 import { useLocalAiModels } from "@/hooks/use-local-ai-models";
@@ -19,8 +18,6 @@ export function LocalModelsView() {
     runtimeSupport,
     storageEstimate,
     totalLocalModelsBytes,
-    activeDownloadsCount,
-    openDrawer,
     startDownload,
     cancelDownload,
     deleteModel,
@@ -36,36 +33,18 @@ export function LocalModelsView() {
           aria-label="Central de Modelos de IA Local"
           className="glass-panel rounded-2xl sm:rounded-3xl border border-border/80 p-4 sm:p-6 shadow-xs space-y-4"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent to-indigo-500 text-accent-foreground shadow-md shadow-accent/20">
-                <Cpu className="size-5" aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-foreground">
-                  Modelos de IA Local (Offline)
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                  Baixe os motores LiteRT-LM para narrar documentos em Português do Brasil e conversar com texto, imagem e áudio diretamente no seu navegador — sem chave de API.
-                </p>
-              </div>
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent to-indigo-500 text-accent-foreground shadow-md shadow-accent/20">
+              <Cpu className="size-5" aria-hidden="true" />
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              data-cy="open-drawer-from-models-page"
-              onClick={() => openDrawer(requestedModel)}
-              className="shrink-0 min-h-9 text-xs font-semibold gap-1.5 cursor-pointer self-start sm:self-center"
-            >
-              <PanelRightOpen className="size-3.5 text-accent" aria-hidden="true" />
-              <span>
-                {activeDownloadsCount > 0
-                  ? `Menu Lateral (${activeDownloadsCount} baixando)`
-                  : "Abrir Menu Lateral"}
-              </span>
-            </Button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-foreground">
+                Modelos de IA Local (Offline)
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                Baixe os motores LiteRT-LM para narrar documentos em Português do Brasil e conversar com texto, imagem e áudio diretamente no seu navegador — sem chave de API.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
