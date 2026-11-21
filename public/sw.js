@@ -41,7 +41,8 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((name) => {
-            if (name !== CACHE_NAME) {
+            // Nunca apagar os modelos de IA local baixados pelo usuário.
+            if (name !== CACHE_NAME && !name.startsWith('vivavoz-local-ai-models')) {
               return caches.delete(name);
             }
           })
@@ -62,6 +63,18 @@ self.addEventListener('fetch', (event) => {
 
   // Ignorar extensões do navegador ou esquemas não-HTTP
   if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // Requisições de outras origens (ex.: download dos modelos no Hugging Face) vão
+  // direto para a rede: passar GBs pelo SW duplica o arquivo no cache do app e o
+  // SW pode ser encerrado no meio do stream, abortando o download.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Requisições com Range (downloads parciais/mídia) também não passam pelo cache.
+  if (request.headers.has('range')) {
     return;
   }
 
