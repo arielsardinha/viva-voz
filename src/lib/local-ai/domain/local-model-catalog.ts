@@ -67,7 +67,7 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     shortName: "Piper Faber",
     category: "tts",
     description:
-      "Voz brasileira Faber do Piper, leve e 100% offline, executada via ONNX Runtime Web (WASM) dentro de um Web Worker.",
+      "Voz masculina brasileira (Faber) do Piper, leve e 100% offline, executada via ONNX Runtime Web (WASM) dentro de um Web Worker.",
     fileName: "pt_BR-faber-medium.onnx",
     downloadUrl:
       "https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx",
@@ -78,7 +78,7 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     license: "CC0-1.0 (dataset) · base Hi-Fi TTS CC-BY-4.0",
     estimatedRamMb: 250,
     highlights: [
-      "Voz natural em Português do Brasil",
+      "Voz masculina natural em Português do Brasil",
       "Download leve (~60 MB) e funciona offline",
       "Roda em CPU (WASM), inclusive em celulares sem WebGPU",
     ],
