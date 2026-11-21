@@ -54,7 +54,7 @@ export function LibrarySidebar({
   onConnectGemini,
   onDisconnectGemini,
 }: LibrarySidebarProps) {
-  const { models, activeDownloadsCount, openDrawer } = useLocalAi();
+  const { models, activeDownloadsCount } = useLocalAi();
   const modelList = Object.values(models);
   const readyCount = modelList.filter((m) => m.status === "ready").length;
 
@@ -220,24 +220,14 @@ export function LibrarySidebar({
             Voz neural (Kokoro 82M) e chat multimodal offline no navegador sem chave de API.
           </p>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              data-cy="sidebar-open-local-models-drawer"
-              onClick={() => openDrawer()}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-[11px] font-semibold text-accent transition-colors cursor-pointer"
-            >
-              <DownloadCloud className="size-3.5 shrink-0" aria-hidden="true" />
-              <span>Gerenciar / Baixar</span>
-            </button>
-            <Link
-              href="/modelos"
-              data-cy="sidebar-models-page-link"
-              className="px-2.5 py-2 rounded-xl border border-border bg-secondary/70 hover:bg-secondary text-[11px] font-semibold text-foreground transition-colors"
-            >
-              Tela
-            </Link>
-          </div>
+          <Link
+            href="/modelos"
+            data-cy="sidebar-models-page-link"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-[11px] font-semibold text-accent transition-colors"
+          >
+            <DownloadCloud className="size-3.5 shrink-0" aria-hidden="true" />
+            <span>Gerenciar / Baixar modelos</span>
+          </Link>
         </div>
       </div>
     </aside>

@@ -1,8 +1,8 @@
 /// <reference types="cypress" />
 
 /**
- * E2E da IA Local Offline (LiteRT-LM): central /modelos, drawer global,
- * motor de TTS "IA Local (Offline)" (Kokoro 82M) e chat multimodal Gemma 4.
+ * E2E da IA Local Offline (LiteRT-LM): central dedicada /modelos (único ponto
+ * de gestão, sem menu lateral), motor de TTS "IA Local (Offline)" (Kokoro 82M) e chat multimodal Gemma 4.
  *
  * Os downloads do Hugging Face são interceptados com um corpo de 16 bytes:
  * o fluxo real de streaming → Cache API → estado "Pronto offline" é exercitado
@@ -84,7 +84,10 @@ function createReadingViaQuickPaste(title: string) {
 }
 
 function openVoiceMenu() {
-  cy.get('[data-cy="floating-voice-trigger"]:visible').first().click();
+  // O dock flutuante entra com animação após a navegação client-side de volta ao leitor.
+  cy.get('[data-cy="floating-voice-trigger"]:visible', { timeout: 10000 })
+    .first()
+    .click();
 }
 
 function assertNoHorizontalOverflow() {
@@ -113,7 +116,7 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
     mockModelDownloads();
   });
 
-  it("exibe a central /modelos com os 2 cards, anotações WebMCP e sem violações de acessibilidade", () => {
+  it("exibe a central /modelos com os 2 cards, anotações WebMCP, sem menu lateral e sem violações de acessibilidade", () => {
     visitWithSettings("/modelos");
 
     cy.get("main h1").should("contain.text", "Modelos de IA Local");
@@ -130,39 +133,46 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
     cy.get(`[data-cy="download-model-${GEMMA_ID}"]`)
       .should("have.attr", "data-webmcp-action", "downloadModel");
 
-    checkA11yOn("main");
+    cy.contains("button", "Abrir Menu Lateral").should("not.exist");
+    cy.get('[data-cy="local-models-drawer"]').should("not.exist");
+    cy.get('[data-cy="local-models-drawer-trigger"]').should("not.exist");
 
-    cy.get('[data-cy="open-drawer-from-models-page"]').click();
-    cy.get('[data-cy="local-models-drawer"]').should("be.visible");
-    checkA11yOn('[data-cy="local-models-drawer"]');
+    checkA11yOn("main");
   });
 
-  it("baixa o Kokoro, mantém 'Pronto offline' ao navegar até o leitor e remove pelo drawer", () => {
+  it("continua o download do Kokoro ao trocar de rota e remove o modelo na central", () => {
+    // Resposta atrasada: o download ainda está em andamento quando o usuário sai de /modelos.
+    cy.intercept("GET", "https://huggingface.co/**", {
+      statusCode: 200,
+      delay: 1500,
+      headers: {
+        "content-type": "application/octet-stream",
+        "content-length": String(MOCK_MODEL_BODY.length),
+      },
+      body: MOCK_MODEL_BODY,
+    }).as("slowModelDownload");
+
     visitWithSettings("/modelos");
-    downloadModelFromCard(KOKORO_ID);
+    cy.get(`[data-cy="download-model-${KOKORO_ID}"]`).click();
+    cy.get(`[data-cy="model-status-${KOKORO_ID}"]`).should("contain.text", "Baixando");
 
     cy.get('[data-cy="nav-link-reader"]').click();
     cy.location("pathname").should("eq", "/leitor");
+    cy.get('[data-cy="nav-models-download-progress"]').should("be.visible");
+    cy.wait("@slowModelDownload");
 
-    cy.get('[data-cy="local-models-drawer-trigger"]').should("be.visible").click();
-    cy.get('[data-cy="local-models-drawer"]')
-      .should("be.visible")
-      .within(() => {
-        cy.get(`[data-cy="model-status-${KOKORO_ID}"]`).should(
-          "contain.text",
-          "Pronto offline",
-        );
-        cy.get(`[data-cy="model-status-${GEMMA_ID}"]`).should(
-          "contain.text",
-          "Não baixado",
-        );
-        cy.get(`[data-cy="delete-model-${KOKORO_ID}"]`).click();
-        cy.get(`[data-cy="model-status-${KOKORO_ID}"]`).should(
-          "contain.text",
-          "Não baixado",
-        );
-        cy.get(`[data-cy="download-model-${KOKORO_ID}"]`).should("be.visible");
-      });
+    cy.get('[data-cy="nav-link-models"]').click();
+    cy.location("pathname").should("eq", "/modelos");
+    cy.get(`[data-cy="model-status-${KOKORO_ID}"]`, { timeout: 10000 }).should(
+      "contain.text",
+      "Pronto offline",
+    );
+    cy.get(`[data-cy="model-status-${GEMMA_ID}"]`).should("contain.text", "Não baixado");
+    cy.get('[data-cy="nav-models-download-progress"]').should("not.exist");
+
+    cy.get(`[data-cy="delete-model-${KOKORO_ID}"]`).click();
+    cy.get(`[data-cy="model-status-${KOKORO_ID}"]`).should("contain.text", "Não baixado");
+    cy.get(`[data-cy="download-model-${KOKORO_ID}"]`).should("be.visible");
 
     cy.window().then(async (win) => {
       const cache = await win.caches.open(MODELS_CACHE_NAME);
@@ -171,7 +181,7 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
     });
   });
 
-  it("abre o drawer ao escolher 'IA Local (Offline)' sem o modelo em cache", () => {
+  it("leva à central /modelos com o Kokoro destacado ao escolher 'IA Local (Offline)' sem o modelo", () => {
     visitWithSettings("/leitor");
     createReadingViaQuickPaste("Leitura IA Local");
 
@@ -181,11 +191,11 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
       .and("contain.text", "Baixar")
       .click();
 
-    cy.get('[data-cy="local-models-drawer"]')
-      .should("be.visible")
-      .find(`[data-cy="download-model-${KOKORO_ID}"]`)
-      .should("be.visible");
-    cy.get('[data-cy="tts-model-indicator"]').should("not.exist");
+    cy.location("pathname").should("eq", "/modelos");
+    cy.location("search").should("eq", `?model=${KOKORO_ID}`);
+    cy.get(`[data-cy="model-card-${KOKORO_ID}"]`).should("have.class", "ring-2");
+    cy.get(`[data-cy="model-card-${GEMMA_ID}"]`).should("not.have.class", "ring-2");
+    cy.get('[data-cy="local-models-drawer"]').should("not.exist");
   });
 
   it("com o Kokoro baixado, lista as vozes PT-BR e mostra o indicador do modelo local", () => {
@@ -194,11 +204,12 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
 
     openVoiceMenu();
     cy.get('[data-cy="tts-menu-open-local-models"]').should("be.visible").click();
-    cy.get('[data-cy="local-models-drawer"]')
-      .should("be.visible")
-      .within(() => downloadModelFromCard(KOKORO_ID));
-    cy.get("body").type("{esc}");
-    cy.get('[data-cy="local-models-drawer"]').should("not.exist");
+    cy.location("search").should("eq", `?model=${KOKORO_ID}`);
+    downloadModelFromCard(KOKORO_ID);
+
+    cy.get('[data-cy="nav-link-reader"]').click();
+    cy.location("pathname").should("eq", "/leitor");
+    cy.contains("Leitura Kokoro Local", { timeout: 10000 }).should("be.visible");
 
     openVoiceMenu();
     cy.contains('[role="menuitemradio"]', "IA Local (Offline)")
@@ -222,6 +233,20 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
         .scrollIntoView()
         .should("be.visible");
     });
+  });
+
+  it("leva à central /modelos com o Gemma destacado ao escolher 'Gemma 4 Local' sem o modelo", () => {
+    visitWithSettings("/leitor", "ai-study");
+    createReadingViaQuickPaste("Apostila Sem Gemma");
+
+    cy.get('[data-cy="chat-engine-selector"]:visible').first().click();
+    cy.contains('[role="menuitemradio"]', "Gemma 4 Local")
+      .should("contain.text", "Baixar")
+      .click();
+
+    cy.location("pathname").should("eq", "/modelos");
+    cy.location("search").should("eq", `?model=${GEMMA_ID}`);
+    cy.get(`[data-cy="model-card-${GEMMA_ID}"]`).should("have.class", "ring-2");
   });
 
   it("com o Gemma baixado no template ai-study, usa Gemma 4 Local e anexa imagem e áudio", () => {
@@ -280,26 +305,19 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
       });
   });
 
-  it("não estoura a largura em 370px na central /modelos nem no drawer (menu mobile)", () => {
+  it("não estoura a largura em 370px na central /modelos e acessa a central pelo menu mobile", () => {
     cy.viewport(370, 667);
-    visitWithSettings("/modelos");
+    visitWithSettings("/leitor");
 
+    cy.get('[data-cy="nav-link-models"]').should("not.be.visible");
+    cy.get('[data-cy="mobile-menu-trigger"]').should("be.visible").click();
+    cy.get('[data-cy="mobile-models-drawer-item"]').should("not.exist");
+    cy.get('[data-cy="mobile-models-page-item"]').should("be.visible").click();
+
+    cy.location("pathname").should("eq", "/modelos");
     cy.get(`[data-cy="model-card-${KOKORO_ID}"]`).should("be.visible");
     cy.get(`[data-cy="model-card-${GEMMA_ID}"]`).should("be.visible");
-    cy.get('[data-cy="nav-link-models"]').should("not.be.visible");
-    assertNoHorizontalOverflow();
-
-    cy.get('[data-cy="mobile-menu-trigger"]').should("be.visible").click();
-    cy.get('[data-cy="mobile-models-drawer-item"]').should("be.visible").click();
-    cy.get('[data-cy="local-models-drawer"]').should("be.visible");
-    cy.get('[data-cy="local-models-drawer"]').then(($drawer) => {
-      const el = $drawer[0];
-      expect(el.scrollWidth, "scrollWidth do drawer").to.be.at.most(el.clientWidth);
-    });
-    assertNoHorizontalOverflow();
-
-    cy.get('[data-cy="open-models-page-from-drawer"]').should("be.visible").click();
     cy.get('[data-cy="local-models-drawer"]').should("not.exist");
-    cy.location("pathname").should("eq", "/modelos");
+    assertNoHorizontalOverflow();
   });
 });

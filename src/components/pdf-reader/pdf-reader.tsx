@@ -64,7 +64,7 @@ export function PdfReader() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const { apiKey: userApiKey, hasApiKey, updateApiKey: setUserApiKey } = useGeminiApiKey();
-  const { isModelReady, openDrawer } = useLocalAi();
+  const { isModelReady, openModelsPage } = useLocalAi();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zenQuotaDialogOpen, setZenQuotaDialogOpen] = useState(false);
   const [geminiKeyDialogOpen, setGeminiKeyDialogOpen] = useState(false);
@@ -173,8 +173,13 @@ export function PdfReader() {
   const handleEngineUnavailable = useCallback(
     (failed: TtsEngine, message: string) => {
       if (failed === "litert") {
-        openDrawer("kokoro-82m-tts");
-        toast.info(message);
+        // Falha durante a leitura: não tira o usuário do leitor; o toast leva à central.
+        toast.info(message, {
+          action: {
+            label: "Abrir Modelos",
+            onClick: () => openModelsPage("kokoro-82m-tts"),
+          },
+        });
         return;
       }
       if (readerSettings.template === "zen") {
@@ -194,7 +199,7 @@ export function PdfReader() {
         });
       }
     },
-    [openDrawer, readerSettings.template]
+    [openModelsPage, readerSettings.template]
   );
 
   const player = useTtsPlayer({
@@ -301,15 +306,15 @@ export function PdfReader() {
         return;
       }
       if (next === "litert" && !isModelReady("kokoro-82m-tts")) {
-        openDrawer("kokoro-82m-tts");
+        openModelsPage("kokoro-82m-tts");
         toast.info(
-          "Baixe o modelo Kokoro 82M (~281 MB) no painel lateral ou em Modelos para usar a voz neural offline."
+          "Baixe o modelo Kokoro 82M (~281 MB) na central de Modelos para usar a voz neural offline."
         );
         return;
       }
       patchPrefs({ engine: next });
     },
-    [patchPrefs, hasApiKey, isModelReady, openDrawer]
+    [patchPrefs, hasApiKey, isModelReady, openModelsPage]
   );
 
   // Se o motor estiver configurado como Google mas não houver chave, volta para a seleção padrão gratuita (sistema)
