@@ -1,5 +1,11 @@
 import { buildDocumentSystemPrompt } from "@/lib/ai/system-instructions";
-import { describeError, reportLocalAiFailure, traceLocalAi } from "../diagnostics";
+import {
+  clearRiskyStage,
+  describeError,
+  markRiskyStage,
+  reportLocalAiFailure,
+  traceLocalAi,
+} from "../diagnostics";
 import {
   LocalModelNotDownloadedError,
   type ChatAttachment,
@@ -62,13 +68,54 @@ const defaultModuleLoader: ILocalChatModuleLoader = {
   },
 };
 
-/** Janela de contexto (tokens) configurada para o Gemma 4 E2B local. */
-const LOCAL_MAX_NUM_TOKENS = 4096;
 /**
- * Limite de caracteres do documento no prompt de sistema. ~8000 chars em PT-BR
- * ficam em torno de 2000-2500 tokens, deixando espaço para pergunta e resposta.
+ * Perfil de execução do Gemma local.
+ *
+ * - `full`: desktop e aparelhos com folga de memória. Texto, imagem e áudio,
+ *   janela de 4096 tokens (~8000 chars de documento = 2000-2500 tokens).
+ * - `lite`: iPhone/iPad (todo navegador no iOS é WebKit, com limite de memória
+ *   por aba bem menor) e aparelhos com <= 4 GB de RAM. Só texto, sem carregar os
+ *   codificadores de visão/áudio na GPU, e janela de 2048 tokens. Com o perfil
+ *   completo o iOS criava o motor e matava a aba na primeira resposta.
  */
-const LOCAL_MAX_CONTEXT_CHARS = 8000;
+export interface LocalChatProfile {
+  name: "full" | "lite";
+  maxNumTokens: number;
+  maxContextChars: number;
+  multimodal: boolean;
+}
+
+const FULL_PROFILE: LocalChatProfile = {
+  name: "full",
+  maxNumTokens: 4096,
+  maxContextChars: 8000,
+  multimodal: true,
+};
+
+const LITE_PROFILE: LocalChatProfile = {
+  name: "lite",
+  maxNumTokens: 2048,
+  maxContextChars: 3000,
+  multimodal: false,
+};
+
+export function isAppleMobileWebKit(nav?: Navigator): boolean {
+  if (!nav) return false;
+  const ua = nav.userAgent ?? "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  // O iPadOS se apresenta como Mac; o suporte a toque denuncia.
+  return /Macintosh/i.test(ua) && (nav.maxTouchPoints ?? 0) > 1;
+}
+
+export function resolveLocalChatProfile(
+  nav: Navigator | undefined = typeof navigator !== "undefined" ? navigator : undefined,
+): LocalChatProfile {
+  if (!nav) return FULL_PROFILE;
+  if (isAppleMobileWebKit(nav)) return LITE_PROFILE;
+  const deviceMemory = (nav as Navigator & { deviceMemory?: number }).deviceMemory;
+  if (typeof deviceMemory === "number" && deviceMemory <= 4) return LITE_PROFILE;
+  return FULL_PROFILE;
+}
 
 function isContextWindowFullError(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err ?? "");
@@ -101,6 +148,7 @@ function buildUserContentParts(
 }
 
 export class LocalChatEngine {
+  private readonly profile: LocalChatProfile = resolveLocalChatProfile();
   private engine: LiteRtEngineInstance | null = null;
   private conversation: LiteRtConversation | null = null;
   private initPromise: Promise<LiteRtEngineInstance> | null = null;
@@ -152,42 +200,57 @@ export class LocalChatEngine {
       throw err;
     }
     const { Engine, Backend } = mod;
+    const profile = this.profile;
+    const maxNumTokens = profile.maxNumTokens;
 
-    const attempts = [
-      {
-        model: modelBlob,
-        backend: Backend.GPU,
-        visionBackend: Backend.GPU,
-        audioBackend: Backend.GPU,
-        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS, maxNumImages: 4 },
-      },
-      {
-        model: modelBlob,
-        backend: Backend.GPU,
-        visionBackend: Backend.CPU,
-        audioBackend: Backend.CPU,
-        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS, maxNumImages: 4 },
-      },
-      {
-        model: modelBlob,
-        backend: Backend.GPU,
-        mainExecutorSettings: { maxNumTokens: LOCAL_MAX_NUM_TOKENS },
-      },
-    ];
+    const textOnly = {
+      model: modelBlob,
+      backend: Backend.GPU,
+      mainExecutorSettings: { maxNumTokens },
+    };
+    const attempts = profile.multimodal
+      ? [
+          {
+            model: modelBlob,
+            backend: Backend.GPU,
+            visionBackend: Backend.GPU,
+            audioBackend: Backend.GPU,
+            mainExecutorSettings: { maxNumTokens, maxNumImages: 4 },
+          },
+          {
+            model: modelBlob,
+            backend: Backend.GPU,
+            visionBackend: Backend.CPU,
+            audioBackend: Backend.CPU,
+            mainExecutorSettings: { maxNumTokens, maxNumImages: 4 },
+          },
+          textOnly,
+        ]
+      : [textOnly];
 
     let lastError: unknown;
     for (const [index, settings] of attempts.entries()) {
       const startedAt = Date.now();
       try {
+        markRiskyStage("engine_create", {
+          modelId,
+          attempt: index + 1,
+          profile: profile.name,
+          maxNumTokens,
+          multimodal: "visionBackend" in settings,
+        });
         const instance = await Engine.create(settings);
+        clearRiskyStage();
         traceLocalAi("motor criado", {
           modelId,
           attempt: index + 1,
+          profile: profile.name,
           elapsedMs: Date.now() - startedAt,
         });
         this.engine = instance;
         return instance;
       } catch (err) {
+        clearRiskyStage();
         lastError = err;
         const info = describeError(err);
         traceLocalAi("falha ao criar motor", {
@@ -221,21 +284,27 @@ export class LocalChatEngine {
     const systemPrompt = buildDocumentSystemPrompt({
       context,
       fileName,
-      maxContextChars: LOCAL_MAX_CONTEXT_CHARS,
+      maxContextChars: this.profile.maxContextChars,
     });
 
+    markRiskyStage("chat_conversation", {
+      modelId: "gemma-4-e2b-chat",
+      profile: this.profile.name,
+      systemPromptChars: systemPrompt.length,
+    });
     const conv = await engine.createConversation({
       preface: {
         messages: [{ role: "system", content: systemPrompt }],
       },
     });
+    clearRiskyStage();
     this.conversation = conv;
     return conv;
   }
 
   /**
    * Cada pergunta usa uma conversa nova (apenas o prompt de sistema + documento).
-   * A janela do Gemma local é de LOCAL_MAX_NUM_TOKENS tokens e o documento sozinho
+   * A janela do Gemma local é de `profile.maxNumTokens` tokens e o documento sozinho
    * já ocupa boa parte dela; reaproveitar a conversa acumulava o histórico e
    * estourava o limite logo na segunda pergunta ("context window is full").
    */
@@ -250,11 +319,23 @@ export class LocalChatEngine {
       throw new DOMException("Operação cancelada pelo usuário.", "AbortError");
     }
 
+    if (!this.profile.multimodal && params.attachments && params.attachments.length > 0) {
+      throw new Error(
+        "Neste aparelho o chat local funciona só com texto. Remova o anexo ou use o modo nuvem.",
+      );
+    }
+
     const conversation = await this.createFreshConversation(
       params.context,
       params.fileName,
     );
     const parts = buildUserContentParts(params.prompt, params.attachments);
+    markRiskyStage("chat_stream", {
+      modelId: "gemma-4-e2b-chat",
+      profile: this.profile.name,
+      promptChars: params.prompt.length,
+      attachments: params.attachments?.length ?? 0,
+    });
     const stream = conversation.sendMessageStreaming({
       role: "user",
       content: parts,
@@ -288,11 +369,22 @@ export class LocalChatEngine {
         if (result.done) break;
         const text = result.value ? extractChunkText(result.value) : "";
         if (text) {
+          if (!yieldedAny) {
+            traceLocalAi("primeiro token do chat local", { profile: this.profile.name });
+          }
           yieldedAny = true;
           yield text;
         }
       }
+    } catch (err) {
+      await reportLocalAiFailure("chat_stream", err, {
+        modelId: "gemma-4-e2b-chat",
+        profile: this.profile.name,
+        yieldedAny,
+      });
+      throw err;
     } finally {
+      clearRiskyStage();
       params.signal?.removeEventListener("abort", handleAbort);
       reader.releaseLock();
       if (this.conversation === conversation) {

@@ -31,7 +31,7 @@ import {
   getStorageQuotaEstimate,
   ModelStorageQuotaError,
 } from "@/lib/local-ai/storage/model-storage.service";
-import { reportLocalAiFailure } from "@/lib/local-ai/diagnostics";
+import { reportLocalAiFailure, reportPreviousTabCrash } from "@/lib/local-ai/diagnostics";
 import { getLocalTtsEngineForModel } from "@/lib/local-ai/engines/local-tts.router";
 import { getLocalChatEngine } from "@/lib/local-ai/engines/local-chat.engine";
 
@@ -178,6 +178,7 @@ export function LocalAiProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMountedRef.current = true;
+    void reportPreviousTabCrash();
     setPreferredChatEngineState(readChatEnginePreference());
     void refreshModels();
     const controllers = abortControllersRef.current;
