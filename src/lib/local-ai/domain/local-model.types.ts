@@ -3,7 +3,11 @@
  * Armazenamento exclusivo via Cache API (nunca IndexedDB) para pesos binários .litertlm.
  */
 
-export type LocalModelId = "kokoro-82m-tts" | "piper-cadu-tts" | "gemma-4-e2b-chat";
+export type LocalModelId =
+  | "kokoro-82m-tts"
+  | "piper-cadu-tts"
+  | "piper-faber-tts"
+  | "gemma-4-e2b-chat";
 
 export type LocalModelCategory = "tts" | "chat";
 
