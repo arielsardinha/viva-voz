@@ -128,11 +128,11 @@ export function useFirebaseAI(options: UseFirebaseAIOptions = {}): UseFirebaseAI
   const isMountedRef = useRef(true);
   const { apiKey: unifiedApiKey, hasApiKey, updateApiKey } = useGeminiApiKey();
   const {
-    isModelReady,
+    readyChatModelId,
     preferredChatEngine,
     setPreferredChatEngine,
   } = useLocalAi();
-  const isLiteRtChatReady = isModelReady("gemma-4-e2b-chat");
+  const isLiteRtChatReady = Boolean(readyChatModelId);
 
   // Inicialização determinística para SSR e hidratação sem mismatch
   const apiKey = options.initialApiKey || unifiedApiKey;

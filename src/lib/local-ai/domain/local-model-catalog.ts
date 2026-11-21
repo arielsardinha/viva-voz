@@ -26,6 +26,12 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     outputModality: "audio",
     license: "Apache-2.0",
     estimatedRamMb: 450,
+    recommendedSpecs: [
+      "Computador ou celular dos últimos ~4 anos",
+      "2 GB de RAM livres",
+      "WebGPU opcional: sem ela, roda na CPU (WASM)",
+      "~300 MB livres de armazenamento",
+    ],
     highlights: [
       "Narração fluida em Português do Brasil sem chave de API",
       "Funciona totalmente offline após o download inicial",
@@ -48,6 +54,12 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     outputModality: "audio",
     license: "CC0-1.0",
     estimatedRamMb: 250,
+    recommendedSpecs: [
+      "Computador ou celular dos últimos ~4 anos",
+      "1 GB de RAM livre",
+      "Roda na CPU (WASM): não precisa de WebGPU",
+      "~70 MB livres de armazenamento",
+    ],
     highlights: [
       "Voz masculina natural em Português do Brasil",
       "Download leve (~60 MB) e funciona offline",
@@ -77,6 +89,12 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     outputModality: "audio",
     license: "CC0-1.0 (dataset) · base Hi-Fi TTS CC-BY-4.0",
     estimatedRamMb: 250,
+    recommendedSpecs: [
+      "Computador ou celular dos últimos ~4 anos",
+      "1 GB de RAM livre",
+      "Roda na CPU (WASM): não precisa de WebGPU",
+      "~70 MB livres de armazenamento",
+    ],
     highlights: [
       "Voz masculina natural em Português do Brasil",
       "Download leve (~60 MB) e funciona offline",
@@ -109,10 +127,47 @@ export const LOCAL_AI_MODELS: readonly LocalModelDescriptor[] = [
     license: "Apache-2.0",
     // Benchmark oficial na web (WebGPU, MacBook M4): ~1800 MB de memória de GPU.
     estimatedRamMb: 1800,
+    recommendedSpecs: [
+      "Computador: 8 GB de RAM e placa de vídeo com WebGPU (Chrome ou Edge atualizados)",
+      "Celular: Android recente com 6 GB+ de RAM; no iPhone/iPad funciona só com texto",
+      "~2,5 GB livres de armazenamento",
+    ],
+    exclusiveGroup: "local-chat",
     highlights: [
       "Entrada multimodal: texto, imagens e áudios → texto",
       "Processamento privado 100% local via @litert-lm/core",
       "Ideal para estudar documentos offline sem consumir API",
+    ],
+  },
+  {
+    id: "gemma-4-e4b-chat",
+    name: "Gemma 4 E4B Multimodal (Chat Local · Computador)",
+    shortName: "Gemma 4 E4B",
+    category: "chat",
+    description:
+      "Versão maior do Gemma 4 para computadores: respostas mais precisas, melhor raciocínio sobre o documento e leitura de imagens com menos erros. Mais lento e mais pesado que o E2B.",
+    fileName: "gemma-4-E4B-it-gpu.litertlm",
+    downloadUrl:
+      "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-gpu.litertlm",
+    sizeBytes: 3_310_938_740,
+    requiresWebGpu: true,
+    inputModalities: ["text", "image", "audio"],
+    outputModality: "text",
+    license: "Apache-2.0",
+    // Benchmark oficial (MacBook M4 Max, GPU): ~3200 MB de memória.
+    estimatedRamMb: 3200,
+    recommendedSpecs: [
+      "Somente computador: não aparece em celulares",
+      "16 GB de RAM e placa de vídeo com 4 GB+ de memória (ou Mac Apple Silicon com 16 GB)",
+      "Chrome ou Edge atualizados com WebGPU ativo",
+      "~3,5 GB livres de armazenamento",
+    ],
+    desktopOnly: true,
+    exclusiveGroup: "local-chat",
+    highlights: [
+      "Melhor qualidade de resposta e raciocínio que o E2B (≈ +10 pontos nos benchmarks)",
+      "Lê documentos em imagem com ~40% menos erros",
+      "Substitui o E2B: só um modelo de chat local fica instalado por vez",
     ],
   },
 ] as const;
@@ -185,6 +240,44 @@ export function createInitialModelStates(): Record<LocalModelId, LocalModelState
     };
   }
   return states;
+}
+
+/** Modelos de chat local, do mais capaz para o mais leve. */
+export const LOCAL_CHAT_MODEL_IDS: readonly LocalModelId[] = [
+  "gemma-4-e4b-chat",
+  "gemma-4-e2b-chat",
+];
+
+/** Modelo de chat local instalado (pronto), ou null. */
+export function getReadyChatModelId(
+  models: Readonly<Record<LocalModelId, LocalModelState | undefined>>,
+): LocalModelId | null {
+  return LOCAL_CHAT_MODEL_IDS.find((id) => models[id]?.status === "ready") ?? null;
+}
+
+/** Modelos que este aparelho pode ver e baixar (sem os `desktopOnly` no celular). */
+export function getAvailableLocalModels(isMobile: boolean): readonly LocalModelDescriptor[] {
+  return LOCAL_AI_MODELS.filter((model) => !(isMobile && model.desktopOnly));
+}
+
+/**
+ * Outro modelo do mesmo grupo exclusivo que já está instalado ou baixando.
+ * Enquanto ele existir, `modelId` não pode ser baixado.
+ */
+export function findExclusiveConflict(
+  modelId: LocalModelId,
+  models: Readonly<Record<LocalModelId, LocalModelState | undefined>>,
+): LocalModelDescriptor | null {
+  const group = getLocalModelById(modelId)?.exclusiveGroup;
+  if (!group) return null;
+  return (
+    LOCAL_AI_MODELS.find(
+      (other) =>
+        other.id !== modelId &&
+        other.exclusiveGroup === group &&
+        (models[other.id]?.status === "ready" || models[other.id]?.status === "downloading"),
+    ) ?? null
+  );
 }
 
 /** Modelos de voz (TTS) locais, na ordem em que aparecem no catálogo. */

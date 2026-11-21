@@ -7,7 +7,8 @@ export type LocalModelId =
   | "kokoro-82m-tts"
   | "piper-cadu-tts"
   | "piper-faber-tts"
-  | "gemma-4-e2b-chat";
+  | "gemma-4-e2b-chat"
+  | "gemma-4-e4b-chat";
 
 export type LocalModelCategory = "tts" | "chat";
 
@@ -57,6 +58,15 @@ export interface LocalModelDescriptor {
   readonly highlights: readonly string[];
   /** Presente nas vozes Piper: configuração de inferência do modelo ONNX. */
   readonly piper?: PiperVoiceConfig;
+  /** Configuração de máquina recomendada, exibida no card. */
+  readonly recommendedSpecs: readonly string[];
+  /** Só aparece e só pode ser baixado em computadores (nunca em celulares). */
+  readonly desktopOnly?: boolean;
+  /**
+   * Modelos do mesmo grupo são mutuamente exclusivos: para baixar um, o outro
+   * precisa ser removido (ex.: Gemma 4 E2B x E4B).
+   */
+  readonly exclusiveGroup?: "local-chat";
 }
 
 export interface LocalModelState {

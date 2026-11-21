@@ -145,4 +145,21 @@ describe("LocalChatEngine no iPhone", () => {
     await expect(iter.next()).rejects.toThrow(/só com texto/);
     expect(create).not.toHaveBeenCalled();
   });
+
+  it("no computador, usa o Gemma 4 E4B quando ele é o modelo instalado", async () => {
+    Object.defineProperty(window.navigator, "userAgent", {
+      value: WINDOWS_CHROME_UA,
+      configurable: true,
+    });
+    mockedStorage.getCachedModelBlob.mockImplementation(async (id) =>
+      id === "gemma-4-e4b-chat" ? new Blob([new Uint8Array([4])]) : null,
+    );
+    const { engine, create } = buildEngine();
+
+    for await (const chunk of engine.streamMultimodalPrompt({ prompt: "Oi" })) void chunk;
+
+    expect(mockedStorage.getCachedModelBlob).toHaveBeenCalledWith("gemma-4-e4b-chat");
+    expect(create).toHaveBeenCalled();
+    expect(create.mock.calls[0][0].mainExecutorSettings.maxNumTokens).toBe(4096);
+  });
 });
