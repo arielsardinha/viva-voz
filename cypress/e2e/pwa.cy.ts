@@ -22,7 +22,7 @@ describe("Progressive Web App (PWA) — VivaVoz", () => {
   it("deve disponibilizar o Service Worker em /sw.js", () => {
     cy.request("/sw.js").then((response) => {
       expect(response.status).to.eq(200);
-      expect(response.body).to.include("vivavoz-app-v1");
+      expect(response.body).to.include("vivavoz-app-v2");
       expect(response.body).to.include("addEventListener('install'");
       expect(response.body).to.include("addEventListener('fetch'");
     });

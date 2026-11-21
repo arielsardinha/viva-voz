@@ -113,6 +113,14 @@
       "name": "manageLocalAiModels",
       "selector": "[data-webmcp-tool='manageLocalAiModels']",
       "actions": ["downloadModel", "cancelDownload", "deleteModel"]
+    },
+    {
+      "name": "a2uiQuizSurface",
+      "selector": "[data-webmcp-tool='a2uiQuizSurface']",
+      "action": "answerQuizQuestion",
+      "parameters": {
+        "questionCount": { "type": "number", "min": 1, "max": 10 }
+      }
     }
   ]
 }

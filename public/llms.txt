@@ -14,6 +14,7 @@
 
 - [/api/tts](/api/tts): Endpoint POST para sintetização de voz neural (Gemini 3.8 TTS com fallback automático multi-modelo, agrupamento otimizado em blocos e controle de voz e velocidade de reprodução).
 - [/api/ask](/api/ask): Endpoint POST para streaming de respostas e análises contextuais sobre documentos via Google Gemini.
+- [/api/quiz](/api/quiz): Endpoint POST BYOK para geração inteligente de 1 a 10 perguntas e respostas sobre o documento respeitando orçamento seguro de tokens.
 - [/api/sync/backup](/api/sync/backup): Endpoint POST para backup seguro de documentos e notas na pasta oculta Google Drive appDataFolder.
 - [/api/sync/restore](/api/sync/restore): Endpoint GET para restauração de dados cross-device a partir do Google Drive.
 
@@ -23,6 +24,7 @@
 - **configureGeminiApiKey** (`data-webmcp-tool="configureGeminiApiKey"`): Conecta e persiste com segurança no navegador a chave de API do Google AI Studio.
 - **ttsPlaybackControl** (`data-webmcp-tool="ttsPlaybackControl"`): Executa comandos de reprodução, pausa, navegação entre trechos, alteração de velocidade e seleção de vozes neurais.
 - **askDocumentAI** (`data-webmcp-tool="askDocumentAI"`): Envia perguntas e instruções ao assistente de IA com base nas sentenças e páginas do documento ativo.
+- **a2uiQuizSurface** (`data-webmcp-tool="a2uiQuizSurface"`): Renderiza e controla o quiz interativo adaptativo de 1 a 10 questões ancoradas nas evidências do documento.
 - **searchLibrary** (`data-webmcp-tool="searchLibrary"`): Filtra e consulta leituras armazenadas na base local do navegador.
 - **configureReaderPreferences** (`data-webmcp-tool="configureReaderPreferences"`): Ajusta temas de contraste (Clean, Papel Zen, Escuro), famílias tipográficas e modos de exibição.
 - **supportProject** (`data-webmcp-tool="supportProject"`): Disponibiliza dados e QR Code Pix para contribuição voluntária e links de apoio ao desenvolvimento comunitário no GitHub.

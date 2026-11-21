@@ -21,10 +21,13 @@ describe("Agent Accessibility & WebMCP Audits", () => {
         // Deve listar os endpoints e ferramentas WebMCP
         expect(response.body).to.include("/api/tts");
         expect(response.body).to.include("/api/ask");
+        expect(response.body).to.include("/api/quiz");
         expect(response.body).to.include("uploadDocument");
         expect(response.body).to.include("configureGeminiApiKey");
+        expect(response.body).to.include("a2uiQuizSurface");
         expect(response.body).to.include("ttsPlaybackControl");
         expect(response.body).to.include("askDocumentAI");
+        expect(response.body).to.include("a2uiQuizSurface");
         expect(response.body).to.include("searchLibrary");
         expect(response.body).to.include("manageLocalAiModels");
       });
@@ -37,6 +40,7 @@ describe("Agent Accessibility & WebMCP Audits", () => {
         expect(response.body).to.include("Esquemas das Ferramentas WebMCP");
         expect(response.body).to.include("uploadDocument");
         expect(response.body).to.include("configureGeminiApiKey");
+        expect(response.body).to.include("a2uiQuizSurface");
       });
     });
   });

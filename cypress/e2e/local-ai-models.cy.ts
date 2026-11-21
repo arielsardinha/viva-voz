@@ -18,10 +18,13 @@ type ReaderTemplate = "modern" | "ai-study";
 
 function mockModelDownloads() {
   cy.intercept("GET", "https://huggingface.co/**", {
-    statusCode: 200,
+    statusCode: 206,
     headers: {
       "content-type": "application/octet-stream",
       "content-length": String(MOCK_MODEL_BODY.length),
+      "content-range": `bytes 0-${MOCK_MODEL_BODY.length - 1}/${MOCK_MODEL_BODY.length}`,
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-length, content-range",
     },
     body: MOCK_MODEL_BODY,
   }).as("modelDownload");
@@ -148,6 +151,7 @@ describe("IA Local Offline — Modelos LiteRT-LM (Kokoro 82M + Gemma 4 E2B)", ()
       headers: {
         "content-type": "application/octet-stream",
         "content-length": String(MOCK_MODEL_BODY.length),
+        "access-control-expose-headers": "content-length",
       },
       body: MOCK_MODEL_BODY,
     }).as("slowModelDownload");
