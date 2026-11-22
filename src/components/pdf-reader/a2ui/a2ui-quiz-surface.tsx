@@ -12,14 +12,12 @@ import {
   Quote,
   RefreshCw,
   RotateCcw,
-  SlidersHorizontal,
   Sparkles,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeA2uiQuizSummary } from "@/lib/a2ui/a2ui-quiz.service";
 import type {
-  A2UIConfidenceLevel,
   A2UIQuizDataModel,
   A2UIQuizQuestion,
   A2UIUserAction,
@@ -46,15 +44,6 @@ interface A2UIQuizSurfaceProps {
   onRegenerate: () => void;
   onCancelGeneration: () => void;
 }
-
-const CONFIDENCE_LEVELS: ReadonlyArray<{
-  id: A2UIConfidenceLevel;
-  label: string;
-}> = [
-  { id: "guess", label: "Chutei" },
-  { id: "unsure", label: "Com dúvida" },
-  { id: "certain", label: "✓ Certeza" },
-];
 
 const SOURCE_LABELS: Record<QuizGenerationSource, string> = {
   "ai-cloud": "IA Nuvem",
@@ -305,44 +294,6 @@ export function A2UIQuizSurface({
             })}
           </div>
 
-          <div
-            data-cy="a2ui-confidence-bar"
-            className="flex flex-wrap items-center justify-between gap-2 pt-0.5"
-          >
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Seu nível de certeza:
-            </span>
-            <div className="flex flex-wrap items-center gap-1">
-              {CONFIDENCE_LEVELS.map((level) => {
-                const isSelected = answer?.confidence === level.id;
-                return (
-                  <button
-                    key={level.id}
-                    type="button"
-                    data-cy={`a2ui-confidence-${level.id}`}
-                    disabled={!answer}
-                    aria-pressed={isSelected}
-                    onClick={() =>
-                      onUserAction({
-                        type: "setConfidence",
-                        questionId: activeQuestion.id,
-                        confidence: level.id,
-                      })
-                    }
-                    className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {level.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {isHintOpen && !answer && (
             <div className="rounded-xl border border-voice/40 bg-voice-soft px-3 py-2 text-xs text-voice-ink">
               <strong>Dica:</strong> {activeQuestion.hint}
@@ -409,22 +360,6 @@ export function A2UIQuizSurface({
               >
                 <Lightbulb className="size-3 text-voice" aria-hidden="true" />
                 <span>Dica</span>
-              </button>
-              <button
-                type="button"
-                data-cy="a2ui-difficulty-btn"
-                onClick={() => onUserAction({ type: "toggleDifficulty" })}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer",
-                  dataModel.difficulty === "hard"
-                    ? "border-accent bg-accent/15 text-accent"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <SlidersHorizontal className="size-3" aria-hidden="true" />
-                <span>
-                  {dataModel.difficulty === "hard" ? "Modo difícil: ON" : "Mais difícil"}
-                </span>
               </button>
               <button
                 type="button"

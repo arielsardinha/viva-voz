@@ -123,7 +123,6 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
     cy.get('[data-cy="a2ui-choice-B"]').click();
     cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "60 XP");
 
-    cy.get('[data-cy="a2ui-confidence-certain"]').click();
     cy.get('[data-cy="a2ui-explanation-card"]').should("be.visible");
 
     cy.get('[data-cy="a2ui-highlight-evidence"]').click();

@@ -61,7 +61,7 @@ export function buildCompactQuizSystemPrompt(difficulty: "normal" | "hard"): str
     difficulty === "hard"
       ? "Prefira questões de inferência e relação entre ideias."
       : "Prefira questões de compreensão das ideias centrais.",
-    "Cada questão tem exatamente 4 alternativas curtas (até 15 palavras) e só 1 com isCorrect true. Varie a letra correta.",
+    "Cada questão tem 1 resposta certa em `correct` e exatamente 3 respostas erradas, plausíveis e distintas, em `wrong` (até 15 palavras cada).",
     "Responda APENAS com JSON válido, sem Markdown, sem texto antes ou depois.",
   ].join("\n");
 }
@@ -74,7 +74,7 @@ export function buildCompactQuizUserPrompt(params: {
     `Documento: "${params.title}"`,
     `Gere exatamente ${params.questionCount} questão(ões) sobre trechos diferentes.`,
     "`sentenceIndex` = N - 1 do trecho [¶N] usado. `evidenceQuote` = até 12 palavras copiadas do trecho.",
-    'Formato: {"questions":[{"topic":"","sentenceIndex":0,"prompt":"","evidenceQuote":"","options":[{"label":"","isCorrect":true},{"label":"","isCorrect":false},{"label":"","isCorrect":false},{"label":"","isCorrect":false}]}]}',
+    'Formato: {"questions":[{"topic":"tema curto","sentenceIndex":0,"prompt":"pergunta?","evidenceQuote":"trecho","correct":"resposta certa","wrong":["errada 1","errada 2","errada 3"]}]}',
   ].join("\n");
 }
 
@@ -383,12 +383,44 @@ export function coerceRawQuestion(item: unknown): unknown {
       .map((o) => ({ ...o, label: clipText(o.label.replace(OPTION_PREFIX, ""), TEXT_LIMITS.label) }));
   }
 
+  // Formato compacto pedido aos modelos locais: { correct: "...", wrong: ["...", ...] }.
+  const correctText = pickText(src, ["correct", "correta", "certa", "right"], 1000);
+  const wrongList = [src.wrong, src.erradas, src.incorrect, src.distractors].find(Array.isArray) as
+    | unknown[]
+    | undefined;
+  if (correctText && wrongList) {
+    const clean = (t: string) => clipText(t.replace(OPTION_PREFIX, ""), TEXT_LIMITS.label);
+    options = [
+      { label: clean(correctText), isCorrect: true },
+      ...wrongList
+        .filter((w): w is string | number => typeof w === "string" || typeof w === "number")
+        .map((w) => ({ label: clean(String(w)), isCorrect: false as boolean | undefined })),
+    ].slice(0, 4);
+  }
+
   if (!options.some((o) => o.isCorrect === true)) {
     const answer = [src.answer, src.correctAnswer, src.correct_answer, src.correctOption, src.correctIndex, src.resposta, src.gabarito].find(
       (v) => v !== undefined && v !== null,
     );
-    const idx = resolveAnswerIndex(answer, options.map((o) => o.label));
+    let idx = resolveAnswerIndex(answer, options.map((o) => o.label));
+    // Gemma às vezes "achata" o molde antigo: alternativas viram strings e o
+    // `isCorrect: true` da primeira sobe para a questão. Nesse caso a 1ª é a certa.
+    if (idx < 0 && toBool(src.isCorrect) === true && rawOptions?.every((o) => typeof o === "string")) {
+      idx = 0;
+    }
     if (idx >= 0) options = options.map((o, i) => ({ ...o, isCorrect: i === idx }));
+  }
+
+  // A resposta certa costuma vir sempre na 1ª posição; espalha de forma estável.
+  const correctIdx = options.findIndex((o) => o.isCorrect === true);
+  if (correctIdx === 0 && options.length > 1) {
+    const seed = [...String(src.prompt ?? src.question ?? "")].reduce(
+      (acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0,
+      7,
+    );
+    const target = seed % options.length;
+    const [right] = options.splice(0, 1);
+    options.splice(target, 0, right);
   }
 
   return {

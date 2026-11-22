@@ -296,7 +296,7 @@ export function useA2uiQuiz({
           const collected: A2UIQuizQuestion[] = [];
           let lastBatchError: unknown = null;
 
-          for (const [batchIdx, batch] of batches.entries()) {
+          const runBatch = async (batch: OnDeviceQuizBatch, label: string) => {
             let rawOutput = "";
             try {
               for await (const chunk of sendMessage(
@@ -306,16 +306,17 @@ export function useA2uiQuiz({
                 }),
                 { context: batch.context, fileName: title, systemPrompt },
               )) {
-                if (controller.signal.aborted) return;
+                if (controller.signal.aborted) return true;
                 rawOutput += chunk;
               }
-              if (controller.signal.aborted || !mountedRef.current) return;
+              if (controller.signal.aborted || !mountedRef.current) return true;
               collected.push(
                 ...parseAndNormalizeAiQuizQuestions(rawOutput, sentences, {
                   maxQuestions: batch.questionCount,
                   difficulty,
                 }),
               );
+              return true;
             } catch (batchErr) {
               if (
                 controller.signal.aborted ||
@@ -326,15 +327,41 @@ export function useA2uiQuiz({
               // Um lote ruim não derruba o quiz: seguimos com os demais.
               lastBatchError = batchErr;
               console.warn(
-                `[VivaVoz Quiz] Lote ${batchIdx + 1}/${batches.length} falhou (${engineKind}).`,
+                `[VivaVoz Quiz] Lote ${label} falhou (${engineKind}).`,
                 batchErr,
                 { rawOutput: rawOutput.slice(0, 4000), rawLength: rawOutput.length },
               );
+              return false;
             }
+          };
+
+          const failedBatches: OnDeviceQuizBatch[] = [];
+          for (const [batchIdx, batch] of batches.entries()) {
+            const ok = await runBatch(batch, `${batchIdx + 1}/${batches.length}`);
+            if (controller.signal.aborted || !mountedRef.current) return;
+            if (!ok) failedBatches.push(batch);
+          }
+          // Modelos pequenos erram o formato de vez em quando: uma segunda chance por lote.
+          for (const [retryIdx, batch] of failedBatches.entries()) {
+            if (collected.length >= localPlan.targetQuestionCount) break;
+            await runBatch(batch, `retry ${retryIdx + 1}/${failedBatches.length}`);
+            if (controller.signal.aborted || !mountedRef.current) return;
           }
 
           if (collected.length === 0) {
             throw lastBatchError ?? new Error("Nenhuma questão válida retornada pela IA.");
+          }
+          // Completa a meta com questões do modo rápido em parágrafos ainda não cobertos.
+          if (collected.length < localPlan.targetQuestionCount) {
+            const usedSentences = new Set(collected.map((q) => q.sentenceIndex));
+            const offline = buildA2uiQuizSurface(sentences, currentIndex, title, {
+              difficulty,
+              engine: engineKind,
+            }).surfaceUpdate.questions.filter((q) => !usedSentences.has(q.sentenceIndex));
+            collected.push(
+              ...offline.slice(0, localPlan.targetQuestionCount - collected.length),
+            );
+            collected.sort((a, b) => a.sentenceIndex - b.sentenceIndex);
           }
           const questions = collected.map((q, idx) => ({
             ...q,

@@ -249,7 +249,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
     for (let i = 0; i < 6; i += 1) {
       fireEvent.click(screen.getByRole("radio", { name: /Sistemas distribuídos/i }));
       if (i === 0) {
-        fireEvent.click(screen.getByRole("button", { name: /✓ Certeza/i }));
+        expect(screen.queryByRole("button", { name: /Certeza|Mais difícil/i })).toBeNull();
         fireEvent.click(screen.getByRole("button", { name: /destacar ¶/i }));
         expect(onSelectSentence).toHaveBeenCalledWith(0);
         fireEvent.click(screen.getByRole("button", { name: /salvar card/i }));

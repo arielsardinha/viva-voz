@@ -179,6 +179,31 @@ describe("quiz-ai-parser", () => {
     ).toThrow(/Nenhuma questão válida retornada pela IA.*3 alternativas, 0 corretas/);
   });
 
+  it("aceita o formato compacto correct/wrong e o molde 'achatado' visto no Gemma", () => {
+    const raw = JSON.stringify({
+      questions: [
+        {
+          prompt: "O que as filas persistentes evitam?",
+          correct: "Perda de dados em picos",
+          wrong: ["Uso de consumidores", "Mensagens assíncronas", "Escala horizontal"],
+        },
+        {
+          prompt: "O que garante a idempotência no reprocessamento?",
+          options: ["Ausência de efeitos duplicados", "Maior latência", "Menos filas", "Mais produtores"],
+          isCorrect: true,
+        },
+      ],
+    });
+    const questions = parseAndNormalizeAiQuizQuestions(raw, SAMPLE_SENTENCES, {
+      maxQuestions: 3,
+      difficulty: "normal",
+    });
+    expect(questions).toHaveLength(2);
+    expect(questions[0].options).toHaveLength(4);
+    expect(questions[0].options.find((o) => o.isCorrect)?.label).toBe("Perda de dados em picos");
+    expect(questions[1].options.find((o) => o.isCorrect)?.label).toBe("Ausência de efeitos duplicados");
+  });
+
   it("tolera os desvios típicos do Gemma local (campos vazios, texto longo, gabarito avulso)", () => {
     const longLabel = "Alternativa muito comprida ".repeat(20);
     const raw = [

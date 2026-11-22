@@ -190,9 +190,8 @@ describe("AIStudyTemplate Component", () => {
     expect(screen.getByText("+60 XP")).toBeInTheDocument();
     expect(screen.getByText("60 XP")).toBeInTheDocument();
 
-    // Seleciona confiança e destaca evidência no texto
-    fireEvent.click(screen.getByRole("button", { name: /✓ Certeza/i }));
-    expect(screen.getByRole("button", { name: /✓ Certeza/i })).toHaveAttribute("aria-pressed", "true");
+    // Sem barra de certeza nem botão "Mais difícil"; destaca evidência no texto
+    expect(screen.queryByRole("button", { name: /Certeza|Mais difícil/i })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /destacar ¶1 no texto/i }));
     expect(onSelectSentenceMock).toHaveBeenCalledWith(0);
