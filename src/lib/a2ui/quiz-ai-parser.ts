@@ -280,6 +280,141 @@ export function salvageQuestionObjects(rawText: string): unknown[] {
   return found;
 }
 
+/**
+ * Conserta deslizes comuns de modelos pequenos que quebram o JSON.parse:
+ * vírgula sobrando antes de `}`/`]`, literais estilo Python (True/False/None)
+ * e aspas tipográficas usadas como delimitadores.
+ */
+export function repairLooseJson(text: string): string {
+  return text
+    .replace(/[“”]/g, '"')
+    .replace(/:\s*True\b/g, ": true")
+    .replace(/:\s*False\b/g, ": false")
+    .replace(/:\s*None\b/g, ": null")
+    .replace(/,\s*([}\]])/g, "$1");
+}
+
+const TEXT_LIMITS = {
+  topic: 60,
+  prompt: 400,
+  evidenceQuote: 350,
+  explanation: 450,
+  hint: 300,
+  label: 300,
+} as const;
+
+function pickText(source: Record<string, unknown>, keys: readonly string[], max: number) {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" || typeof value === "number") {
+      const clean = String(value).replace(/\s+/g, " ").trim();
+      if (clean) return clean.length > max ? clipText(clean, max) : clean;
+    }
+  }
+  return undefined;
+}
+
+function pickInt(source: Record<string, unknown>, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = source[key];
+    const num = typeof value === "string" ? Number(value.trim()) : value;
+    if (typeof num === "number" && Number.isFinite(num)) return Math.round(num);
+  }
+  return undefined;
+}
+
+function toBool(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : undefined;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (["true", "sim", "yes", "1", "correta", "correct"].includes(v)) return true;
+    if (["false", "não", "nao", "no", "0", "incorreta", "incorrect"].includes(v)) return false;
+  }
+  return undefined;
+}
+
+const OPTION_PREFIX = /^\s*(?:[A-Da-d]|[1-4])\s*[).:\-–]\s+/;
+
+/** Identifica qual alternativa é a correta a partir de um campo de gabarito avulso. */
+function resolveAnswerIndex(answer: unknown, labels: readonly string[]): number {
+  if (typeof answer === "number" && Number.isInteger(answer)) {
+    if (answer >= 0 && answer < labels.length) return answer;
+    if (answer >= 1 && answer <= labels.length) return answer - 1;
+  }
+  if (typeof answer !== "string") return -1;
+  const clean = answer.trim();
+  const letter = clean.match(/^([A-Da-d])(?:\s*[).:\-–]|$)/);
+  if (letter) return OPTION_IDS.indexOf(letter[1].toUpperCase() as A2UIOptionId);
+  const target = normalizeTextForMatch(clean.replace(OPTION_PREFIX, ""));
+  return labels.findIndex((l) => normalizeTextForMatch(l) === target);
+}
+
+/**
+ * Normaliza uma questão vinda de modelo local antes da validação estrita:
+ * aceita sinônimos de campo, `isCorrect` como texto, alternativas como strings
+ * com gabarito separado e corta textos longos em vez de descartar a questão.
+ */
+export function coerceRawQuestion(item: unknown): unknown {
+  if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+  const src = item as Record<string, unknown>;
+
+  const rawOptions = [src.options, src.alternativas, src.choices, src.alternatives].find(
+    Array.isArray,
+  ) as unknown[] | undefined;
+
+  let options: Array<{ label: string; isCorrect: boolean | undefined }> = [];
+  if (rawOptions) {
+    options = rawOptions
+      .map((opt) => {
+        if (typeof opt === "string" || typeof opt === "number") {
+          return { label: String(opt), isCorrect: undefined };
+        }
+        if (!opt || typeof opt !== "object") return null;
+        const o = opt as Record<string, unknown>;
+        const label = pickText(o, ["label", "text", "texto", "option", "alternativa", "value", "content"], 1000);
+        if (!label) return null;
+        const flag = [o.isCorrect, o.is_correct, o.correct, o.correta, o.isAnswer].map(toBool).find(
+          (v) => v !== undefined,
+        );
+        return { label, isCorrect: flag };
+      })
+      .filter((o): o is { label: string; isCorrect: boolean | undefined } => o !== null)
+      .map((o) => ({ ...o, label: clipText(o.label.replace(OPTION_PREFIX, ""), TEXT_LIMITS.label) }));
+  }
+
+  if (!options.some((o) => o.isCorrect === true)) {
+    const answer = [src.answer, src.correctAnswer, src.correct_answer, src.correctOption, src.correctIndex, src.resposta, src.gabarito].find(
+      (v) => v !== undefined && v !== null,
+    );
+    const idx = resolveAnswerIndex(answer, options.map((o) => o.label));
+    if (idx >= 0) options = options.map((o, i) => ({ ...o, isCorrect: i === idx }));
+  }
+
+  return {
+    topic: pickText(src, ["topic", "tema", "assunto"], TEXT_LIMITS.topic),
+    sentenceIndex: pickInt(src, ["sentenceIndex", "sentence_index"]),
+    paragraphRef: pickInt(src, ["paragraphRef", "paragraph"]),
+    prompt: pickText(src, ["prompt", "question", "pergunta", "enunciado", "text"], TEXT_LIMITS.prompt),
+    evidenceQuote: pickText(src, ["evidenceQuote", "evidence", "quote", "evidencia"], TEXT_LIMITS.evidenceQuote),
+    explanation: pickText(src, ["explanation", "explicacao", "explicação"], TEXT_LIMITS.explanation),
+    hint: pickText(src, ["hint", "dica"], TEXT_LIMITS.hint),
+    options: options.map((o) => ({ label: o.label, isCorrect: o.isCorrect ?? false })),
+  };
+}
+
+function describeRejection(item: unknown): string {
+  const result = RawAiQuizQuestionSchema.safeParse(item);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    return `${issue.path.join(".") || "(raiz)"}: ${issue.message}`;
+  }
+  const opts = deduplicateAndValidateOptions(result.data.options);
+  if (opts) return "ok";
+  const correct = result.data.options.filter((o) => o.isCorrect).length;
+  return `options: ${result.data.options.length} alternativas, ${correct} corretas`;
+}
+
 function extractQuestionCandidates(rawInput: string | unknown): unknown[] {
   if (typeof rawInput !== "string") {
     const obj = rawInput as { questions?: unknown };
@@ -288,7 +423,13 @@ function extractQuestionCandidates(rawInput: string | unknown): unknown[] {
   }
 
   const trimmed = rawInput.trim();
-  const candidates = [trimmed, extractJsonObject(trimmed)];
+  const extracted = extractJsonObject(trimmed);
+  const candidates = [
+    trimmed,
+    extracted,
+    repairLooseJson(trimmed),
+    extracted ? repairLooseJson(extracted) : null,
+  ];
   for (const candidate of candidates) {
     if (!candidate) continue;
     try {
@@ -300,7 +441,7 @@ function extractQuestionCandidates(rawInput: string | unknown): unknown[] {
     }
   }
 
-  const salvaged = salvageQuestionObjects(trimmed);
+  const salvaged = salvageQuestionObjects(repairLooseJson(trimmed));
   if (salvaged.length === 0) {
     throw new Error("Resposta da IA não contém JSON válido.");
   }
@@ -318,7 +459,8 @@ export function parseAndNormalizeAiQuizQuestions(
   }
 
   // Valida questão a questão: uma alternativa longa demais não descarta o lote todo.
-  const validatedQuestions = extractQuestionCandidates(rawInput)
+  const candidates = extractQuestionCandidates(rawInput).map(coerceRawQuestion);
+  const validatedQuestions = candidates
     .map((item) => RawAiQuizQuestionSchema.safeParse(item))
     .filter((result) => result.success)
     .map((result) => result.data as RawQuestion);
@@ -337,7 +479,10 @@ export function parseAndNormalizeAiQuizQuestions(
   }
 
   if (validDrafts.length === 0) {
-    throw new Error("Nenhuma questão válida retornada pela IA.");
+    const reasons = candidates.slice(0, 4).map(describeRejection).join("; ");
+    throw new Error(
+      `Nenhuma questão válida retornada pela IA (${candidates.length} candidata(s)${reasons ? `: ${reasons}` : ""}).`,
+    );
   }
 
   const uniqueCorrectSlots = new Set(

@@ -176,7 +176,49 @@ describe("quiz-ai-parser", () => {
         maxQuestions: 3,
         difficulty: "normal",
       }),
-    ).toThrow("Nenhuma questão válida retornada pela IA.");
+    ).toThrow(/Nenhuma questão válida retornada pela IA.*3 alternativas, 0 corretas/);
+  });
+
+  it("tolera os desvios típicos do Gemma local (campos vazios, texto longo, gabarito avulso)", () => {
+    const longLabel = "Alternativa muito comprida ".repeat(20);
+    const raw = [
+      "```json",
+      "{",
+      '  "questions": [',
+      "    {",
+      '      "topic": "",',
+      '      "sentenceIndex": "1",',
+      '      "prompt": "Por que filas persistentes ajudam em picos?",',
+      '      "evidenceQuote": "",',
+      '      "options": [',
+      '        {"label": "A) Evitam perda de dados", "isCorrect": "true"},',
+      `        {"label": "${longLabel}", "isCorrect": False},`,
+      '        {"label": "Aumentam a latência", "isCorrect": "false"},',
+      '        {"label": "Removem consumidores", "isCorrect": null},',
+      "      ],",
+      "    },",
+      "    {",
+      '      "question": "O que garante a idempotência?",',
+      '      "options": ["Efeitos duplicados", "Reprocessamento seguro", "Perda de mensagens"],',
+      '      "answer": "B"',
+      "    }",
+      "  ]",
+      "}",
+      "```",
+    ].join("\n");
+
+    const questions = parseAndNormalizeAiQuizQuestions(raw, SAMPLE_SENTENCES, {
+      maxQuestions: 3,
+      difficulty: "normal",
+    });
+
+    expect(questions).toHaveLength(2);
+    expect(questions[0].sentenceIndex).toBe(1);
+    expect(questions[0].topic).toBe("Compreensão do texto");
+    expect(questions[0].options.find((o) => o.isCorrect)?.label).toBe("Evitam perda de dados");
+    expect(questions[0].options.every((o) => o.label.length <= 300)).toBe(true);
+    expect(questions[1].prompt).toBe("O que garante a idempotência?");
+    expect(questions[1].options.find((o) => o.isCorrect)?.label).toBe("Reprocessamento seguro");
   });
 
   it("aproveita as questões completas de um JSON truncado pelo teto de tokens", () => {

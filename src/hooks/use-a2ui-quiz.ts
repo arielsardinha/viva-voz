@@ -328,7 +328,7 @@ export function useA2uiQuiz({
               console.warn(
                 `[VivaVoz Quiz] Lote ${batchIdx + 1}/${batches.length} falhou (${engineKind}).`,
                 batchErr,
-                { rawOutputPreview: rawOutput.slice(0, 600), rawLength: rawOutput.length },
+                { rawOutput: rawOutput.slice(0, 4000), rawLength: rawOutput.length },
               );
             }
           }
