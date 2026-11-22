@@ -40,7 +40,7 @@ import { A2UIQuizSurface } from "../a2ui/a2ui-quiz-surface";
 import { InlineVoiceReply } from "../ui/inline-voice-reply";
 import { VoiceReplyProvider } from "../ui/voice-reply-context";
 
-type AssistantMode = "chat" | "simplify" | "quiz" | "summary";
+type AssistantMode = "chat" | "quiz";
 
 interface AIStudyTemplateProps {
   sentences: Sentence[];
@@ -233,25 +233,12 @@ export function AIStudyTemplate({
       : null;
 
   // Quick Action Prompts
-  const quickPrompts =
-    assistantMode === "simplify"
-      ? [
-          `Explicar página ${currentPage} em termos simples`,
-          "Dar um exemplo do dia a dia",
-          "Traduzir jargões",
-        ]
-      : assistantMode === "summary"
-        ? [
-            `Resumir página ${currentPage} em 3 tópicos`,
-            "Pontos principais até aqui",
-            "Mapa mental do capítulo",
-          ]
-        : [
-            `Resumir página ${currentPage}`,
-            "Pontos principais do documento",
-            "Explicar conceitos-chave",
-            "Perguntas de fixação",
-          ];
+  const quickPrompts = [
+    `Resumir página ${currentPage}`,
+    "Pontos principais do documento",
+    "Explicar conceitos-chave",
+    "Perguntas de fixação",
+  ];
 
   const jumpToPage = (pageNum: number) => {
     const firstSentenceOfPage = sentences.findIndex((s) => s.page === pageNum);
@@ -529,9 +516,7 @@ export function AIStudyTemplate({
             {(
               [
                 ["chat", "Conversar"],
-                ["simplify", "Explicar simples"],
                 ["quiz", "Quiz"],
-                ["summary", "Resumo"],
               ] as const
             ).map(([modeKey, modeLabel]) => (
               <button

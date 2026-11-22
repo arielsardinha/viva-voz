@@ -118,10 +118,10 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
     openSampleViaQuickPaste();
 
     cy.get('[data-cy="assistant-tab-quiz"]').should("be.visible").click();
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "1 de 2");
+    cy.get('[data-cy="a2ui-next-btn"]').should("contain.text", "Próxima (2/2)");
 
     cy.get('[data-cy="a2ui-choice-B"]').click();
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "60 XP");
+    cy.get('[data-cy="a2ui-choice-B"]').should("contain.text", "+60 XP");
 
     cy.get('[data-cy="a2ui-explanation-card"]').should("be.visible");
 
@@ -131,7 +131,7 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
 
     cy.get('[data-cy="a2ui-voice-command-input"]').type("próxima");
     cy.get('[data-cy="a2ui-voice-command-form"]').submit();
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "2 de 2");
+    cy.get('[data-cy="a2ui-next-btn"]').should("contain.text", "Próxima (1/2)");
 
     cy.get('[data-cy="a2ui-choice-C"]').click();
     cy.get('[data-cy="a2ui-quiz-summary"]')
@@ -171,17 +171,17 @@ describe("Quiz Interativo A2UI & Assistente de Leitura", () => {
     cy.get('[data-cy="assistant-tab-quiz"]').should("be.visible").click();
     cy.wait("@generateQuiz");
 
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "1 de 10");
+    cy.get('[data-cy="a2ui-next-btn"]').should("contain.text", "Próxima (2/10)");
     cy.get('[data-cy="a2ui-coverage-badge"]')
       .should("contain.text", "IA Nuvem")
       .and("contain.text", "economia de tokens");
 
     cy.get('[data-cy="a2ui-step-10"]').click();
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "10 de 10");
+    cy.get('[data-cy="a2ui-next-btn"]').should("contain.text", "Próxima (1/10)");
 
     cy.get('[data-cy="a2ui-regenerate-btn"]').click();
     cy.wait("@generateQuiz");
-    cy.get('[data-cy="a2ui-surface-header"]').should("contain.text", "1 de 10");
+    cy.get('[data-cy="a2ui-next-btn"]').should("contain.text", "Próxima (2/10)");
 
     checkAccessibility();
   });

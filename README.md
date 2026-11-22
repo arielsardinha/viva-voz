@@ -18,6 +18,9 @@
    - [Proposta de Valor](#proposta-de-valor)
    - [Principais Funcionalidades](#principais-funcionalidades)
    - [Formatos e Fontes Suportados](#formatos-e-fontes-suportados)
+   - [🤖 IA Local no Navegador (/modelos)](#-ia-local-no-navegador-modelos)
+   - [🧩 Quiz A2UI Inteligente](#-quiz-a2ui-inteligente)
+   - [📚 Modos do Leitor](#-modos-do-leitor)
 2. [🏗️ Arquitetura & Engenharia](#️-arquitetura--engenharia)
    - [Padrão Arquitetural (Ports & Adapters / Clean Architecture)](#padrão-arquitetural-ports--adapters--clean-architecture)
    - [Estratégia Local-First & Dual-Storage](#estratégia-local-first--dual-storage)
@@ -51,7 +54,10 @@ O **VivaVoz** nasceu para democratizar o acesso à leitura e ao estudo produtivo
 - 💾 **Arquitetura Local-First (Offline por Padrão):** Documentos, histórico de leitura, progresso e preferências são salvos instantaneamente no **IndexedDB** local, funcionando 100% offline via PWA.
 - ☁️ **Sincronização em Nuvem Privada (Google Drive AppData):** Backup incremental e restauração cross-device via pasta isolada e oculta (`appDataFolder`) usando Backend-For-Frontend (BFF) com cookies seguros `HttpOnly`.
 - 🔑 **IA 100% BYOK (Bring Your Own Key):** O usuário tem controle total sobre suas chaves de API (Gemini), que nunca são salvas em servidores de terceiros ou em variáveis de ambiente públicas.
-- 💬 **Ask AI (Chat com Documento):** Assistente contextual integrado para tirar dúvidas, resumir seções ou explicar trechos do documento aberto.
+- 💬 **Assistente de Leitura (Chat com Documento):** Chat contextual fixo ao lado do texto para tirar dúvidas, resumir seções ou explicar trechos do documento aberto, com atalhos de prompt rápidos.
+- 🤖 **IA 100% Local (Offline):** Vozes neurais (Kokoro, Piper Cadu e Piper Faber) e chat com Gemma 4 rodando inteiramente no dispositivo, gerenciados pela página dedicada `/modelos`.
+- 🔁 **Fallback Automático entre Motores:** No modo *Automático*, o chat tenta **Nuvem → Gemini Nano → Gemma local**, pulando motores indisponíveis e seguindo para o próximo se um falhar antes de responder.
+- 🧩 **Quiz A2UI Inteligente:** Gera de 1 a 10 perguntas de múltipla escolha a partir do documento, respeitando o orçamento de tokens de cada motor, com jornada visual de progresso.
 
 ### Formatos e Fontes Suportados
 
@@ -65,6 +71,52 @@ O **VivaVoz** nasceu para democratizar o acesso à leitura e ao estudo produtivo
 | **Texto / Markdown** (`.txt`, `.md`) | `TxtAdapter` / `MdAdapter` | Extração pura e estruturação de cabeçalhos |
 | **Artigos da Web (URL)** | `WebArticleAdapter` | Route Handler BFF + `@mozilla/readability` + `jsdom` |
 | **Colar Rápido** | `QuickPasteAdapter` | Sanitização e segmentação imediata de texto |
+
+### 🤖 IA Local no Navegador (`/modelos`)
+
+A página **`/modelos`** é o único lugar para baixar, ativar, atualizar e remover os modelos locais (substituiu a antiga gaveta lateral). A navegação até ela é feita no cliente (`/modelos?model=<id>` destaca o card pedido), então downloads em andamento continuam rodando; o progresso aparece como badge no link **"IA Local"** do cabeçalho. Cada card mostra a *configuração recomendada* da máquina.
+
+| Modelo | Tipo | Tamanho | Licença | Observações |
+| :--- | :--- | :--- | :--- | :--- |
+| **Kokoro 82M** | Voz (TTS) | ~295 MB | Apache-2.0 | MediaPipe em Web Worker, com popup de carregamento e progresso real |
+| **Piper · Cadu (PT-BR)** | Voz (TTS) | ~63 MB | CC0-1.0 | Voz masculina; espeak-ng (WASM) + ONNX Runtime Web em Web Worker |
+| **Piper · Faber (PT-BR)** | Voz (TTS) | ~63 MB | CC0-1.0 · base CC-BY-4.0 | Voz masculina; o runtime Piper troca de voz liberando a sessão ONNX anterior |
+| **Gemma 4 E2B** | Chat multimodal | ~2,34 GB | Apache-2.0 | Arquivo `gemma-4-E2B-it-gpu.litertlm` (LiteRT-LM), recomendado para a web |
+| **Gemma 4 E4B** | Chat multimodal | ~3,31 GB | Apache-2.0 | Somente computador (oculto em celular/tablet, inclusive iPad que se apresenta como Mac) |
+
+**Regras e decisões importantes:**
+- **Um modelo de chat por vez:** E2B e E4B são exclusivos entre si; com um instalado (ou baixando), o card do outro pede a remoção antes. O chat local usa o Gemma que estiver instalado.
+- **Roteador de voz:** `LocalTtsEngine` aceita qualquer runtime; um roteador escolhe Kokoro ou Piper conforme a voz selecionada (prefixo `piper:`).
+- **Download resiliente:** blocos de 32 MB via HTTP `Range`, com retry e retomada; `navigator.storage.persist()` e Wake Lock durante o download; checagem de cota antes de começar (`ModelStorageQuotaError`). O manifesto só é gravado depois de conferir todos os blocos — um manifesto incompleto vira "não baixado" e a retomada baixa apenas o que falta.
+- **iOS / WebKit:** detecta o `Range` perdido no redirect cross-origin do Hugging Face e passa a pedir os blocos direto na URL final do CDN; download único acima de 512 MB não é tentado.
+- **Perfil "lite" do Gemma:** em iOS e aparelhos com ≤ 4 GB de RAM, só texto (sem codificadores de visão/áudio), janela de 2048 tokens e ~3000 caracteres de documento. Respostas limitadas a 512 (lite) / 1024 (full) tokens, `enable_thinking: false`. Cada pergunta cria uma conversa LiteRT nova para não estourar a janela de contexto.
+- **Service Worker:** não intercepta requisições cross-origin nem com `Range`; o cache do app virou `vivavoz-app-v2` (o `v1`, que guardava cópias inteiras dos modelos, é apagado). Os modelos ficam no cache `vivavoz-local-ai-models-v1`.
+
+### 🧩 Quiz A2UI Inteligente
+
+O quiz segue o protocolo **A2UI (Agent-to-User Interface)**, separando estrutura (`surfaceUpdate`), estado vivo (`dataModelUpdate`) e ações (`userAction`). Código em `src/lib/a2ui/` e rota em `src/app/api/quiz/`.
+
+- **1 a 10 perguntas**, com o teto ajustado ao orçamento de tokens de cada motor (`QUIZ_TOKEN_BUDGETS`):
+
+  | Motor | Tokens de entrada | Máx. perguntas |
+  | :--- | :--- | :--- |
+  | Nuvem / Modo rápido offline | 6000 | 10 |
+  | Gemini Nano | 2000 | 8 |
+  | Gemma local (full) | 1500 | 8 |
+  | Gemma local (lite) | 650 | 4 |
+
+- **Cobertura do documento:** o planejador usa o texto inteiro quando cabe ou uma amostragem estratificada por páginas quando não cabe, e informa a cobertura ao usuário.
+- **Modelos locais:** recebem um formato compacto (`correct` + `wrong[]`), a posição da resposta correta é embaralhada e o parser também aceita o molde "achatado" que o Gemma às vezes produz. Lotes que falham são repetidos uma vez, e a meta é completada com perguntas do modo rápido em parágrafos não cobertos.
+- A barra "Seu nível de certeza" e o botão "Mais difícil" foram removidos para simplificar a jornada.
+
+### 📚 Modos do Leitor
+
+O leitor tem dois modos: **Assistente IA** (`ai-study`, padrão) e **Zen**. O antigo template *Estúdio Moderno* foi removido e preferências salvas como `modern` migram automaticamente para `ai-study`.
+
+No modo **Assistente IA**:
+- o chat "Assistente de leitura" fica fixo à direita durante a rolagem;
+- a barra de prompts rápidos (`QuickPromptsBar`) rola na horizontal com roda do mouse, setas ou scrollbar;
+- o player de áudio vira um dock flutuante (`FloatingAudioDock`).
 
 ---
 
@@ -140,23 +192,29 @@ viva-voz-text/
 │   ├── e2e/                 # Especificações de fluxo do usuário
 │   ├── fixtures/            # Arquivos de teste e mocks
 │   └── support/             # Comandos customizados Cypress
-├── public/                  # Manifest PWA, ícones, llms.txt e assets estáticos
+├── public/                  # Manifest PWA, Service Worker (sw.js), ícones, llms.txt e assets estáticos
+├── scripts/                 # run-tests.mjs (roteia `npm test` entre Jest e Cypress)
 ├── src/
 │   ├── app/                 # Next.js App Router
-│   │   ├── api/             # Route Handlers / BFF (Auth, Sync, OCR, TTS, Ask AI)
+│   │   ├── api/             # Route Handlers / BFF (Auth, Sync, OCR, TTS, Ask, Quiz, Extract URL)
+│   │   ├── leitor/          # Página do leitor
+│   │   ├── leituras/        # Biblioteca de leituras
+│   │   ├── modelos/         # Central de modelos de IA local
 │   │   ├── layout.tsx       # Root Layout com Providers e Fontes
 │   │   └── page.tsx         # Página principal / Landing & Dashboard
 │   ├── components/          # Componentes visuais React (UI / Modais / Player)
-│   │   ├── modals/          # Modais de Configuração, Sync, Google Drive, Chave API
-│   │   ├── reader/          # Leitor Zen, Canvas de Leitura e Controles de Texto
+│   │   ├── local-ai/        # Cards de modelo, central /modelos e barra multimodal do chat
+│   │   ├── pdf-reader/      # Leitor (Assistente IA / Zen), chat, player e Quiz A2UI
 │   │   └── ui/              # Design System base (Radix UI / Tailwind)
 │   ├── context/             # React Contexts (PlayerContext, LibraryContext, etc.)
 │   ├── hooks/               # Custom Hooks (useTTS, useSync, useIndexedDB, etc.)
 │   ├── instrumentation.ts   # Configuração de telemetria / Sentry
 │   └── lib/                 # Núcleo de lógica e serviços
+│       ├── a2ui/            # Quiz A2UI: tipos, planejador de conteúdo, parser e gerador
 │       ├── ai/              # Integração Gemini API & Prompt API
 │       ├── domain/          # Entidades e Interfaces de Domínio
 │       ├── facade/          # Fachadas para orquestração de leitura e áudio
+│       ├── local-ai/        # IA local: catálogo, motores (Kokoro, Piper, Gemma), workers, storage e diagnóstico
 │       ├── monitoring/      # Utilitários de telemetria e sanitização de logs
 │       ├── ocr/             # Orquestrador OCR (Gemini Vision + Tesseract)
 │       ├── parsers/         # Adapters para PDF, EPUB, DOCX, ODT, PPTX, MD, TXT, Web
@@ -241,10 +299,12 @@ O VivaVoz utiliza o Sentry para captura de erros e monitoramento de desempenho e
    ```env
    NEXT_PUBLIC_SENTRY_DSN=https://sua_chave@o0.ingest.sentry.io/0
    SENTRY_AUTH_TOKEN=seu_auth_token_de_build
-   SENTRY_ORG=sua_org
-   SENTRY_PROJECT=seu_projeto
+   SENTRY_ORG=sua_org          # padrão: horda-run
+   SENTRY_PROJECT=seu_projeto  # padrão: viva-voz
    ```
-3. O projeto possui sanitização automática (`beforeSend`) para garantir que chaves de API (`userApiKey`), senhas e dados sensíveis de documentos **nunca** sejam enviados para os servidores do Sentry.
+3. **Tunnel `/monitoring`:** os eventos do cliente saem pelo próprio domínio do app (`tunnelRoute`), para não serem barrados por bloqueadores ou DNS privados que filtram `*.sentry.io`.
+4. **Diagnóstico da IA local (`src/lib/local-ai/diagnostics.ts`):** breadcrumbs e logs por bloco de download e por tentativa de inicialização do motor, com contexto do aparelho (cota, persistência, WebGPU, RAM, UA). Uma sentinela no `localStorage` detecta quando o navegador encerra a aba (ex.: falta de memória no iPhone) e reporta, no carregamento seguinte, em qual etapa isso aconteceu.
+5. O projeto possui sanitização automática (`beforeSend`) para garantir que chaves de API (`userApiKey`), senhas e dados sensíveis de documentos **nunca** sejam enviados para os servidores do Sentry.
 
 ---
 
@@ -258,6 +318,10 @@ Validam a lógica de negócio pura, adapters de parsing, manipulação do Indexe
 ```bash
 # Executar todos os testes unitários e de integração
 npm run test
+
+# Arquivos .cy.ts passados ao npm test vão para o Cypress
+# (sobe `next start` se não houver servidor em :3000; exige `npm run build` antes)
+npm run test -- cypress/e2e/exemplo.cy.ts
 
 # Executar com relatório de cobertura de código
 npm run test:coverage
@@ -287,7 +351,7 @@ npm run cy:lighthouse
 | `npm run build` | Compila a aplicação para produção com otimizações de bundle e rotas. |
 | `npm run start` | Inicia o servidor de produção após o build. |
 | `npm run lint` | Executa o ESLint para validação de regras de código e TypeScript. |
-| `npm run test` | Executa a suíte de testes unitários e integração com o Jest. |
+| `npm run test` | Executa o Jest; argumentos `*.cy.ts` são encaminhados ao Cypress (`scripts/run-tests.mjs`). |
 | `npm run test:coverage` | Executa os testes com mapa detalhado de cobertura de código. |
 | `npm run cy:open` | Abre o runner interativo do Cypress. |
 | `npm run cy:run` | Executa os testes E2E com o Cypress em modo headless. |

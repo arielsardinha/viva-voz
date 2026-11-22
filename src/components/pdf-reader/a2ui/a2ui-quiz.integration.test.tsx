@@ -239,7 +239,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
     fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.getByText("1 de 6")).toBeInTheDocument();
+      expect(screen.getByText("Próxima (2/6)")).toBeInTheDocument();
     });
     expect(geminiCalls).toBe(1);
     expect(screen.getByText("IA Nuvem")).toBeInTheDocument();
@@ -311,7 +311,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
     fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.getByText("1 de 10")).toBeInTheDocument();
+      expect(screen.getByText("Próxima (2/10)")).toBeInTheDocument();
     });
 
     const contextOnly = capturedPromptText.split("=== TRECHOS DO DOCUMENTO ===")[1] ?? "";
@@ -325,7 +325,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
     // Alternar para Conversar e voltar para Quiz usa cache sem gastar tokens
     fireEvent.click(screen.getByRole("button", { name: "Conversar" }));
     fireEvent.click(screen.getByRole("button", { name: "Quiz" }));
-    expect(screen.getByText("1 de 10")).toBeInTheDocument();
+    expect(screen.getByText("Próxima (2/10)")).toBeInTheDocument();
     expect(geminiCalls).toBe(1);
 
     // Clicar explicitamente em "Novas perguntas" dispara nova geração
@@ -366,7 +366,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
         screen.getByText(/Não foi possível gerar com a IA agora/i),
       ).toBeInTheDocument();
     });
-    expect(screen.getByText("1 de 4")).toBeInTheDocument();
+    expect(screen.getByText("Próxima (2/4)")).toBeInTheDocument();
   });
 
   it("usa o motor local LiteRT-LM (Gemma 4) com contexto estratificado e badge IA Local", async () => {
@@ -396,7 +396,7 @@ describe("Integração Quiz Inteligente A2UI (UI + Hook + BFF /api/quiz + IA Loc
     await waitFor(() => {
       expect(screen.getByText("IA Local")).toBeInTheDocument();
       // 6 questões planejadas, pedidas em 2 lotes de 3 para caber no teto de saída do Gemma.
-      expect(screen.getByText("1 de 6")).toBeInTheDocument();
+      expect(screen.getByText("Próxima (2/6)")).toBeInTheDocument();
     });
 
     expect(mockStreamMultimodalPrompt).toHaveBeenCalledTimes(2);

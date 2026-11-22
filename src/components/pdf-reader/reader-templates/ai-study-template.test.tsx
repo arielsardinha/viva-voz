@@ -180,15 +180,14 @@ describe("AIStudyTemplate Component", () => {
     fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
 
     // Superfície A2UI aberta com barra de protocolo e SEM o chip/banner redundante de sincronia
-    expect(screen.getByText("A2UI Surface · Catálogo nativo")).toBeInTheDocument();
-    expect(screen.getByText("1 de 2")).toBeInTheDocument();
+    expect(screen.queryByText(/Catálogo nativo|Sequência:/)).not.toBeInTheDocument();
+    expect(screen.getByText("Próxima (2/2)")).toBeInTheDocument();
     expect(screen.queryByText(/Superfície A2UI sincronizada/i)).not.toBeInTheDocument();
     expect(document.querySelector('[data-cy="a2ui-reader-sync-banner"]')).not.toBeInTheDocument();
 
     // Seleciona a alternativa B (correta para Q1: (0 + 1) % 4 = 1 -> B)
     fireEvent.click(screen.getByRole("radio", { name: /B\)/i }));
     expect(screen.getByText("+60 XP")).toBeInTheDocument();
-    expect(screen.getByText("60 XP")).toBeInTheDocument();
 
     // Sem barra de certeza nem botão "Mais difícil"; destaca evidência no texto
     expect(screen.queryByRole("button", { name: /Certeza|Mais difícil/i })).toBeNull();
@@ -203,7 +202,7 @@ describe("AIStudyTemplate Component", () => {
     const cmdInput = screen.getByLabelText("Comando para o Quiz A2UI");
     fireEvent.change(cmdInput, { target: { value: "próxima" } });
     fireEvent.submit(cmdInput.closest("form")!);
-    expect(screen.getByText("2 de 2")).toBeInTheDocument();
+    expect(screen.getByText("Próxima (1/2)")).toBeInTheDocument();
   });
 
   it("deve adaptar o Quiz para 1 questão em documentos muito curtos (1 frase)", () => {
@@ -234,7 +233,7 @@ describe("AIStudyTemplate Component", () => {
     );
 
     fireEvent.click(document.querySelector('[data-cy="assistant-tab-quiz"]') as HTMLElement);
-    expect(screen.getByText("1 de 1")).toBeInTheDocument();
+    expect(screen.getByText("Questão única (1/1)")).toBeInTheDocument();
   });
 
   it("deve pausar a narração automaticamente ao abrir o Quiz enquanto toca e oferecer retomada em simbiose", () => {

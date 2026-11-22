@@ -5,15 +5,12 @@ import {
   ArrowRight,
   BookmarkPlus,
   Check,
-  Flame,
   Lightbulb,
   Loader2,
   Mic,
   Quote,
   RefreshCw,
   RotateCcw,
-  Sparkles,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeA2uiQuizSummary } from "@/lib/a2ui/a2ui-quiz.service";
@@ -138,30 +135,6 @@ export function A2UIQuizSurface({
   return (
     <div className="flex flex-1 min-h-0 flex-col justify-between gap-3 overflow-y-auto px-3 sm:px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
       <div className="space-y-2.5">
-        <div
-          data-cy="a2ui-surface-header"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-secondary/70 px-3 py-2 text-[11px]"
-        >
-          <span className="inline-flex items-center gap-1.5 font-bold text-accent">
-            <Zap className="size-3.5 shrink-0" aria-hidden="true" />
-            <span>A2UI Surface · Catálogo nativo</span>
-          </span>
-          <div className="flex flex-wrap items-center gap-2 font-semibold tabular-nums">
-            <span className="inline-flex items-center gap-1 text-voice-ink">
-              <Flame className="size-3 text-voice" aria-hidden="true" />
-              Sequência: {dataModel.streak}
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-              {dataModel.totalXp} XP
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-foreground">
-              {dataModel.currentQuestionIndex + 1} de {questions.length}
-            </span>
-          </div>
-        </div>
-
         {/* Barra de origem e cobertura de tokens */}
         <div
           data-cy="a2ui-coverage-badge"
@@ -222,13 +195,7 @@ export function A2UIQuizSurface({
           aria-label={`Questão ${activeQuestion.index + 1} do Quiz A2UI`}
           className="rounded-2xl border border-accent/30 bg-secondary/40 p-3 sm:p-4 space-y-3"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-semibold text-accent">
-              <Sparkles className="size-3" aria-hidden="true" />
-              <span>
-                {activeQuestion.topic} · ¶{activeQuestion.paragraphRef}
-              </span>
-            </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <InlineVoiceReply
               text={activeQuestion.prompt}
               label="Ouvir pergunta"
